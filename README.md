@@ -1,2 +1,2 @@
 # mjmpc
-Sampling based model predictive control (MPC) using MuJoCo simulator
+Sampling based Model Predictive Control using MuJoCo simulator
