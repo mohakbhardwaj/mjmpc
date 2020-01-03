@@ -1,5 +1,5 @@
 # mjmpc
-Sampling based model predictive control (MPC) using MuJoCo simulator
+Sampling based Model Predictive Control using MuJoCo simulator
 ## Installation
 ```
 conda create --name mjmpc python=3.7
