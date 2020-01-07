@@ -57,14 +57,6 @@ sim_env.seed(seed_list)
 
 
 #Create functions for MPPI
-def get_state_fn() -> np.ndarray:
-    """
-    Get state of main environment to plan from
-    """
-    state = env.get_state()
-    return state
-
-
 def set_state_fn(state: np.ndarray):
     """
     Set state of simulation environments for rollouts
@@ -94,20 +86,16 @@ def rollout_callback():
 #Create dictionary of policy params
 policy_params = {'horizon': args.H,
                  'init_cov': args.init_cov,
-                 'min_cov': None,
-                 'prior_cov': None,
                  'lam': args.lam,
                  'num_particles':  args.num_particles,
                  'step_size':  args.step_size,
                  'alpha':  args.alpha,
-                 'beta':  None,
                  'gamma':  args.gamma,
                  'n_iters':  args.n_iters,
                  'num_actions':  env.d_action,
                  'action_lows':  env.action_space.low,
                  'action_highs':  env.action_space.high,
                  'set_state_fn':  set_state_fn,
-                 'get_state_fn':  get_state_fn,
                  'rollout_fn':  rollout_fn,
                  'rollout_callback': None,
                  'seed':  args.seed}
@@ -132,7 +120,7 @@ for i in tqdm.tqdm(range(n_episodes)):
     for t in tqdm.tqdm(range(max_ep_length)):
         curr_state = env.get_state()
         #Get action from policy
-        action = policy.get_action()
+        action = policy.get_action(curr_state)
         #Perform action on environment
         obs, reward, done, info = env.step(action)
         #Add transition to buffer
