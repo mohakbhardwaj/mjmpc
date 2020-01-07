@@ -15,7 +15,7 @@ class SwimmerEnv(mujoco_env.MujocoEnv, utils.EzPickle):
         model_path = 'xml/swimmer.xml'
         # super(SwimmerEnv, self).__init__(model_path, 5, 'swimmer', 14, 4, 12, batch_size=batch_size)
         # AL: make it fully observable for now
-        super(SwimmerEnv, self).__init__(model_path, 5, 'swimmer', 14, 4, 14, batch_size=batch_size)
+        super(SwimmerEnv, self).__init__(model_path, 5, 'swimmer', 14, 4, 19, batch_size=batch_size)
         utils.EzPickle.__init__(self)
         self.dyn_params = None
 
