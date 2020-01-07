@@ -45,18 +45,15 @@ class SwimmerEnv(mujoco_env.MujocoEnv, utils.EzPickle):
         return ob, reward, done, {}
 
     def _get_obs(self):
-        # obs_vec = np.zeros((self.batch_size, self.d_obs))
-        # for i in range(self.batch_size):
-        #     obs_vec[i, :] = np.concatenate([
-        #         self.data[i].qpos.flat[:2],
-        #         np.cos(self.data[i].qpos.flat[2:]),
-        #         np.sin(self.data[i].qpos.flat[2:]),
-        #         self.data[i].qvel.flat,
-        #     ])
-        # return obs_vec
-        # AL: make it fully observable for now
-
-        return self.get_state()
+        obs_vec = np.zeros((self.batch_size, self.d_obs))
+        for i in range(self.batch_size):
+            obs_vec[i, :] = np.concatenate([
+                self.data[i].qpos.flat[:2],
+                np.cos(self.data[i].qpos.flat[2:]),
+                np.sin(self.data[i].qpos.flat[2:]),
+                self.data[i].qvel.flat,
+            ])
+        return obs_vec
 
     def get_obs_vec(self):
         return self._get_obs()
