@@ -2,6 +2,7 @@
 import sys, os
 sys.path.insert(0, os.path.abspath('..'))
 import argparse
+from datetime import datetime
 import gym
 import numpy as np
 import tqdm
@@ -20,16 +21,21 @@ parser.add_argument('--init_cov', type=float, default=3.5, help='standard deviat
 parser.add_argument('--lam', type=float, default=0.01, help='temperature parameter for mppi')
 parser.add_argument('--step_size', type=float, default=0.55, help='step size for mean update for mppi')
 parser.add_argument('--alpha', type=int, default=0, help='weight for control seq from passive dynamics (0=passive dynamics has zero control,\
-																											1=passive dyn is current control distribution')
+																										1=passive dyn is current control distribution')
 parser.add_argument('--gamma', type=float, default=1.0, help='discount factor')
 parser.add_argument('--n_iters', type=int, default=1, help='number of update steps per iteraion of mpc')
 parser.add_argument('--seed', type=int, default=0, help='number of samples per planning iteration')
 parser.add_argument('--render', action='store_true', help='render environment')
+parser.add_argument('--save_dir', type=str, default='/tmp', help='folder to save data in')
 args = parser.parse_args()
 
-#Setiup logging
-LOG_DIR = os.path.abspath("..")
-logger.setup("MPPI", os.path.join(LOG_DIR, 'log.txt'), 'debug')
+#Setup logging
+now = datetime.now()
+date_time = now.strftime("%m_%d_%Y_%H_%M_%S")
+exp_name = 'MPPI_{0}'.format(args.env)
+LOG_DIR = os.path.join(os.path.abspath(args.save_dir), exp_name + "/" + date_time)
+if not os.path.exists(LOG_DIR): os.makedirs(LOG_DIR)
+logger.setup(exp_name, os.path.join(LOG_DIR, 'log.txt'), 'debug')
 
 #Create the main environment
 np.random.seed(args.seed)
@@ -92,7 +98,6 @@ policy_params = {'horizon': args.H,
 	            'rollout_fn'   :  rollout_fn,
                 'rollout_callback': None,
 	            'seed'         :  args.seed}
-#'get_state_fn' :  get_state_fn
 
 policy = MPCPolicy(controller_type='mppi', param_dict=policy_params, batch_size=1)
 n_episodes = args.n_episodes; max_ep_length = args.max_ep_length
@@ -118,10 +123,12 @@ for i in tqdm.tqdm(range(n_episodes)):
         curr_obs = obs.copy()
         ep_rewards[i] += reward.item()
     
+
 timeit.stop('start')
 logger.info(timeit)
 logger.info('Buffer Length = {0}'.format(len(buff)))
 logger.info('Average reward = {0}. Closing...'.format(np.average(ep_rewards)))
+buff.save(LOG_DIR)
 
 if args.render:
     logger.info('Rendering 2 times')
