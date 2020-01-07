@@ -12,8 +12,8 @@ class MPCPolicy(Policy):
         else:
             raise(NotImplementedError, "Controller type does not exist")
 
-    def get_action(self, obs: np.ndarray = None)-> np.ndarray:
-        action = self.controller.step()
+    def get_action(self, state: np.ndarray = None)-> np.ndarray:
+        action = self.controller.step(state)
         return action
 
     def reset(self):

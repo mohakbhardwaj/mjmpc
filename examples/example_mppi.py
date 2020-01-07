@@ -17,14 +17,11 @@ parser.add_argument('--H', type=int, default=32, help='Planning horizon')
 parser.add_argument('--max_ep_length', type=int, default=200, help='Length of episode before reset')
 parser.add_argument('--num_particles', type=int, default=24, help='number of samples for MPPI')
 parser.add_argument('--init_cov', type=float, default=3.5, help='standard deviation for noise added to controls')
-# parser.add_argument('--min_cov', type=float, default=0.1, help='standard deviation for noise added to controls')
-# parser.add_argument('--prior_cov', type=float, default=0.01, help='standard deviation for noise added to controls')
 parser.add_argument('--lam', type=float, default=0.01, help='temperature parameter for mppi')
 parser.add_argument('--step_size', type=float, default=0.55, help='step size for mean update for mppi')
 parser.add_argument('--alpha', type=int, default=0, help='weight for control seq from passive dynamics (0=passive dynamics has zero control,\
 																											1=passive dyn is current control distribution')
 parser.add_argument('--gamma', type=float, default=1.0, help='discount factor')
-# parser.add_argument('--beta', type=float, default=0.1, help='step size for growing covariance')
 parser.add_argument('--n_iters', type=int, default=1, help='number of update steps per iteraion of mpc')
 parser.add_argument('--seed', type=int, default=0, help='number of samples per planning iteration')
 parser.add_argument('--render', action='store_true', help='render environment')
@@ -47,12 +44,12 @@ sim_env = gym.make(args.env, **kwargs)
 sim_env.seed(args.seed)
 
 #Create functions for MPPI
-def get_state_fn() -> np.ndarray:
-    """
-    Get state of main environment to plan from
-    """
-    state = env.get_state()
-    return state
+# def get_state_fn() -> np.ndarray:
+#     """
+#     Get state of main environment to plan from
+#     """
+#     state = env.get_state()
+#     return state
 
 def set_state_fn(state:np.ndarray):
     """
@@ -82,23 +79,20 @@ def rollout_callback():
 #Create dictionary of policy params
 policy_params = {'horizon': args.H,
                 'init_cov': args.init_cov,
-	            'min_cov': None,
-	            'prior_cov': None,
 	            'lam': args.lam,
 	            'num_particles':  args.num_particles,
                 'step_size'    :  args.step_size,
 	            'alpha'        :  args.alpha,
-	            'beta'		   :  None,
                 'gamma'        :  args.gamma,
 	            'n_iters'	   :  args.n_iters,
 	            'num_actions'  :  env.d_action,
 	            'action_lows'  :  env.action_space.low,
 	            'action_highs' :  env.action_space.high,
 	            'set_state_fn' :  set_state_fn,
-	            'get_state_fn' :  get_state_fn,
 	            'rollout_fn'   :  rollout_fn,
                 'rollout_callback': None,
 	            'seed'         :  args.seed}
+#'get_state_fn' :  get_state_fn
 
 policy = MPCPolicy(controller_type='mppi', param_dict=policy_params, batch_size=1)
 n_episodes = args.n_episodes; max_ep_length = args.max_ep_length
@@ -114,7 +108,7 @@ for i in tqdm.tqdm(range(n_episodes)):
     for t in tqdm.tqdm(range(max_ep_length)):
         curr_state = env.get_state()
         #Get action from policy
-        action = policy.get_action()
+        action = policy.get_action(curr_state)
         # print(action.shape)
         #Perform action on environment
         obs, reward, done, info = env.step(action)

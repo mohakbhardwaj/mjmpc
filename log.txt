@@ -7,3 +7,18 @@
 
 01-02 22:11:22 MPPI       INFO     Buffer Length = 2000
 01-02 22:11:22 MPPI       INFO     Average reward = -331.09819748441953. Closing...
+01-03 17:32:04 MPPI       INFO     Runnning 10 episodes
+01-03 17:33:08 MPPI       INFO     Runnning 10 episodes
+01-03 17:34:31 MPPI       INFO     Runnning 10 episodes
+01-03 17:34:53 MPPI       INFO     Runnning 10 episodes
+01-03 17:35:44 MPPI       INFO     Runnning 10 episodes
+01-03 17:35:49 MPPI       INFO     : start      4.6
+
+01-03 17:35:49 MPPI       INFO     Buffer Length = 2000
+01-03 17:35:49 MPPI       INFO     Average reward = -331.09819748441953. Closing...
+01-03 17:53:34 MPPI       INFO     Runnning 10 episodes
+01-03 17:54:01 MPPI       INFO     Runnning 10 episodes
+01-03 17:54:05 MPPI       INFO     : start      4.6
+
+01-03 17:54:05 MPPI       INFO     Buffer Length = 2000
+01-03 17:54:05 MPPI       INFO     Average reward = -331.09819748441953. Closing...
