@@ -5,11 +5,7 @@ from mujoco_py import MjViewer
 
 """
 Possible issues: 
-1. Currently everything only works with batch_size=1 (we can start with for-loops first but multiprocessing/mpi_threads 
-                                                     might be required if too slow. For example, see OpenAI Gym's vectorized environments.
-                                                     the better option (maybe overkill?) will be to implement directly in C++ i.e modify mujoco_py
-                                                     and add a rollout function.)
-2. self.dyn_params (in __init__) and set_params function needs to be implemented - while this is not urgent right now, it might be useful
+1. self.dyn_params (in __init__) and set_params function needs to be implemented - while this is not urgent right now, it might be useful
                                                                                    for dynamics randomization later
 """
 
