@@ -24,11 +24,9 @@ class Controller(ABC):
                  set_state_fn,
                  terminal_cost_fn=None,
                  batch_size=1):
-                #  get_state_fn,
         self.num_actions = num_actions
         self.action_lows = action_lows
         self.action_highs = action_highs
-        # self.get_state_fn = get_state_fn
         self.set_state_fn = set_state_fn
         self.terminal_cost_fn = terminal_cost_fn
         self.batch_size = batch_size
@@ -95,7 +93,7 @@ class Controller(ABC):
 
         for itr in range(self.n_iters):
             # generate random trajectories
-            obs_vec, state_vec, sk, delta = self._generate_rollouts(state)
+            obs_vec, sk, delta = self._generate_rollouts(state) #state_vec
             # update moments and calculate best action
             self._update_moments(sk, delta)
             curr_action = self._get_next_action(state, sk, delta)
@@ -114,10 +112,9 @@ class Controller(ABC):
             and returns the resulting observations, states, costs and 
             actions
          """
-        delta = self._sample_actions()
-        _ctrl = self.mean_action[:, :, np.newaxis] + delta
-        act_seq = scale_ctrl(_ctrl, action_low_limit=self.action_lows, action_up_limit=self.action_highs)
-        obs_vec, state_vec, rew_vec, _ = self.rollout_fn(copy.deepcopy(state), act_seq)  # rollout function returns the rewards and final states
+
+        delta, act_seq = self._sample_actions()
+        obs_vec, rew_vec, _ = self.rollout_fn(act_seq)  # rollout function returns the observations, rewards   state_vec
         sk = -rew_vec  # rollout_fn returns a REWARD and we need a COST
         if self.terminal_cost_fn is not None:
             term_states = obs_vec[:, -1, :].reshape(obs_vec.shape[0], obs_vec.shape[-1])
@@ -130,7 +127,7 @@ class Controller(ABC):
             #     print('covariance', self.cov_action)
             #     input('..')
 
-        if self.rollout_callback is not None: self.rollout_callback(obs_vec, state_vec, self.mean_action, self.cov_action,
-                                                                    act_seq)  # for example, visualize rollouts
+        if self.rollout_callback is not None: self.rollout_callback(obs_vec, self.mean_action, self.cov_action,
+                                                                    act_seq) #state_vec # for example, visualize rollouts
 
-        return obs_vec, state_vec, sk, delta
+        return obs_vec, sk, delta #state_vec

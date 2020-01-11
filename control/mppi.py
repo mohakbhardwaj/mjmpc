@@ -32,8 +32,6 @@ class MPPI(Controller):
                  rollout_callback=None,
                  batch_size=1,
                  seed=0):
-                #get_state_fn,
-                #update_val=False,
 
 
 
@@ -43,7 +41,6 @@ class MPPI(Controller):
                                    set_state_fn, 
                                    terminal_cost_fn,
                                    batch_size)
-                                   #get_state_fn
         self.horizon = horizon
         self.init_cov = init_cov  # cov for sampling actions
         self.lam = lam
@@ -54,8 +51,6 @@ class MPPI(Controller):
         self.n_iters = n_iters  # number of iterations of optimization per timestep
         self.rollout_fn = rollout_fn
         self.rollout_callback = rollout_callback
-        # self.update_val = update_val
-        # self.update_cov = (self.prior_cov is not None and self.beta is not None)
         self.seed = seed
 
         self.mean_action = np.zeros(shape=(horizon, num_actions))
@@ -72,12 +67,14 @@ class MPPI(Controller):
         """
         next_action = self.mean_action[0]
         next_action = scale_ctrl(next_action, action_low_limit=self.action_lows, action_up_limit=self.action_highs)
-        return next_action.reshape(1, self.num_actions)
+        return next_action.reshape(self.num_actions, )
 
     def _sample_actions(self):
         delta = np.random.normal(0.0, np.sqrt(self.cov_action[:, :, np.newaxis]),
                                  size=(self.horizon, self.num_actions, self.num_particles))
-        return delta
+        _ctrl = self.mean_action[:, :, np.newaxis] + delta
+        act_seq = scale_ctrl(_ctrl, action_low_limit=self.action_lows, action_up_limit=self.action_highs)
+        return delta, act_seq
 
     def _update_moments(self, sk, delta):
         """
@@ -86,8 +83,7 @@ class MPPI(Controller):
         """
         w = self._exp_util(sk, delta, self.lam)
         self.mean_action = (1.0 - self.step_size) * self.mean_action + self.step_size * np.matmul(delta, w[:, :,
-                                                                                                         None]).squeeze(
-            axis=-1)
+                                                                                                         None]).squeeze(axis=-1)
 
         # self.mean_action = savgol_filter(self.mean_action, len(self.mean_action) - 1, 3, axis=0)
         if np.any(np.isnan(self.mean_action)):

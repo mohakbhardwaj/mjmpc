@@ -3,19 +3,15 @@ from envs import *
 from policies import *
 import numpy as np
 
-def get_env_from_str(env_name):
-    pass
 
-
-def get_policy_from_str(name, params):
-    if name == 'mpc_policy':
-        return MPCPolicy(**params)
-    elif name == 'random_policy':
-        return RandomPolicy(**params)
-    elif name == 'nn_policy':
-        return NNPolicy(**params)
-    else:
-        raise NotImplementedError("Policy type not found")
+def set_qpos_qvel(sim, qpos, qvel, nq, nv):
+    state = sim.get_state()
+    for i in range(nq):
+        state.qpos[i] = qpos[i]
+    for i in range(nv):
+        state.qvel[i] = qvel[i]
+    sim.set_state(state)
+    sim.forward()
 
 def render_env(env, state_vec):
     n_steps = state_vec.shape[0]
@@ -26,8 +22,5 @@ def render_env(env, state_vec):
         env.set_state(curr_state)
         env.render()
         # _,_,_,- = env.step
-
-def decay_schedule_linear():
-    raise NotImplementedError
 
 

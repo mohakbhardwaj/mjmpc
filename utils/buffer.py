@@ -1,38 +1,33 @@
 
 """
-TODO: Currently works for batch_size = 1 only
+Buffer for storing transitions and 
+rendering
 """
 #!/usr/bin/env python
 import copy
 import numpy as np
 import os
-import torch
-from torch.utils.data import Dataset
 from .logger import logger
 from .timer import timeit
 
 
-class Buffer(Dataset):
-    def __init__(self, d_state, d_action, d_sim_state, max_length=1e6, ensemble_size=1, batch_size=1):
+class Buffer():
+    def __init__(self, d_obs, d_action, max_length=1e6):
         self._max_length = int(max_length)
-        self._ensemble_size = ensemble_size; self._batch_size = batch_size
-        self._d_state = d_state
+        self._d_obs = d_obs
         self._d_action = d_action
-        self._d_sim_state = d_sim_state
-        self._states = torch.zeros(self._max_length, int(d_state)).float()
-        self._actions = torch.zeros(self._max_length, int(d_action)).float()
-        self._next_states = torch.zeros(self._max_length, int(d_state)).float()
-        self._next_actions = torch.zeros(self._max_length, int(d_action)).float()
-        self._sim_states = torch.zeros(self._max_length, int(d_sim_state)).float()
-        self._sim_next_states = torch.zeros(self._max_length, int(d_sim_state)).float()
-        self._rewards = torch.zeros(self._max_length,1).float()
-        self._dones = torch.zeros(self._max_length,1).byte()
-        self._successes = torch.zeros(self._max_length,1).byte()
-        self._expert_targets = torch.zeros(self._max_length,1).float()
-        self._value_targets = torch.zeros(self._max_length,1).float()
-        self.normalizer = None
-        self._n_elements = 0
 
+        self._obs = np.zeros((self._max_length, int(d_obs)), dtype=np.float32)
+        self._actions = np.zeros((self._max_length, int(d_action)), dtype=np.float32)
+        self._next_obs = np.zeros((self._max_length, int(d_obs)), dtype=np.float32)
+        self._next_actions = np.zeros((self._max_length, int(d_action)), dtype=np.float32)
+        self._states = []
+        self._next_states = []
+        self._rewards = np.zeros((self._max_length,1), dtype=np.float32)
+        self._dones = np.zeros((self._max_length,1), dtype=bool)
+        self._successes = np.zeros((self._max_length,1), dtype=bool)
+
+        self._n_elements = 0
         self._num_episodes_done = 0.0
         self._tot_reward = 0.0
         self._avg_reward = 0.0
@@ -48,62 +43,21 @@ class Buffer(Dataset):
     def is_empty(self):
         return self._n_elements == 0
 
-    @property
-    def state_mean(self):
-        num = len(self)
-        if num == 0: return torch.zeros(1,self._d_state)
-        return torch.mean(self._states[0:num], dim=0)
-
-    @property
-    def state_std(self):
-        num = len(self)
-        if num < 2: return torch.zeros(1,self._d_state)
-        return torch.std(self._states[0:num], dim=0)
-
-    @property
-    def action_mean(self):
-        num = len(self)
-        if num == 0: return torch.zeros(1,self._d_action)
-        return torch.mean(self._actions[0:num], dim=0)
-
-    @property
-    def action_std(self):
-        num = len(self)
-        if num < 2: return torch.zeros(1,self._d_action)
-        return torch.std(self._actions[0:num], dim=0)
-
-    def setup_normalizer(self, normalizer):
-        self.normalizer = normalizer
-
     def add(self, transition):
-        state, action, next_state, next_action = torch.from_numpy(transition[0]).float().clone(), torch.from_numpy(transition[1]).float().clone(),\
-                                                 torch.from_numpy(transition[2]).float().clone(), torch.from_numpy(transition[3]).float().clone()
-        reward = torch.tensor(transition[4]).float().clone()
-        done = torch.tensor(transition[5]).byte().clone()
-        success = torch.tensor(transition[6]).byte().clone()
-        sim_state = torch.tensor(transition[7]).float().clone()
-        sim_next_state = torch.tensor(transition[8]).float().clone()
+        obs, action, next_obs, next_action, reward, done, success, state, next_state = transition
         idx = self._n_elements % self._max_length
-
-
-        self._states[idx] = state
-        self._actions[idx] = action
-        self._next_states[idx] = next_state
-        self._next_actions[idx] = next_action
+        self._obs[idx] = obs.copy().reshape(self._d_obs,)
+        self._actions[idx] = action.copy().reshape(self._d_action,)
+        self._next_obs[idx] = next_obs.copy().reshape(self._d_obs,)
+        self._next_actions[idx] = next_action.reshape(self._d_action,)
         self._rewards[idx] = reward
         self._dones[idx] = done
         self._successes[idx] = success
-        self._sim_states[idx] = sim_state
-        self._sim_next_states[idx] = sim_next_state
-        if len(transition) > 9:
-            expert_target = torch.from_numpy(transition[9]).float().clone()
-            self._expert_targets[idx] = expert_target
+        self._states.append(copy.deepcopy(state))
+        self._next_states.append(copy.deepcopy(next_state))
 
         self._n_elements += 1
-        self._curr_ep_rew += reward.item()
-
-        if self.normalizer is not None:
-            self.normalizer.update(state, action, next_state - state)
+        self._curr_ep_rew += reward
 
         if self._n_elements > self._max_length:
             logger.warn("buffer full, rewriting over old samples")
@@ -141,95 +95,9 @@ class Buffer(Dataset):
     def __len__(self):
         return min(self._n_elements, self._max_length)
 
-    def __getitem__(self, idx):
-
-        if len(self._states) == 0:
-            raise ValueError("No experiences in the buffer")
-
-        sample = {'state': self._states[idx],
-                  'action': self._actions[idx],
-                  'next_state': self._next_states[idx],
-                  'next_action': self._next_actions[idx],
-                  'reward': self._rewards[idx],
-                  'done': self._dones[idx],
-                  'success': self._successes[idx],
-                  'expert_target': self._expert_targets[idx],
-                  'sim_state': self._sim_states[idx],
-                  'sim_next_state': self._sim_next_states[idx]} #, 'expert_target': None}
-
-        return sample
-
     @property
     def max_length(self):
         return self._max_length
-
-
-    def train_batches(self, batch_size):
-        """
-        return an iterator of batches
-        Args:
-            batch_size: number of samples to be returned
-        Returns:
-            state of size (ensemble_size, batch_size, d_state)
-            action of size (ensemble_size, batch_size, d_action)
-            next state of size (ensemble_size, batch_size, d_state)
-        """
-        num = len(self)
-        indices = [np.random.permutation(range(num)) for _ in range(self._ensemble_size)]
-        indices = np.stack(indices).T
-        #self.generate_value_targets()
-        for i in range(0, num, batch_size):
-            j = min(num, i + batch_size)
-
-            if (j - i) < batch_size and i != 0:
-            # drop last incomplete last batch
-                return
-
-            batch_size = j - i
-
-            batch_indices = indices[i:j]
-            batch_indices = batch_indices.flatten()
-
-            states          = self._states[batch_indices]
-            actions         = self._actions[batch_indices]
-            next_states     = self._next_states[batch_indices]
-            next_actions    = self._next_actions[batch_indices]
-            rewards         = self._rewards[batch_indices]
-            dones           = self._dones[batch_indices]
-            successes       = self._successes[batch_indices]
-            exp_targets     = self._expert_targets[batch_indices]
-            sim_states      = self._sim_states[batch_indices]
-            sim_next_states = self._sim_next_states[batch_indices]
-            # value_targets = self._value_targets[batch_indices]
-
-            states          = states.reshape(self._ensemble_size, batch_size, self._d_state)
-            actions         = actions.reshape(self._ensemble_size, batch_size, self._d_action)
-            next_states     = next_states.reshape(self._ensemble_size, batch_size, self._d_state)
-            next_actions    = next_actions.reshape(self._ensemble_size, batch_size, self._d_action )
-            rewards         = rewards.reshape(self._ensemble_size, batch_size, 1)
-            dones           = dones.reshape(self._ensemble_size, batch_size, 1)
-            successes       = successes.reshape(self._ensemble_size, batch_size, 1)
-            exp_targets     = exp_targets.reshape(self._ensemble_size, batch_size, 1)
-            sim_states      = sim_states.reshape(self._ensemble_size, batch_size, self._d_sim_state)
-            sim_next_states = sim_next_states.reshape(self._ensemble_size, batch_size, self._d_sim_state)
-            # value_targets = value_targets.reshape(self._ensemble_size, batch_size, 1)
-
-            yield states.clone(), actions.clone(), next_states.clone(), next_actions.clone(), rewards.clone(), dones.clone(), successes.clone(), exp_targets.clone(), sim_states.clone(), sim_next_states.clone() #value_targets
-
-
-    def generate_value_targets(self, gamma=1, mode='mc'):
-        end_idxs = torch.nonzero(self._dones)[:,0] + 1
-        start_idx = 0
-
-        for end_idx in end_idxs:
-            rewards = self._rewards[start_idx:end_idx]
-            cum_rew = torch.cumsum(rewards.flip(dims=(0,1)), dim=0).flip(dims=(0,1))
-            self._value_targets[start_idx:end_idx] = cum_rew
-            start_idx = end_idx
-
-    def update_exp_targets(self, exp_targets):
-        self._expert_targets = torch.from_numpy(exp_targets).float().clone()
-
 
     ###############
     ### Logging ###
@@ -274,75 +142,52 @@ class Buffer(Dataset):
     ######################
 
     def save(self, folder):
-        states_np          = self._states[self._num_saved_already:self._n_elements].numpy()
-        actions_np         = self._actions[self._num_saved_already:self._n_elements].numpy()
-        next_states_np     = self._next_states[self._num_saved_already:self._n_elements].numpy()
-        next_actions_np    = self._next_actions[self._num_saved_already:self._n_elements].numpy()
-        rewards_np         = self._rewards[self._num_saved_already:self._n_elements].numpy()
-        dones_np           = self._dones[self._num_saved_already:self._n_elements].numpy()
-        success_np         = self._successes[self._num_saved_already:self._n_elements].numpy()
-        expert_targets_np  = self._expert_targets[self._num_saved_already:self._n_elements].numpy()
-        sim_states_np      = self._sim_states[self._num_saved_already:self._n_elements].numpy()
-        sim_next_states_np = self._sim_next_states[self._num_saved_already:self._n_elements].numpy()
+        obs_save          = self._obs[self._num_saved_already:self._n_elements]
+        actions_save         = self._actions[self._num_saved_already:self._n_elements]
+        next_obs_save     = self._next_obs[self._num_saved_already:self._n_elements]
+        next_actions_save    = self._next_actions[self._num_saved_already:self._n_elements]
+        rewards_save         = self._rewards[self._num_saved_already:self._n_elements]
+        dones_save           = self._dones[self._num_saved_already:self._n_elements]
+        success_save         = self._successes[self._num_saved_already:self._n_elements]
+        # sim_states_save      = self._sim_states[self._num_saved_already:self._n_elements]
+        # sim_next_states_save = self._sim_next_states[self._num_saved_already:self._n_elements]
 
 
         if not os.path.exists(folder): os.makedirs(folder)
-        np.savetxt(folder+"/buffer_states.csv",states_np)
-        np.savetxt(folder+"/buffer_actions.csv", actions_np)
-        np.savetxt(folder+"/buffer_next_states.csv", next_states_np)
-        np.savetxt(folder+"/buffer_next_actions.csv", next_actions_np)
-        np.savetxt(folder+"/buffer_rewards.csv",rewards_np)
-        np.savetxt(folder+"/buffer_dones.csv", dones_np)
-        np.savetxt(folder+"/buffer_successes.csv", success_np)
-        np.savetxt(folder+"/buffer_expert_targets.csv", expert_targets_np)
-        np.savetxt(folder+"/buffer_sim_states.csv", sim_states_np)
-        np.savetxt(folder+"/buffer_sim_next_states.csv", sim_next_states_np)
+        np.savetxt(folder+"/observations.csv",obs_save)
+        np.savetxt(folder+"/actions.csv", actions_save)
+        np.savetxt(folder+"/next_observations.csv", next_obs_save)
+        np.savetxt(folder+"/next_actions.csv", next_actions_save)
+        np.savetxt(folder+"/rewards.csv",rewards_save)
+        np.savetxt(folder+"/dones.csv", dones_save)
+        np.savetxt(folder+"/successes.csv", success_save)
+        # np.savetxt(folder+"/sim_states.csv", sim_states_save)
+        # np.savetxt(folder+"/sim_next_states.csv", sim_next_states_save)
 
-        self._num_saved_already = self._n_elements
+        if len(self) < self._max_length:
+            self._num_saved_already = self._n_elements
 
     def load(self, folder):
-        states_np          = np.loadtxt(os.path.join(folder,"buffer_states.csv"))
-        actions_np         = np.loadtxt(os.path.join(folder,"buffer_actions.csv"))
-        next_states_np     = np.loadtxt(os.path.join(folder,"buffer_next_states.csv"))
-        next_actions_np    = np.loadtxt(os.path.join(folder,"buffer_next_actions.csv"))
-        rewards_np         = np.loadtxt(os.path.join(folder,"buffer_rewards.csv"))
-        dones_np           = np.loadtxt(os.path.join(folder,"buffer_dones.csv"))
-        successes_np       = np.loadtxt(os.path.join(folder,"buffer_successes.csv"))
-        expert_targets_np  = np.loadtxt(os.path.join(folder,"buffer_expert_targets.csv"))
-        sim_states_np      = np.loadtxt(os.path.join(folder,"buffer_sim_states.csv"))
-        sim_next_states_np = np.loadtxt(os.path.join(folder,"buffer_sim_next_states.csv"))
-
-
-        self._states = torch.from_numpy(states_np).float().clone(); self._actions = torch.from_numpy(actions_np).float().clone();
-        self._next_states = torch.from_numpy(next_states_np).float().clone(); self._next_actions = torch.from_numpy(next_actions_np).float().clone();
-        self._rewards = torch.from_numpy(rewards_np).float().clone(); self._dones = torch.from_numpy(dones_np).byte().clone(); self._successes = torch.from_numpy(successes_np).byte().clone();
-        self._expert_targets = torch.from_numpy(expert_targets_np).float().clone(); self._sim_states = torch.from_numpy(sim_states_np).float().clone();
-        self._sim_next_states = torch.from_numpy(sim_next_states_np).float().clone(); self._n_elements = self._states.shape[0];
+        self._obs          = np.loadtxt(os.path.join(folder,"observations.csv"))
+        self._actions      = np.loadtxt(os.path.join(folder,"actions.csv"))
+        self._next_obs     = np.loadtxt(os.path.join(folder,"next_observations.csv"))
+        self._next_actions = np.loadtxt(os.path.join(folder,"next_actions.csv"))
+        self._rewards      = np.loadtxt(os.path.join(folder,"rewards.csv"))
+        self._dones        = np.loadtxt(os.path.join(folder,"dones.csv"))
+        self._successes    = np.loadtxt(os.path.join(folder,"successes.csv"))
+        # sim_states_np      = np.loadtxt(os.path.join(folder,"sim_states.csv"))
+        # sim_next_states_np = np.loadtxt(os.path.join(folder,"sim_next_states.csv"))
+        self._n_elements = self._obs.shape[0];
 
     def load_partial(self, folder):
-        print(folder)
-        states_np          = np.loadtxt(os.path.join(folder,"buffer_states.csv"))
-        actions_np         = np.loadtxt(os.path.join(folder,"buffer_actions.csv"))
-        next_states_np     = np.loadtxt(os.path.join(folder,"buffer_next_states.csv"))
-        next_actions_np    = np.loadtxt(os.path.join(folder,"buffer_next_actions.csv"))
-        rewards_np         = np.loadtxt(os.path.join(folder,"buffer_rewards.csv"))
-        dones_np           = np.loadtxt(os.path.join(folder,"buffer_dones.csv"))
-        successes_np       = np.loadtxt(os.path.join(folder,"buffer_successes.csv"))
-        expert_targets_np  = np.loadtxt(os.path.join(folder,"buffer_expert_targets.csv"))
-        sim_states_np      = np.loadtxt(os.path.join(folder,"buffer_sim_states.csv"))
-        sim_next_states_np = np.loadtxt(os.path.join(folder,"buffer_sim_next_states.csv"))
-
+        self._obs[0:self._n_elements]= np.loadtxt(os.path.join(folder,"observations.csv"))
+        self._actions[0:self._n_elements]= np.loadtxt(os.path.join(folder,"actions.csv"))
+        self._next_obs[0:self._n_elements]= np.loadtxt(os.path.join(folder,"next_observations.csv"))
+        self._next_actions[0:self._n_elements]= np.loadtxt(os.path.join(folder,"next_actions.csv"))
+        self._rewards[0:self._n_elements]= np.loadtxt(os.path.join(folder,"rewards.csv"))
+        self._dones[0:self._n_elements]= np.loadtxt(os.path.join(folder,"dones.csv"))
+        self._successes[0:self._n_elements]= np.loadtxt(os.path.join(folder,"successes.csv"))
         self._n_elements = states_np.shape[0]
-        self._states[0:self._n_elements] = torch.from_numpy(states_np).float().clone()
-        self._actions[0:self._n_elements] = torch.from_numpy(actions_np).float().clone();
-        self._next_states[0:self._n_elements] = torch.from_numpy(next_states_np).float().clone()
-        self._next_actions[0:self._n_elements] = torch.from_numpy(next_actions_np).float().clone()
-        self._rewards[0:self._n_elements] = torch.from_numpy(rewards_np).float().clone().unsqueeze(1)
-        self._dones[0:self._n_elements] = torch.from_numpy(dones_np).byte().clone().unsqueeze(1)
-        self._successes[0:self._n_elements] = torch.from_numpy(successes_np).byte().clone().unsqueeze(1)
-        self._expert_targets[0:self._n_elements] = torch.from_numpy(expert_targets_np).float().clone().unsqueeze(1)
-        self._sim_states[0:self._n_elements] = torch.from_numpy(sim_states_np).float().clone()
-        self._sim_next_states[0:self._n_elements] = torch.from_numpy(sim_next_states_np).float().clone()
 
     #######################
     ###### Rendering ######
@@ -357,14 +202,12 @@ class Buffer(Dataset):
         """
         print('Rendering {0} times'.format(n_times))
         timeit.start('render')
-        sim_states_np = self._sim_states.numpy()
-        actions_np = self._actions.numpy()
         env.reset()
         # env.render()
         for ep in range(n_times):
             for i in range(len(self)):
-                env.unwrapped.set_state(sim_states_np[i].reshape(1, self._d_sim_state))
-                env.step(actions_np[i].reshape(1, self._d_action))
+                env.unwrapped.set_env_state(self._states[i])
+                env.step(self._actions[i].reshape(self._d_action,))
                 env.render()
                 # time.sleep(0.1)
         timeit.stop('render')

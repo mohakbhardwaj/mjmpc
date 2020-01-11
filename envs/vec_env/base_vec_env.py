@@ -132,14 +132,29 @@ class VecEnv(ABC):
         self.step_async(actions)
         return self.step_wait()
 
-    def rollout(self, u_vec): #, value_fn=None
+    def rollout(self, u_vec): 
         """
         Rollout the environments to a horizon given open loop action sequence
 
         :param u_vec 
         """
-        self.rollout_async(u_vec) #, value_fn
+        self.rollout_async(u_vec)
         return self.rollout_wait()
+    
+    @abstractmethod
+    def get_env_state(self):
+        """
+        Return list of dictionaries corresponding to state of every 
+        environment
+        """
+        pass
+
+    @abstractmethod
+    def set_env_state(self, state_dicts):
+        """
+        Set state of every environmnet from list of state dicts
+        """
+        pass
 
     def randomize_params(self):
         """

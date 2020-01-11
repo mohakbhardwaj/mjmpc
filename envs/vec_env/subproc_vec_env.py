@@ -36,14 +36,14 @@ def _worker(remote, parent_remote, env_fn_wrapper):
                 remote.send(getattr(env, data))
             elif cmd == 'set_attr':
                 remote.send(setattr(env, data[0], data[1]))
-            elif cmd == 'set_state':
-                remote.send(env.set_state(data))
-            elif cmd == 'get_state':
-                state = env.get_state()
+            elif cmd == 'set_env_state':
+                remote.send(env.set_env_state(data))
+            elif cmd == 'get_env_state':
+                state = env.get_env_state()
                 remote.send(state)
             elif cmd == 'rollout':
-                obs_vec, state_vec, rew_vec, done_vec, info = env.rollout(data)
-                remote.send((obs_vec, state_vec, rew_vec, done_vec, info))
+                obs_vec, rew_vec, done_vec, info = env.rollout(data) #state_vec
+                remote.send((obs_vec, rew_vec, done_vec, info)) #state_vec
             elif cmd == 'seed':
                 # np.random.seed(data)
                 remote.send(env.seed(data))
@@ -136,15 +136,15 @@ class SubprocVecEnv(VecEnv):
         results = [remote.recv() for remote in self.remotes]
         self.waiting=False
         obs_vec = [res[0] for res in results]
-        state_vec = [res[1] for res in results]
-        rew_vec = [res[2] for res in results]
-        done_vec = [res[3] for res in results]
-        info = [res[4] for res in results]
+        # state_vec = [res[1] for res in results]
+        rew_vec = [res[1] for res in results]
+        done_vec = [res[2] for res in results]
+        info = [res[3] for res in results]
         stacked_obs  = np.concatenate(obs_vec, axis=0)
-        stacked_state = np.concatenate(state_vec, axis=0)
+        # stacked_state = np.concatenate(state_vec, axis=0)
         stacked_rews = np.concatenate(rew_vec, axis=0)
         stacked_done = np.concatenate(done_vec, axis=0)
-        return stacked_obs, stacked_state, stacked_rews, stacked_done, info
+        return stacked_obs, stacked_rews, stacked_done, info # stacked_state
 
 
     def reset(self):
@@ -183,20 +183,23 @@ class SubprocVecEnv(VecEnv):
         else:
             raise NotImplementedError
 
-    def set_state(self, state_vec):
-        batch_size = int(state_vec.shape[0]/len(self.remotes))
-
+    def set_env_state(self, state_dicts):
+        """
+        Set the state of all envs given a list of 
+        state dicts
+        """
+        # batch_size = int(state_vec.shape[0]/len(self.remotes))
         for i,remote in enumerate(self.remotes):
-            state_i = state_vec[i*batch_size: (i+1)*batch_size, :]
-            remote.send(('set_state', state_i))
+            # state_i = state_vec[i*batch_size: (i+1)*batch_size, :]
+            remote.send(('set_env_state', state_dicts[i]))
         for remote in self.remotes:
             remote.recv()
 
-    def get_state(self):
+    def get_env_state(self):
         for remote in self.remotes:
-            remote.send(('get_state', None))
+            remote.send(('get_env_state', None))
         states = [remote.recv() for remote in self.remotes]
-        return np.concatenate(states, axis=0)
+        return states
 
 
     def randomize_params(self):
