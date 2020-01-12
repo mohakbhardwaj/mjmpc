@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 """Model Predictive Path Integral Controller
+
+Author - Mohak Bhardwaj
+Date - Dec 20, 2019
 TODO:
  - Make it a work for batch of start states 
- - Add different strategies for sampling next action
 """
-from .controller import Controller, scale_ctrl, generate_noise
+from .controller import Controller, scale_ctrl, generate_noise, cost_to_go
 import copy
 import numpy as np
 from scipy.signal import savgol_filter
@@ -53,7 +55,6 @@ class MPPI(Controller):
         self.rollout_fn = rollout_fn
         self.rollout_callback = rollout_callback
         self.filter_coeffs = filter_coeffs
-        print(self.filter_coeffs)
         self.seed = seed
 
         self.mean_action = np.zeros(shape=(horizon, num_actions))
@@ -63,13 +64,13 @@ class MPPI(Controller):
         self.num_steps = 0
 
 
-    def _get_next_action(self, state, sk, delta):
+    def _get_next_action(self, state, sk, act_seq):
         """
             Get action to execute on the system based
             on current control distribution
         """
         next_action = self.mean_action[0]
-        next_action = scale_ctrl(next_action, action_low_limit=self.action_lows, action_up_limit=self.action_highs)
+        # next_action = scale_ctrl(next_action, action_low_limit=self.action_lows, action_up_limit=self.action_highs)
         return next_action.reshape(self.num_actions, )
 
     def _sample_actions(self):
@@ -77,8 +78,8 @@ class MPPI(Controller):
         #                          size=(self.horizon, self.num_actions, self.num_particles))
         delta = generate_noise(np.sqrt(self.cov_action[:, :, np.newaxis]), self.filter_coeffs,
                                        shape=(self.horizon, self.num_actions, self.num_particles))
-        ctrl = self.mean_action[:, :, np.newaxis] + delta
-        act_seq = scale_ctrl(ctrl, action_low_limit=self.action_lows, action_up_limit=self.action_highs)
+        act_seq = self.mean_action[:, :, np.newaxis] + delta
+        # act_seq = scale_ctrl(ctrl, action_low_limit=self.action_lows, action_up_limit=self.action_highs)
         return act_seq
 
     def _update_moments(self, sk, act_seq):
@@ -104,25 +105,14 @@ class MPPI(Controller):
         self.mean_action[:-1] = self.mean_action[1:]
         self.mean_action[-1] = np.random.normal(0, self.init_cov, self.num_actions)
         
-    def _cost_to_go(self, sk):
-        """
-            Calculate (discounted) cost to go for given reward sequence
-        """
-        sk = self.gamma_seq * sk  # discounted reward sequence
-        sk = np.cumsum(sk[::-1, :], axis=0)[::-1, :]  # cost to go (but scaled by [1 , gamma, gamma*2 and so on])
-        sk /= self.gamma_seq  # un-scale it to get true discounted cost to go
-        return sk
-
-
     def _exp_util(self, sk, delta, lam):
         """
             Calculate weights using exponential utility
         """
-        # This is meant to be cost to go. We could comment it out if we want instantaneous cost
         # The cost to go has been used here https://arxiv.org/pdf/1706.09597.pdf and also in the original MPPI paper
         uk = self._control_costs(delta)
         sk = sk + lam * uk
-        sk = self._cost_to_go(sk)
+        sk = cost_to_go(sk, self.gamma_seq)
 
         sk -= np.min(sk, axis=-1)[:, None]  # shift the weights
         w = np.exp(-sk / lam)
@@ -151,7 +141,7 @@ class MPPI(Controller):
         sk, delta = self._generate_rollouts(state)
         uk = self._control_costs(delta)
         sk = sk + self.lam * uk
-        sk = self._cost_to_go(sk)
+        sk = cost_to_go(sk, self.gamma_seq)
         sk = -sk / self.lam
         sk = np.array(sk[0, :])
 
@@ -175,7 +165,3 @@ class MPPI(Controller):
         self.mean_action = np.zeros(shape=(self.horizon, self.num_actions))
         self.gamma_seq = np.cumprod([1.0] + [self.gamma] * (self.horizon - 1)).reshape(self.horizon, 1)
         self._val = 0.0
-
-    def set_horizon(self, horizon):
-        self.horizon = horizon
-        self.reset()

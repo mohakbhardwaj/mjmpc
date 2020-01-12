@@ -9,6 +9,8 @@ class MPCPolicy(Policy):
         super(MPCPolicy, self).__init__(batch_size)
         if controller_type == "mppi":
             self.controller = control.MPPI(**param_dict)
+        elif controller_type == "random_shooting":
+            self.controller = control.RandomShootingMPC(**param_dict)
         else:
             raise(NotImplementedError, "Controller type does not exist")
 

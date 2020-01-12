@@ -15,9 +15,10 @@ from utils import logger, timeit, Buffer
 from policies import MPCPolicy
 
 
-parser = argparse.ArgumentParser(description='Run Model Predictive Path-Integral Control on given environment')
+parser = argparse.ArgumentParser(description='Run MPC algorithm on given environment')
 parser.add_argument('--config_file', type=str, help='yaml file with experiment parameters')
 parser.add_argument('--save_dir', type=str, default='/tmp', help='folder to save data in')
+parser.add_argument('--controller_type', type=str, default='mppi', help='controller to run')
 args = parser.parse_args()
 
 #Load experiment parameters from config file
@@ -31,7 +32,7 @@ exp_name = 'MPPI_{0}'.format(exp_params['env_name'])
 LOG_DIR = os.path.join(os.path.abspath(args.save_dir), exp_name + "/" + date_time)
 if not os.path.exists(LOG_DIR): os.makedirs(LOG_DIR)
 logger.setup(exp_name, os.path.join(LOG_DIR, 'log.txt'), 'debug')
-logger.info('Running experiment: {0}. Results stored in: {1}'.format(exp_name, LOG_DIR))
+logger.info('Running experiment: {0}. Results dir: {1}'.format(exp_name, LOG_DIR))
 
 #Create the main environment
 env_name  = exp_params['env_name']
@@ -76,26 +77,34 @@ def rollout_callback():
     pass
 
 #Create dictionary of policy params
-policy_params = {'horizon': exp_params['H'],
-                 'init_cov': exp_params['init_cov'],
-                 'lam': exp_params['lam'],
-                 'num_particles':  exp_params['particles_per_cpu'] * exp_params['num_cpu'],
-                 'step_size':  exp_params['step_size'],
-                 'alpha':  exp_params['alpha'],
-                 'gamma':  exp_params['gamma'],
-                 'n_iters':  exp_params['n_iters'],
-                 'num_actions':  env.action_space.low.shape[0],
-                 'action_lows':  env.action_space.low,
-                 'action_highs':  env.action_space.high,
-                 'set_state_fn':  set_state_fn,
-                 'rollout_fn':  rollout_fn,
-                 'rollout_callback': None,
-                 'filter_coeffs': exp_params['filter_coeffs'],
-                 'seed':  exp_params['seed']
-                 }
+# policy_params = {'horizon': exp_params['H'],
+#                  'init_cov': exp_params['init_cov'],
+#                  'lam': exp_params['lam'],
+#                  'num_particles':  exp_params['particles_per_cpu'] * exp_params['num_cpu'],
+#                  'step_size':  exp_params['step_size'],
+#                  'alpha':  exp_params['alpha'],
+#                  'gamma':  exp_params['gamma'],
+#                  'n_iters':  exp_params['n_iters'],
+#                  'num_actions':  env.action_space.low.shape[0],
+#                  'action_lows':  env.action_space.low,
+#                  'action_highs':  env.action_space.high,
+#                  'set_state_fn':  set_state_fn,
+#                  'rollout_fn':  rollout_fn,
+#                  'rollout_callback': None,
+#                  'filter_coeffs': exp_params['filter_coeffs'],
+#                  'seed':  exp_params['seed']
+#                  }
+policy_params = exp_params[args.controller_type]
+policy_params['num_particles'] = exp_params['particles_per_cpu'] * exp_params['num_cpu']
+policy_params['num_actions'] = env.action_space.low.shape[0]
+policy_params['action_lows'] = env.action_space.low
+policy_params['action_highs'] = env.action_space.high
+policy_params['set_state_fn'] = set_state_fn
+policy_params['rollout_fn'] = rollout_fn
+policy_params['rollout_callback'] = None
 
 #Create policy
-policy = MPCPolicy(controller_type='mppi',
+policy = MPCPolicy(controller_type=args.controller_type,
                    param_dict=policy_params, batch_size=1)
 n_episodes = exp_params['n_episodes']
 max_ep_length = exp_params['max_ep_length']

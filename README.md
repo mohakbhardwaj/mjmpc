@@ -9,14 +9,15 @@ conda env update -f environment.yml
 Install gym and mujoco_py
 
 ## Examples
-By default the examples run on SimplePendulumEnv-v0
 ```
 cd examples
-python example_random_policy.py
-python example_mppi.py
+python job_script.py --config_file <config_file> --controller_type  <controller_name>
 ```
-
-Use --render flag to visualize at the end.
+For example, to run MPPI on trajopt_reacher-v0 we can use
+```
+python job_script.py --config_file configs/trajopt_reacher-v0_config.yml --controller_type mppi
+```
+Replace mppi with random_shooting to run RandomShootingMPC
 
 
 ## MPPI Parameters
@@ -32,8 +33,7 @@ These parameters are currently manually tuned.
 
 
 ## TODO
-1. Documentation for meaning of dynamics parameters for different environments
-2. Batch version of controller class
-3. Environment render function must have functionality to save frames/videos and work for batch size > 1
-4. <span style="color:red">Implement rollout function for mujoco_env in Cython.</span>
-5. <span style="color:red"> Grid search for tuning controller hyperparameters.</span>
+1. Batch version of controller class
+2. Environment render function must have functionality to save frames/videos and work for batch size > 1
+3. <span style="color:red">Implement rollout function for mujoco_env in Cython.</span>
+4. <span style="color:red"> Grid search for tuning controller hyperparameters.</span>
