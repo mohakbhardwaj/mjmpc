@@ -9,3 +9,4 @@ dependencies:
   - colorlog
   - pandas
   - tabulate
+  - pyyaml

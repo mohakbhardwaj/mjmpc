@@ -4,7 +4,7 @@ TODO:
  - Make it a work for batch of start states 
  - Add different strategies for sampling next action
 """
-from .controller import Controller, scale_ctrl
+from .controller import Controller, scale_ctrl, generate_noise
 import copy
 import numpy as np
 from scipy.signal import savgol_filter
@@ -31,6 +31,7 @@ class MPPI(Controller):
                  terminal_cost_fn=None,
                  rollout_callback=None,
                  batch_size=1,
+                 filter_coeffs = [1., 0., 0.],
                  seed=0):
 
 
@@ -51,6 +52,8 @@ class MPPI(Controller):
         self.n_iters = n_iters  # number of iterations of optimization per timestep
         self.rollout_fn = rollout_fn
         self.rollout_callback = rollout_callback
+        self.filter_coeffs = filter_coeffs
+        print(self.filter_coeffs)
         self.seed = seed
 
         self.mean_action = np.zeros(shape=(horizon, num_actions))
@@ -70,20 +73,23 @@ class MPPI(Controller):
         return next_action.reshape(self.num_actions, )
 
     def _sample_actions(self):
-        delta = np.random.normal(0.0, np.sqrt(self.cov_action[:, :, np.newaxis]),
-                                 size=(self.horizon, self.num_actions, self.num_particles))
-        _ctrl = self.mean_action[:, :, np.newaxis] + delta
-        act_seq = scale_ctrl(_ctrl, action_low_limit=self.action_lows, action_up_limit=self.action_highs)
-        return delta, act_seq
+        # delta = np.random.normal(0.0, np.sqrt(self.cov_action[:, :, np.newaxis]),
+        #                          size=(self.horizon, self.num_actions, self.num_particles))
+        delta = generate_noise(np.sqrt(self.cov_action[:, :, np.newaxis]), self.filter_coeffs,
+                                       shape=(self.horizon, self.num_actions, self.num_particles))
+        ctrl = self.mean_action[:, :, np.newaxis] + delta
+        act_seq = scale_ctrl(ctrl, action_low_limit=self.action_lows, action_up_limit=self.action_highs)
+        return act_seq
 
-    def _update_moments(self, sk, delta):
+    def _update_moments(self, sk, act_seq):
         """
            Update moments in the direction of current gradient estimated
            using samples
         """
+        delta = act_seq - self.mean_action[:, :, np.newaxis]
         w = self._exp_util(sk, delta, self.lam)
-        self.mean_action = (1.0 - self.step_size) * self.mean_action + self.step_size * np.matmul(delta, w[:, :,
-                                                                                                         None]).squeeze(axis=-1)
+        self.mean_action = (1.0 - self.step_size) * self.mean_action +\
+                            self.step_size * np.matmul(delta, w[:, :, None]).squeeze(axis=-1)
 
         # self.mean_action = savgol_filter(self.mean_action, len(self.mean_action) - 1, 3, axis=0)
         if np.any(np.isnan(self.mean_action)):

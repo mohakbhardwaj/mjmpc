@@ -16,6 +16,17 @@ def scale_ctrl(ctrl, action_low_limit, action_up_limit):
     ctrl = np.clip(ctrl, -1.0, 1.0)
     return act_mid_range[np.newaxis, :, np.newaxis] + ctrl * act_half_range[np.newaxis, :, np.newaxis]
 
+def generate_noise(std_dev, filter_coeffs, shape):
+    """
+        Generate noisy samples using autoregressive process
+        base_act: []action
+    """
+    beta_0, beta_1, beta_2 = filter_coeffs
+    eps = np.random.normal(loc=0, scale=std_dev, size=shape)
+    for i in range(2, eps.shape[0]):
+        eps[i, :, :] = beta_0*eps[i, :, :] + beta_1*eps[i-1, :, :] + beta_2*eps[i-2, :, :]
+    return eps 
+
 class Controller(ABC):
     def __init__(self,
                  num_actions,
@@ -32,13 +43,6 @@ class Controller(ABC):
         self.batch_size = batch_size
 
     @abstractmethod
-    def _sample_actions(self):
-        """
-        Sample actions from current control distribution
-        """
-        pass
-    
-    @abstractmethod
     def _get_next_action(self):
         """
             Get action to execute on the system based
@@ -47,13 +51,20 @@ class Controller(ABC):
         pass
 
     @abstractmethod
-    def _update_moments(self, costs: np.ndarray, action_deltas: np.ndarray):
+    def _sample_actions(self):
+        """
+        Sample actions from current control distribution
+        """
+        pass
+    
+    @abstractmethod
+    def _update_moments(self, costs: np.ndarray, act_seq: np.ndarray):
         """
         Update moments of current control distribution 
         based on the results of rollouts
         params - 
             costs: np.ndarray of step costs during rollouts
-            action_deltas: delta actions sampled by zero centering the control distribution
+            act_seq: action sequence sampled from control distribution
         """
         pass
 
@@ -84,50 +95,41 @@ class Controller(ABC):
     def set_terminal_cost_fn(self, fn):
         self.terminal_cost_fn = fn
 
+    def _generate_rollouts(self):
+        """
+            Samples a batch of actions, rolls out trajectories for each particle
+            and returns the resulting observations, states, costs and 
+            actions
+         """
+
+        act_seq = self._sample_actions()
+        obs_vec, rew_vec, _ = self.rollout_fn(act_seq)  # rollout function returns the observations, rewards   state_vec
+        sk = -rew_vec  # rollout_fn returns a REWARD and we need a COST
+        if self.terminal_cost_fn is not None:
+            term_states = obs_vec[:, -1, :].reshape(obs_vec.shape[0], obs_vec.shape[-1])
+            sk[-1, :] = self.terminal_cost_fn(term_states, act_seq[-1].T)  # replace terminal cost with something else
+
+        if self.rollout_callback is not None: self.rollout_callback(obs_vec, act_seq) #state_vec # for example, visualize rollouts
+
+        return obs_vec, sk, act_seq #state_vec
+
     def step(self, state):
         """
             Optimize for best action at current state
         """
-        # state = self.get_state_fn() #get state to plan from (should this be an input?)
         self.set_state_fn(state) #set state of simulation
 
         for itr in range(self.n_iters):
             # generate random trajectories
-            obs_vec, sk, delta = self._generate_rollouts(state) #state_vec
+            obs_vec, sk, act_seq = self._generate_rollouts() #state_vec
             # update moments and calculate best action
-            self._update_moments(sk, delta)
-            curr_action = self._get_next_action(state, sk, delta)
+            self._update_moments(sk, act_seq)
+            curr_action = self._get_next_action(state, sk, act_seq)
             
-        # restore state to original
-        # self.set_state_fn(state) #(Q: do we need this?)
         self.num_steps += 1
         # shift moments one timestep (dynamic step)
         self._shift()
 
         return curr_action
 
-    def _generate_rollouts(self, state):
-        """
-            Samples actions generates random trajectories for each particle
-            and returns the resulting observations, states, costs and 
-            actions
-         """
 
-        delta, act_seq = self._sample_actions()
-        obs_vec, rew_vec, _ = self.rollout_fn(act_seq)  # rollout function returns the observations, rewards   state_vec
-        sk = -rew_vec  # rollout_fn returns a REWARD and we need a COST
-        if self.terminal_cost_fn is not None:
-            term_states = obs_vec[:, -1, :].reshape(obs_vec.shape[0], obs_vec.shape[-1])
-            sk[-1, :] = self.terminal_cost_fn(term_states, act_seq[-1].T)  # replace terminal cost with something else
-            # if utils.is_nan_np(sk):
-            #     print('NaN rewards', sk)
-            #     print('states', st)
-            #     print('action seq', act_seq)
-            #     print('mean', self.mean_action)
-            #     print('covariance', self.cov_action)
-            #     input('..')
-
-        if self.rollout_callback is not None: self.rollout_callback(obs_vec, self.mean_action, self.cov_action,
-                                                                    act_seq) #state_vec # for example, visualize rollouts
-
-        return obs_vec, sk, delta #state_vec
