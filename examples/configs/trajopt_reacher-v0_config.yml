@@ -15,17 +15,19 @@ random_shooting:
                       - 0.1 
                       - 0.0
   gamma             : 1.0
+  n_iters           : 1
+  step_size         : 1.0
 
 mppi:
   horizon           : 32
+  init_cov          : 3.5
   filter_coeffs     : 
                       - 0.7 
                       - 0.1 
                       - 0.0
-  init_cov          : 3.5
   gamma             : 1.0
   n_iters           : 1
-  step_size         : 0.55
+  step_size         : 1.0
   lam               : 0.01
   alpha             : 0
 

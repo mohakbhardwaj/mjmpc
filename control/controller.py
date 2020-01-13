@@ -66,10 +66,9 @@ class Controller(ABC):
         pass
     
     @abstractmethod
-    def _update_moments(self, costs: np.ndarray, act_seq: np.ndarray):
+    def _update_distribution(self, costs: np.ndarray, act_seq: np.ndarray):
         """
-        Update moments of current control distribution 
-        based on the results of rollouts
+        Update current control distribution based on the results of rollouts
         params - 
             costs: np.ndarray of step costs during rollouts
             act_seq: action sequence sampled from control distribution
@@ -130,7 +129,7 @@ class Controller(ABC):
             # generate random trajectories
             obs_vec, sk, act_seq = self._generate_rollouts() #state_vec
             # update moments
-            self._update_moments(sk, act_seq)
+            self._update_distribution(sk, act_seq)
             #calculate best action
             curr_action = self._get_next_action(state, sk, act_seq)
             

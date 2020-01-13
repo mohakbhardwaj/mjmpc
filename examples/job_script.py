@@ -77,23 +77,6 @@ def rollout_callback():
     pass
 
 #Create dictionary of policy params
-# policy_params = {'horizon': exp_params['H'],
-#                  'init_cov': exp_params['init_cov'],
-#                  'lam': exp_params['lam'],
-#                  'num_particles':  exp_params['particles_per_cpu'] * exp_params['num_cpu'],
-#                  'step_size':  exp_params['step_size'],
-#                  'alpha':  exp_params['alpha'],
-#                  'gamma':  exp_params['gamma'],
-#                  'n_iters':  exp_params['n_iters'],
-#                  'num_actions':  env.action_space.low.shape[0],
-#                  'action_lows':  env.action_space.low,
-#                  'action_highs':  env.action_space.high,
-#                  'set_state_fn':  set_state_fn,
-#                  'rollout_fn':  rollout_fn,
-#                  'rollout_callback': None,
-#                  'filter_coeffs': exp_params['filter_coeffs'],
-#                  'seed':  exp_params['seed']
-#                  }
 policy_params = exp_params[args.controller_type]
 policy_params['num_particles'] = exp_params['particles_per_cpu'] * exp_params['num_cpu']
 policy_params['num_actions'] = env.action_space.low.shape[0]
