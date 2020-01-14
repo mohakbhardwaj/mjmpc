@@ -13,8 +13,6 @@ from scipy.signal import savgol_filter
 import scipy.stats
 import scipy.special
 
-
-
 class MPPI(Controller):
     def __init__(self,
                  horizon,
@@ -36,8 +34,6 @@ class MPPI(Controller):
                  filter_coeffs = [1., 0., 0.],
                  seed=0):
 
-
-
         super(MPPI, self).__init__(num_actions,
                                    action_lows, 
                                    action_highs,  
@@ -49,7 +45,7 @@ class MPPI(Controller):
         self.lam = lam
         self.num_particles = num_particles
         self.step_size = step_size  # step size for mean and covariance
-        self.alpha = alpha  # weight on control cost (0 means passive distribution has zero control, 1 means passive distribution is same as the active control distribution)
+        self.alpha = alpha  # 0 means control cost is on, 1 means off
         self.gamma = gamma  # discount factor
         self.n_iters = n_iters  # number of iterations of optimization per timestep
         self.rollout_fn = rollout_fn
@@ -70,16 +66,12 @@ class MPPI(Controller):
             on current control distribution
         """
         next_action = self.mean_action[0]
-        # next_action = scale_ctrl(next_action, action_low_limit=self.action_lows, action_up_limit=self.action_highs)
         return next_action.reshape(self.num_actions, )
 
     def _sample_actions(self):
-        # delta = np.random.normal(0.0, np.sqrt(self.cov_action[:, :, np.newaxis]),
-        #                          size=(self.horizon, self.num_actions, self.num_particles))
         delta = generate_noise(np.sqrt(self.cov_action[:, :, np.newaxis]), self.filter_coeffs,
                                        shape=(self.horizon, self.num_actions, self.num_particles))
         act_seq = self.mean_action[:, :, np.newaxis] + delta
-        # act_seq = scale_ctrl(ctrl, action_low_limit=self.action_lows, action_up_limit=self.action_highs)
         return act_seq
 
     def _update_distribution(self, sk, act_seq):
@@ -94,7 +86,7 @@ class MPPI(Controller):
 
         # self.mean_action = savgol_filter(self.mean_action, len(self.mean_action) - 1, 3, axis=0)
         if np.any(np.isnan(self.mean_action)):
-            print('warning: nan in mean_action or cov_action...resetting the controller')
+            print('warning: nan in mean_action, resetting the controller')
             self.reset()
 
     def _shift(self):

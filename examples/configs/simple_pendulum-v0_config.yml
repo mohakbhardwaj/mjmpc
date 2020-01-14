@@ -20,14 +20,25 @@ random_shooting:
 
 mppi:
   horizon           : 32
+  init_cov          : 3.0
   filter_coeffs     : 
                       - 0.6
                       - 0.5 
                       - 0.0
-  init_cov          : 3.0
   gamma             : 1.0
   n_iters           : 1
   step_size         : 1.0
   lam               : 0.01
   alpha             : 0
 
+cem:
+  horizon           : 32
+  init_cov          : 3.0
+  filter_coeffs     : 
+                      - 0.7 
+                      - 0.1 
+                      - 0.0
+  gamma             : 1.0
+  n_iters           : 1
+  step_size         : 1.0
+  elite_frac        : 0.2

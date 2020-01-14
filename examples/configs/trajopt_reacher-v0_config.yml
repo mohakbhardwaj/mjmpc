@@ -31,3 +31,14 @@ mppi:
   lam               : 0.01
   alpha             : 0
 
+cem:
+  horizon           : 32
+  init_cov          : 3.5
+  filter_coeffs     : 
+                      - 0.7 
+                      - 0.1 
+                      - 0.0
+  gamma             : 1.0
+  n_iters           : 1
+  step_size         : 1.0
+  elite_frac        : 0.2
