@@ -6,16 +6,14 @@ Date - Jan 12, 2020
 TODO:
  - Make it a work for batch of start states 
 """
-from .controller import Controller, scale_ctrl, generate_noise, cost_to_go
+from .controller import GaussianMPC, scale_ctrl, generate_noise, cost_to_go
 import copy
 import numpy as np
-from scipy.signal import savgol_filter
-import scipy.stats
-import scipy.special
 
 
 
-class CEM(Controller):
+
+class CEM(GaussianMPC):
     def __init__(self,
                  horizon,
                  init_cov,
@@ -39,38 +37,25 @@ class CEM(Controller):
 
         super(CEM, self).__init__(num_actions,
                                    action_lows, 
-                                   action_highs,  
+                                   action_highs,
+                                   horizon,
+                                   np.array(init_cov),
+                                   np.zeros(shape=(horizon, num_actions)),
+                                   num_particles,
+                                   gamma,
+                                   n_iters, 
+                                   step_size,
+                                   filter_coeffs, 
                                    set_state_fn, 
+                                   rollout_fn,
+                                   rollout_callback,
                                    terminal_cost_fn,
-                                   batch_size)
-        self.horizon = horizon
-        self.init_cov = init_cov  # cov for sampling actions
+                                   batch_size,
+                                   seed)
+
         self.elite_frac = elite_frac
-        self.num_particles = num_particles
-        self.step_size = step_size  # step size for mean and covariance
-        self.gamma = gamma  # discount factor
-        self.n_iters = n_iters  # number of iterations of optimization per timestep
-        self.rollout_fn = rollout_fn
-        self.rollout_callback = rollout_callback
-        self.filter_coeffs = filter_coeffs
-        self.seed = seed
         self.num_elite = int(self.num_particles * self.elite_frac)
-
-        self.mean_action = np.zeros(shape=(horizon, num_actions))
-        self.cov_action = self.init_cov * np.ones(shape=(horizon, num_actions))
-        self.gamma_seq = np.cumprod([1.0] + [self.gamma] * (horizon - 1)).reshape(horizon, 1)
         self._val = 0.0  # optimal value for current state
-        self.num_steps = 0
-
-    def _get_next_action(self, state, sk, act_seq):
-        next_action = self.mean_action[0]
-        return next_action.reshape(self.num_actions, )
-
-    def _sample_actions(self):
-        delta = generate_noise(np.sqrt(self.cov_action[:, :, np.newaxis]), self.filter_coeffs,
-                                       shape=(self.horizon, self.num_actions, self.num_particles))
-        act_seq = self.mean_action[:, :, np.newaxis] + delta
-        return act_seq
 
     def _update_distribution(self, costs, act_seq):
         """
@@ -79,9 +64,6 @@ class CEM(Controller):
         Q = cost_to_go(costs, self.gamma_seq)
         elite_ids = np.argsort(Q[0,:], axis=-1)[0:self.num_elite]
         elite_actions = act_seq[:, :, elite_ids]
-        # print(Q.shape, elite_ids.shape, act_seq.shape, elite_actions.shape)
-        # print(np.mean(elite_actions, axis=-1).shape)
-        # input('..')
         self.mean_action = (1.0 - self.step_size) * self.mean_action +\
                             np.mean(elite_actions, axis=-1)
 
@@ -94,8 +76,7 @@ class CEM(Controller):
             Predict good parameters for the next time step by
             shifting the mean forward one step and growing the covariance
         """
-        self.mean_action[:-1] = self.mean_action[1:]
-        self.mean_action[-1] = np.random.normal(0, self.init_cov, self.num_actions)
+        super()._shift()
         self.cov_action = self.init_cov * np.ones(shape=(self.horizon, self.num_actions))
 
     def _calc_val(self, state):
@@ -106,9 +87,4 @@ class CEM(Controller):
 
         return 0.
 
-    def reset(self):
-        self.num_steps = 0
-        self.mean_action = np.zeros(shape=(self.horizon, self.num_actions))
-        self.cov_action = self.init_cov * np.ones(shape=(horizon, num_actions))
-        self.gamma_seq = np.cumprod([1.0] + [self.gamma] * (self.horizon - 1)).reshape(self.horizon, 1)
-        self._val = 0.0
+

@@ -6,14 +6,14 @@ Date - Dec 20, 2019
 TODO:
  - Make it a work for batch of start states 
 """
-from .controller import Controller, scale_ctrl, generate_noise, cost_to_go
+from .controller import Controller, GaussianMPC, scale_ctrl, generate_noise, cost_to_go
 import copy
 import numpy as np
 from scipy.signal import savgol_filter
 import scipy.stats
 import scipy.special
 
-class MPPI(Controller):
+class MPPI(GaussianMPC):
     def __init__(self,
                  horizon,
                  init_cov,
@@ -36,43 +36,25 @@ class MPPI(Controller):
 
         super(MPPI, self).__init__(num_actions,
                                    action_lows, 
-                                   action_highs,  
+                                   action_highs,
+                                   horizon,
+                                   np.array(init_cov),
+                                   np.zeros(shape=(horizon, num_actions)),
+                                   num_particles,
+                                   gamma,
+                                   n_iters,
+                                   step_size, 
+                                   filter_coeffs, 
                                    set_state_fn, 
+                                   rollout_fn,
+                                   rollout_callback,
                                    terminal_cost_fn,
-                                   batch_size)
-        self.horizon = horizon
-        self.init_cov = init_cov  # cov for sampling actions
+                                   batch_size,
+                                   seed)
         self.lam = lam
-        self.num_particles = num_particles
-        self.step_size = step_size  # step size for mean and covariance
         self.alpha = alpha  # 0 means control cost is on, 1 means off
-        self.gamma = gamma  # discount factor
-        self.n_iters = n_iters  # number of iterations of optimization per timestep
-        self.rollout_fn = rollout_fn
-        self.rollout_callback = rollout_callback
-        self.filter_coeffs = filter_coeffs
-        self.seed = seed
-
-        self.mean_action = np.zeros(shape=(horizon, num_actions))
-        self.cov_action = self.init_cov * np.ones(shape=(horizon, num_actions))
-        self.gamma_seq = np.cumprod([1.0] + [self.gamma] * (horizon - 1)).reshape(horizon, 1)
         self._val = 0.0  # optimal value for current state
-        self.num_steps = 0
 
-
-    def _get_next_action(self, state, sk, act_seq):
-        """
-            Get action to execute on the system based
-            on current control distribution
-        """
-        next_action = self.mean_action[0]
-        return next_action.reshape(self.num_actions, )
-
-    def _sample_actions(self):
-        delta = generate_noise(np.sqrt(self.cov_action[:, :, np.newaxis]), self.filter_coeffs,
-                                       shape=(self.horizon, self.num_actions, self.num_particles))
-        act_seq = self.mean_action[:, :, np.newaxis] + delta
-        return act_seq
 
     def _update_distribution(self, sk, act_seq):
         """
@@ -81,21 +63,17 @@ class MPPI(Controller):
         """
         delta = act_seq - self.mean_action[:, :, np.newaxis]
         w = self._exp_util(sk, delta, self.lam)
+        # print(w.shape, act_seq.shape, self.mean_action.shape, np.matmul(act_seq, w).shape)
+        # input('..')
         self.mean_action = (1.0 - self.step_size) * self.mean_action +\
-                            self.step_size * np.matmul(act_seq, w[:, :, None]).squeeze(axis=-1)
+                            self.step_size * np.matmul(act_seq, w)
+        # self.mean_action = (1.0 - self.step_size) * self.mean_action +\
+        #                     self.step_size * np.matmul(act_seq, w[:,:,None]).squeeze(-1)
 
-        # self.mean_action = savgol_filter(self.mean_action, len(self.mean_action) - 1, 3, axis=0)
         if np.any(np.isnan(self.mean_action)):
             print('warning: nan in mean_action, resetting the controller')
             self.reset()
 
-    def _shift(self):
-        """
-            Predict good parameters for the next time step by
-            shifting the mean forward one step and growing the covariance
-        """
-        self.mean_action[:-1] = self.mean_action[1:]
-        self.mean_action[-1] = np.random.normal(0, self.init_cov, self.num_actions)
         
     def _exp_util(self, sk, delta, lam):
         """
@@ -106,18 +84,21 @@ class MPPI(Controller):
         sk = sk + lam * uk
         sk = cost_to_go(sk, self.gamma_seq)
 
-        #calculate soft-max
-        sk -= np.min(sk, axis=-1)[:, None]  # shift the weights
-        w = np.exp(-sk / lam)
-        w /= np.sum(w, axis=-1)[:, None] + 1e-6  # normalize the weights
+        # #calculate soft-max
+        # sk -= np.min(sk, axis=-1)[:, None]  # shift the weights
+        # w = np.exp(-sk / lam)
+        # w /= np.sum(w, axis=-1)[:, None] + 1e-6  # normalize the weights
+
+        sk = -sk[0, :]/lam
+        w = scipy.special.softmax(sk, axis=0)
         return w
 
     def _control_costs(self, delta):
         if self.alpha == 1:
             control_costs = np.zeros((delta.shape[0], delta.shape[-1]))
         else:
-            u_normalized = self.mean_action[:, :, np.newaxis] / self.init_cov
-            control_costs = 0.5 * u_normalized * (self.mean_action[:, :, np.newaxis] + 2.0 * delta)
+            u_normalized = self.mean_action/self.cov_action
+            control_costs = 0.5 * u_normalized[:, :, np.newaxis] * (self.mean_action[:, :, np.newaxis] + 2.0 * delta)
             control_costs = np.sum(control_costs, axis=1)
         return control_costs
 
@@ -149,8 +130,3 @@ class MPPI(Controller):
         """
         return scipy.stats.norm.pdf(x, mean, np.sqrt(cov))
 
-    def reset(self):
-        self.num_steps = 0
-        self.mean_action = np.zeros(shape=(self.horizon, self.num_actions))
-        self.gamma_seq = np.cumprod([1.0] + [self.gamma] * (self.horizon - 1)).reshape(self.horizon, 1)
-        self._val = 0.0

@@ -39,16 +39,32 @@ class Controller(ABC):
                  num_actions,
                  action_lows,
                  action_highs,
+                 horizon,
+                 num_particles,
+                 gamma,
+                 n_iters,
                  set_state_fn,
+                 rollout_fn,
+                 rollout_callback,
                  terminal_cost_fn=None,
-                 batch_size=1):
+                 batch_size=1,
+                 seed=0):
                  
         self.num_actions = num_actions
         self.action_lows = action_lows
         self.action_highs = action_highs
+        self.horizon = horizon
+        self.num_particles = num_particles
+        self.gamma = gamma
+        self.gamma_seq = np.cumprod([1.0] + [self.gamma] * (horizon - 1)).reshape(horizon, 1)
+        self.n_iters = n_iters
         self.set_state_fn = set_state_fn
+        self.rollout_fn = rollout_fn
+        self.rollout_callback = rollout_callback
         self.terminal_cost_fn = terminal_cost_fn
         self.batch_size = batch_size
+        self.seed = seed
+        self.num_steps = 0
 
     @abstractmethod
     def _get_next_action(self):
@@ -138,3 +154,70 @@ class Controller(ABC):
         self._shift()
 
         return curr_action
+
+
+class GaussianMPC(Controller):
+    def __init__(self,                 
+                 num_actions,
+                 action_lows,
+                 action_highs,
+                 horizon,
+                 init_cov,
+                 init_mean,
+                 num_particles,
+                 gamma,
+                 n_iters,
+                 step_size,
+                 filter_coeffs,
+                 set_state_fn,
+                 rollout_fn,
+                 rollout_callback,
+                 terminal_cost_fn=None,
+                 batch_size=1,
+                 seed=0):
+
+
+        super(GaussianMPC, self).__init__(num_actions,
+                                          action_lows, 
+                                          action_highs,
+                                          horizon,
+                                          num_particles,
+                                          gamma,  
+                                          n_iters,
+                                          set_state_fn,
+                                          rollout_fn,
+                                          rollout_callback, 
+                                          terminal_cost_fn,
+                                          batch_size,
+                                          seed)
+        self.init_cov = init_cov
+        self.mean_action = init_mean
+        self.cov_action = self.init_cov * np.ones(shape=(horizon, num_actions))
+        self.step_size = step_size
+        self.filter_coeffs = filter_coeffs
+
+    def _get_next_action(self, state, sk, act_seq):
+        next_action = self.mean_action[0]
+        return next_action.reshape(self.num_actions, )
+    
+    def _sample_actions(self):
+        delta = generate_noise(np.sqrt(self.cov_action[:, :, np.newaxis]), self.filter_coeffs,
+                                       shape=(self.horizon, self.num_actions, self.num_particles))
+        act_seq = self.mean_action[:, :, np.newaxis] + delta
+        return act_seq
+    
+    def _shift(self):
+        """
+            Predict good parameters for the next time step by
+            shifting the mean forward one step and growing the covariance
+        """
+        self.mean_action[:-1] = self.mean_action[1:]
+        self.mean_action[-1] = np.random.normal(0, self.init_cov, self.num_actions)
+
+    def reset(self):
+        self.num_steps = 0
+        self.mean_action = np.zeros(shape=(self.horizon, self.num_actions))
+        self.cov_action = self.init_cov * np.ones(shape=(horizon, num_actions))
+        self.gamma_seq = np.cumprod([1.0] + [self.gamma] * (self.horizon - 1)).reshape(self.horizon, 1)
+        self._val = 0.0
+        

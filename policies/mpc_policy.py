@@ -10,7 +10,7 @@ class MPCPolicy(Policy):
         if controller_type == "mppi":
             self.controller = control.MPPI(**param_dict)
         elif controller_type == "random_shooting":
-            self.controller = control.RandomShootingMPC(**param_dict)
+            self.controller = control.RandomShooting(**param_dict)
         elif controller_type == "cem":
             self.controller = control.CEM(**param_dict)
         else:

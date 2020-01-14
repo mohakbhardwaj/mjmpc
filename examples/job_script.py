@@ -28,7 +28,7 @@ with open(args.config_file) as file:
 #Setup logging
 now = datetime.now()
 date_time = now.strftime("%m_%d_%Y_%H_%M_%S")
-exp_name = 'MPPI_{0}'.format(exp_params['env_name'])
+exp_name = '{0}_{1}'.format(args.controller_type, exp_params['env_name'])
 LOG_DIR = os.path.join(os.path.abspath(args.save_dir), exp_name + "/" + date_time)
 if not os.path.exists(LOG_DIR): os.makedirs(LOG_DIR)
 logger.setup(exp_name, os.path.join(LOG_DIR, 'log.txt'), 'debug')
@@ -77,7 +77,11 @@ def rollout_callback():
     pass
 
 #Create dictionary of policy params
+d_obs = env.observation_space.high.shape[0]
+d_action = env.action_space.high.shape[0]
 policy_params = exp_params[args.controller_type]
+
+if len(policy_params['init_cov']) == 1: policy_params['init_cov'] = [policy_params['init_cov']] * d_action
 policy_params['num_particles'] = exp_params['particles_per_cpu'] * exp_params['num_cpu']
 policy_params['num_actions'] = env.action_space.low.shape[0]
 policy_params['action_lows'] = env.action_space.low
@@ -94,9 +98,6 @@ max_ep_length = exp_params['max_ep_length']
 ep_rewards = np.array([0.] * n_episodes)
 
 #Create experience buffer
-d_obs = env.observation_space.high.shape[0]
-d_action = env.action_space.high.shape[0]
-
 buff = Buffer(d_obs, d_action, max_length=n_episodes*max_ep_length)
 
 logger.info('Runnning {0} episodes'.format(n_episodes))

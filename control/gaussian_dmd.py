@@ -70,7 +70,6 @@ class GaussianDMD(Controller):
             on current control distribution
         """
         next_action = self.mean_action[0]
-        # next_action = scale_ctrl(next_action, action_low_limit=self.action_lows, action_up_limit=self.action_highs)
         return next_action.reshape(self.num_actions, )
 
     def _sample_actions(self):
