@@ -129,7 +129,7 @@ class Controller(ABC):
         sk = -rew_vec  # rollout_fn returns a REWARD and we need a COST
         if self.terminal_cost_fn is not None:
             term_states = obs_vec[:, -1, :].reshape(obs_vec.shape[0], obs_vec.shape[-1])
-            sk[-1, :] = self.terminal_cost_fn(term_states, act_seq[-1].T)  # replace terminal cost with something else
+            sk[-1, :] = self.terminal_cost_fn(term_states, act_seq[-1].T)
 
         if self.rollout_callback is not None: self.rollout_callback(obs_vec, act_seq) #state_vec # for example, visualize rollouts
 
@@ -150,7 +150,7 @@ class Controller(ABC):
             curr_action = self._get_next_action(state, sk, act_seq)
             
         self.num_steps += 1
-        # shift moments one timestep (dynamic step)
+        # shift distribution to hotstart next timestep
         self._shift()
 
         return curr_action
@@ -220,4 +220,4 @@ class GaussianMPC(Controller):
         self.cov_action = self.init_cov * np.ones(shape=(horizon, num_actions))
         self.gamma_seq = np.cumprod([1.0] + [self.gamma] * (self.horizon - 1)).reshape(self.horizon, 1)
         self._val = 0.0
-        
+
