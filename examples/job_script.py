@@ -76,6 +76,7 @@ def main(controller_name):
     policy_params = exp_params[controller_name]
 
     if len(policy_params['init_cov']) == 1: policy_params['init_cov'] = [policy_params['init_cov']] * d_action
+    policy_params['base_action'] = exp_params['base_action']
     policy_params['num_particles'] = exp_params['particles_per_cpu'] * exp_params['num_cpu']
     policy_params['num_actions'] = env.action_space.low.shape[0]
     policy_params['action_lows'] = env.action_space.low

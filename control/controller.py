@@ -164,6 +164,7 @@ class GaussianMPC(Controller):
                  horizon,
                  init_cov,
                  init_mean,
+                 base_action,
                  num_particles,
                  gamma,
                  n_iters,
@@ -192,6 +193,7 @@ class GaussianMPC(Controller):
                                           seed)
         self.init_cov = init_cov
         self.mean_action = init_mean
+        self.base_action = base_action
         self.cov_action = self.init_cov * np.ones(shape=(horizon, num_actions))
         self.step_size = step_size
         self.filter_coeffs = filter_coeffs
@@ -212,7 +214,10 @@ class GaussianMPC(Controller):
             shifting the mean forward one step and growing the covariance
         """
         self.mean_action[:-1] = self.mean_action[1:]
-        self.mean_action[-1] = np.random.normal(0, self.init_cov, self.num_actions)
+        if self.base_action == 'rand':
+            self.mean_action[-1] = np.random.normal(0, self.init_cov, self.num_actions)
+        elif self.base_action == 'null':
+            self.mean_action[-1] = np.zeros((self.num_actions, ))
 
     def reset(self):
         self.num_steps = 0

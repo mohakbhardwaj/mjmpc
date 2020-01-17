@@ -1,10 +1,11 @@
 env_name          : 'trajopt_reacher-v0'
-n_episodes        : 2
-max_ep_length     : 200
+n_episodes        : 10
+max_ep_length     : 75
 seed              : 0
 num_cpu           : 4
 particles_per_cpu : 9
-render            : True
+base_action       : 'null'
+render            : False
 exp_notes         : '7-DOF Sawyer arm reaching various spatial goals for the end effector'
 
 random_shooting:
@@ -28,8 +29,11 @@ mppi:
 cem:
   horizon           : 32
   init_cov          : [3.5, 3.5, 3.5, 3.5, 3.5, 3.5, 3.5]
+  update_cov        : True
+  min_cov           : 2.5
   filter_coeffs     : [0.7, 0.1, 0.0]
   gamma             : 1.0
   n_iters           : 1
   step_size         : 1.0
   elite_frac        : 0.2
+
