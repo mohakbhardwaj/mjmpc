@@ -2,8 +2,6 @@ env_name          : 'SimplePendulum-v0'
 n_episodes        : 10
 max_ep_length     : 200
 seed              : 0
-num_cpu           : 12
-particles_per_cpu : 3
 render            : False
 exp_notes         : 'Swingup of a simple pendulum'
 
@@ -14,6 +12,8 @@ random_shooting:
   gamma             : 1.0
   n_iters           : 1
   step_size         : 1.0
+  num_cpu           : 12
+  particles_per_cpu : 3
 
 mppi:
   horizon           : 32
@@ -24,6 +24,8 @@ mppi:
   step_size         : 1.0
   lam               : 0.01
   alpha             : 0
+  num_cpu           : 12
+  particles_per_cpu : 3
 
 cem:
   horizon           : 32
@@ -33,3 +35,5 @@ cem:
   n_iters           : 1
   step_size         : 1.0
   elite_frac        : 0.2
+  num_cpu           : 12
+  particles_per_cpu : 3

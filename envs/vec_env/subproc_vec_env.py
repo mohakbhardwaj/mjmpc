@@ -45,19 +45,9 @@ def _worker(remote, parent_remote, env_fn_wrapper):
                 obs_vec, rew_vec, done_vec, info = env.rollout(data) #state_vec
                 remote.send((obs_vec, rew_vec, done_vec, info)) #state_vec
             elif cmd == 'seed':
-                # np.random.seed(data)
                 remote.send(env.seed(data))
             elif cmd == 'get_seed':
                 remote.send((env.seed))
-            elif cmd == 'randomize_params':
-                remote.send(env.randomize_params())
-            elif cmd == 'get_params':
-                params = env.get_params()
-                remote.send(params)
-            elif cmd == 'set_params':
-                remote.send(env.set_params(data))
-            elif cmd == 'print_params':
-                remote.send(env.print_params())
             else:
                 raise NotImplementedError
         except EOFError:
@@ -122,12 +112,10 @@ class SubprocVecEnv(VecEnv):
         obs, rews, dones, infos = zip(*results)
         return _flatten_obs(obs, self.observation_space), np.stack(rews), np.stack(dones), infos
 
-    def  rollout_async(self, u_vec):
-        # assert action_seqs.shape[-1] % len(self.remotes) == 0, "Number of particles must be divisible by number of cpus"
+    def rollout_async(self, u_vec):
         assert u_vec.shape[0] % len(self.remotes) == 0, "Number of particles must be divisible by number of cpus"
         batch_size = int(u_vec.shape[0]/len(self.remotes))
         for i,remote in enumerate(self.remotes):
-            # env_seed = base_seed + i*(episodes_per_env)
             u_vec_i = u_vec[i*batch_size: (i+1)*batch_size, :, :]
             remote.send(('rollout', u_vec_i))
         self.waiting = True
@@ -190,7 +178,6 @@ class SubprocVecEnv(VecEnv):
         """
         # batch_size = int(state_vec.shape[0]/len(self.remotes))
         for i,remote in enumerate(self.remotes):
-            # state_i = state_vec[i*batch_size: (i+1)*batch_size, :]
             remote.send(('set_env_state', state_dicts[i]))
         for remote in self.remotes:
             remote.recv()
@@ -200,30 +187,6 @@ class SubprocVecEnv(VecEnv):
             remote.send(('get_env_state', None))
         states = [remote.recv() for remote in self.remotes]
         return states
-
-
-    def randomize_params(self):
-        for remote in self.remotes:
-            remote.send(('randomize_params', None))
-        for remote in self.remotes:
-            remote.recv()
-    
-    def get_params(self):
-        for remote in self.remotes:
-            remote.send(('get_params', None))
-        params = [remote.recv() for remote in self.remotes]
-
-    def set_params(self, params):
-        for remote in self.remotes:
-            remote.send(('set_params', params))
-        for remote in self.remotes:
-            remote.recv()
-
-    def print_params(self):
-        for remote in self.remotes:
-            remote.send(('print_params', None))
-        for remote in self.remotes:
-            remote.recv()
 
     def get_images(self):
         for pipe in self.remotes:

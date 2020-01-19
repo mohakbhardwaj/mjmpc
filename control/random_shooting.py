@@ -10,6 +10,7 @@ class RandomShooting(GaussianMPC):
     def __init__(self,
                  horizon,
                  init_cov,
+                 base_action,
                  num_particles,
                  step_size,
                  gamma,
@@ -31,6 +32,7 @@ class RandomShooting(GaussianMPC):
                                    horizon,
                                    np.array(init_cov),
                                    np.zeros(shape=(horizon, num_actions)),
+                                   base_action,
                                    num_particles,
                                    gamma,
                                    n_iters,
@@ -54,7 +56,5 @@ class RandomShooting(GaussianMPC):
         self.mean_action = (1.0 - self.step_size) * self.mean_action +\
                             self.step_size * act_seq[:, :, best_id]
      
-    def _calc_val(self, state):
-        return 0.0
 
 

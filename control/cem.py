@@ -92,21 +92,10 @@ class CEM(GaussianMPC):
             Predict good parameters for the next time step by
             shifting the mean forward one step and growing the covariance
         """
-        # print('before', self.cov_action)
         super()._shift()
         if self.update_cov:
             self.cov_action[:-1] = self.cov_action[1:]
-            
             self.cov_action[-1] = self.init_cov * np.ones(shape=(self.num_actions,))
-        # print('after', self.cov_action)
-        # input('..')
         
-    def _calc_val(self, state):
-        """
-            Calculate (soft) value or free energy of state under current
-            control distribution
-        """
-
-        raise NotImplementedError
 
 

@@ -1,0 +1,42 @@
+env_name          : 'pen-v0'
+n_episodes        : 20
+max_ep_length     : 75
+seed              : 123
+base_action       : 'null'
+render            : False
+exp_notes         : 'In-hand manipulation of a 6-DOF pen with a 24-DOF Shadow Hand (Adroit).'
+
+random_shooting:
+  horizon           : 32
+  init_cov          : [1.0] 
+  filter_coeffs     : [0.25, 0.8, 0.0]
+  gamma             : 1.0
+  n_iters           : 1
+  step_size         : 1.0
+  num_cpu           : 4
+  particles_per_cpu : 25
+
+mppi:
+  horizon           : 32
+  init_cov          : [1.0]
+  filter_coeffs     : [0.25, 0.8, 0.0]
+  gamma             : 1.0
+  n_iters           : 1
+  step_size         : 1.0
+  lam               : 1.0
+  alpha             : 1
+  num_cpu           : 4
+  particles_per_cpu : 25
+
+cem:
+  horizon           : 32
+  init_cov          : [1.0]
+  update_cov        : True
+  min_cov           : 0.7
+  filter_coeffs     : [0.25, 0.8, 0.0]
+  gamma             : 1.0
+  n_iters           : 1
+  step_size         : 1.0
+  elite_frac        : 0.2
+  num_cpu           : 10
+  particles_per_cpu : 10

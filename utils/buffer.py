@@ -5,10 +5,9 @@ rendering
 """
 #!/usr/bin/env python
 import copy
+import json
 import numpy as np
 import os
-from .logger import logger
-from .timer import timeit
 
 
 class Buffer():
@@ -72,8 +71,8 @@ class Buffer():
         rewards_save      = self._rewards[self._num_saved_already:self._n_elements]
         dones_save        = self._dones[self._num_saved_already:self._n_elements]
         success_save      = self._successes[self._num_saved_already:self._n_elements]
-        # sim_states_save      = self._sim_states[self._num_saved_already:self._n_elements]
-        # sim_next_states_save = self._sim_next_states[self._num_saved_already:self._n_elements]
+        states_save      = self._states[self._num_saved_already:self._n_elements]
+        next_states_save = self._next_states[self._num_saved_already:self._n_elements]
 
 
         if not os.path.exists(folder): os.makedirs(folder)
@@ -84,6 +83,10 @@ class Buffer():
         np.savetxt(folder+"/rewards.csv",rewards_save)
         np.savetxt(folder+"/dones.csv", dones_save)
         np.savetxt(folder+"/successes.csv", success_save)
+        # with open(folder+"/states.json","w") as fout:
+            # json.dump(states_save, fout)
+        # with open(folder+"/next_states.json","w") as fout:
+            # json.dump(next_states_save, fout)
         # np.savetxt(folder+"/sim_states.csv", sim_states_save)
         # np.savetxt(folder+"/sim_next_states.csv", sim_next_states_save)
 
@@ -124,13 +127,14 @@ class Buffer():
             n_times - number of times to render
         """
         print('Rendering {0} times'.format(n_times))
-        timeit.start('render')
+        # timeit.start('render')
         env.reset()
         # env.render()
         for ep in range(n_times):
+            env.reset()
             for i in range(len(self)):
                 env.unwrapped.set_env_state(self._states[i])
                 env.step(self._actions[i].reshape(self._d_action,))
                 env.render()
-        timeit.stop('render')
+        # timeit.stop('render')
 

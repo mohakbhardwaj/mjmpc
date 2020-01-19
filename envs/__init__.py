@@ -32,3 +32,4 @@ from mjrl.envs.mujoco_env import MujocoEnv
 # ^^^^^ so that user gets the correct error
 # message if mujoco is not installed correctly
 from envs.basic.reacher_env import Reacher7DOFEnv, ContinualReacher7DOFEnv
+import mj_envs

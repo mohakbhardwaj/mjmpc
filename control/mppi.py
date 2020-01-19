@@ -64,31 +64,26 @@ class MPPI(GaussianMPC):
            using samples
         """
         delta = act_seq - self.mean_action[:, :, np.newaxis]
-        w = self._exp_util(costs, delta, self.lam)
+        w = self._exp_util(costs, delta)
         self.mean_action = (1.0 - self.step_size) * self.mean_action +\
-                            self.step_size * np.matmul(act_seq, w)
-        # self.mean_action = (1.0 - self.step_size) * self.mean_action +\
-        #                     self.step_size * np.matmul(act_seq, w[:,:,None]).squeeze(-1)
+                            self.step_size * np.matmul(act_seq, w) 
 
-        if np.any(np.isnan(self.mean_action)):
-            print('warning: nan in mean_action, resetting the controller')
-            self.reset()
+
+        # if np.any(np.isnan(self.mean_action)):
+        #     print('warning: nan in mean_action, resetting the controller')
+        #     self.reset()
 
         
-    def _exp_util(self, costs, delta, lam):
+    def _exp_util(self, costs, delta):
         """
             Calculate weights using exponential utility
         """
-        # costs = costs + lam * uk
         traj_costs = cost_to_go(costs, self.gamma_seq)[0, :]
-        uk = self._control_costs(delta)
-
+        control_costs = self._control_costs(delta)
         # #calculate soft-max
-        # costs -= np.min(costs, axis=-1)[:, None]  # shift the weights
-        # w = np.exp(-costs / lam)
-        # w /= np.sum(w, axis=-1)[:, None] + 1e-6  # normalize the weights
-        scores = -(traj_costs/lam + uk)
-        w = scipy.special.softmax(scores, axis=0)
+        total_costs = traj_costs + self.lam * control_costs 
+        w = np.exp(-(total_costs - np.min(total_costs)) / self.lam)
+        w /= np.sum(w) + 1e-6  # normalize the weights
         return w
 
     def _control_costs(self, delta):
@@ -96,32 +91,10 @@ class MPPI(GaussianMPC):
             control_costs = np.zeros((delta.shape[0], delta.shape[-1]))
         else:
             u_normalized = self.mean_action/self.cov_action
-            # control_costs = 0.5 * u_normalized[:, :, np.newaxis] * (self.mean_action[:, :, np.newaxis] + 2.0 * delta)
             control_costs = u_normalized[:,:,np.newaxis] * delta
             control_costs = np.sum(control_costs, axis=1)
         control_costs = cost_to_go(control_costs, self.gamma_seq)[0,:]
         return control_costs
 
-
-    def _calc_val(self, state):
-        """
-            Calculate (soft) value or free energy of state under current
-            control distribution
-        """
-        # sk, delta = self._generate_rollouts(state)
-        # uk = self._control_costs(delta)
-        # sk = sk + self.lam * uk
-        # sk = cost_to_go(sk, self.gamma_seq)
-        # sk = -sk / self.lam
-        # sk = np.array(sk[0, :])
-
-        # # calculate log-sum-exp
-        # skmax = np.max(sk)
-        # sk -= skmax
-        # sk = np.exp(sk)
-        # val = skmax + np.log(np.sum(sk)) - np.log(sk.shape[0])
-        # val = -self.lam * val
-        # return val
-        return 0.0
 
 
