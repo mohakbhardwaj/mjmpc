@@ -55,7 +55,6 @@ class MPPI(GaussianMPC):
                                    seed)
         self.lam = lam
         self.alpha = alpha  # 0 means control cost is on, 1 means off
-        self._val = 0.0  # optimal value for current state
 
 
     def _update_distribution(self, costs, act_seq):
@@ -80,8 +79,8 @@ class MPPI(GaussianMPC):
         """
         traj_costs = cost_to_go(costs, self.gamma_seq)[0, :]
         control_costs = self._control_costs(delta)
-        # #calculate soft-max
         total_costs = traj_costs + self.lam * control_costs 
+        # #calculate soft-max
         w = np.exp(-(total_costs - np.min(total_costs)) / self.lam)
         w /= np.sum(w) + 1e-6  # normalize the weights
         return w

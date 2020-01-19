@@ -1,5 +1,5 @@
 env_name          : 'pen-v0'
-n_episodes        : 20
+n_episodes        : 10
 max_ep_length     : 75
 seed              : 123
 base_action       : 'null'
@@ -13,8 +13,8 @@ random_shooting:
   gamma             : 1.0
   n_iters           : 1
   step_size         : 1.0
-  num_cpu           : 4
-  particles_per_cpu : 25
+  num_cpu           : 10
+  particles_per_cpu : 10
 
 mppi:
   horizon           : 32
@@ -25,18 +25,34 @@ mppi:
   step_size         : 1.0
   lam               : 1.0
   alpha             : 1
-  num_cpu           : 4
-  particles_per_cpu : 25
+  num_cpu           : 10
+  particles_per_cpu : 10
 
 cem:
   horizon           : 32
   init_cov          : [1.0]
   update_cov        : True
-  min_cov           : 0.7
+  min_cov           : 0.5
+  beta              : 0.5
+  prior_cov         : 0.7
   filter_coeffs     : [0.25, 0.8, 0.0]
   gamma             : 1.0
   n_iters           : 1
   step_size         : 1.0
   elite_frac        : 0.2
+  num_cpu           : 10
+  particles_per_cpu : 10
+
+dmd:
+  horizon           : 32
+  init_cov          : [1.0]
+  min_cov           : 0.5
+  beta              : 1.0
+  prior_cov         : 0.7
+  filter_coeffs     : [0.25, 0.8, 0.0]
+  gamma             : 1.0
+  n_iters           : 1
+  step_size         : 0.55
+  lam               : 1.0
   num_cpu           : 10
   particles_per_cpu : 10

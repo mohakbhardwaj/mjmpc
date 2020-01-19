@@ -13,6 +13,8 @@ class MPCPolicy(Policy):
             self.controller = control.RandomShooting(**param_dict)
         elif controller_type == "cem":
             self.controller = control.CEM(**param_dict)
+        elif controller_type == "dmd":
+            self.controller = control.DMDMPC(**param_dict)
         else:
             raise(NotImplementedError, "Controller type does not exist")
 

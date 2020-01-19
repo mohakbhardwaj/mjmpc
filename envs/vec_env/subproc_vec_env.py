@@ -1,3 +1,4 @@
+from copy import deepcopy
 import multiprocessing
 from collections import OrderedDict
 
@@ -116,7 +117,7 @@ class SubprocVecEnv(VecEnv):
         assert u_vec.shape[0] % len(self.remotes) == 0, "Number of particles must be divisible by number of cpus"
         batch_size = int(u_vec.shape[0]/len(self.remotes))
         for i,remote in enumerate(self.remotes):
-            u_vec_i = u_vec[i*batch_size: (i+1)*batch_size, :, :]
+            u_vec_i = u_vec[i*batch_size: (i+1)*batch_size, :, :].copy()
             remote.send(('rollout', u_vec_i))
         self.waiting = True
 
@@ -176,11 +177,10 @@ class SubprocVecEnv(VecEnv):
         Set the state of all envs given a list of 
         state dicts
         """
-        # batch_size = int(state_vec.shape[0]/len(self.remotes))
+        assert len(state_dicts) == len(self.remotes), "Each environment must be provided a state"
         for i,remote in enumerate(self.remotes):
             remote.send(('set_env_state', state_dicts[i]))
-        for remote in self.remotes:
-            remote.recv()
+        for remote in self.remotes: remote.recv()
 
     def get_env_state(self):
         for remote in self.remotes:

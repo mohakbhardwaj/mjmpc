@@ -21,27 +21,18 @@ def generate_noise(std_dev, filter_coeffs, shape, base_seed):
     """
     np.random.seed(base_seed)
     beta_0, beta_1, beta_2 = filter_coeffs
-    eps = np.random.normal(loc=0.0, scale=std_dev, size=shape)
+    eps = np.random.normal(loc=0.0, scale=1.0, size=shape) * std_dev
     for i in range(2, eps.shape[0]):
-        eps[i, :, :] = beta_0*eps[i, :, :] + beta_1*eps[i-1, :, :] + beta_2*eps[i-2, :, :]
+        eps[i] = beta_0*eps[i] + beta_1*eps[i-1] + beta_2*eps[i-2]
     return eps 
 
 def cost_to_go(sk, gamma_seq):
     """
         Calculate (discounted) cost to go for given reward sequence
     """
-    # print(sk.shape)
-    # print('before gamma multip',sk[:,0])
-    # input('')
     sk = gamma_seq * sk  # discounted reward sequence
-    # print('after gamma multip',sk[:,0])
-    # input('')
     sk = np.cumsum(sk[::-1, :], axis=0)[::-1, :]  # cost to go (but scaled by [1 , gamma, gamma*2 and so on])
-    # print('after cumsum',sk[:,0])
-    # input('')
     sk /= gamma_seq  # un-scale it to get true discounted cost to go
-    # print('unscaled',sk[:,0])
-    # input('')    
     return sk
 
 class Controller(ABC):
@@ -156,9 +147,8 @@ class Controller(ABC):
         """
             Optimize for best action at current state
         """
-        self.set_state_fn(state) #set state of simulation
-
         for itr in range(self.n_iters):
+            self.set_state_fn(state) #set state of simulation
             # generate random trajectories
             obs_vec, sk, act_seq = self._generate_rollouts() #state_vec
             # update moments
@@ -220,8 +210,6 @@ class GaussianMPC(Controller):
         return next_action.reshape(self.num_actions, )
     
     def _sample_actions(self):
-        # print(self.seed + self.num_steps)
-        # input('..')
         delta = generate_noise(np.sqrt(self.cov_action[:, :, np.newaxis]), self.filter_coeffs,
                                        shape=(self.horizon, self.num_actions, self.num_particles), 
                                        base_seed = self.seed + self.num_steps)

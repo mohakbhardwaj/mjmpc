@@ -7,14 +7,14 @@ render            : False
 exp_notes         : '7-DOF Sawyer arm reaching various spatial goals for the end effector'
 
 random_shooting:
-  horizon           : 32
-  init_cov          : [3.5, 3.5, 3.5, 3.5, 3.5, 3.5, 3.5] 
-  filter_coeffs     : [0.7, 0.1, 0.0]
+  horizon           : 16
+  init_cov          : [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+  filter_coeffs     : [0.25, 0.8, 0.0]
   gamma             : 1.0
   n_iters           : 1
   step_size         : 1.0
   num_cpu           : 4
-  particles_per_cpu : 9
+  particles_per_cpu : 8
 
 mppi:
   horizon           : 16
@@ -25,18 +25,34 @@ mppi:
   step_size         : 1.0
   lam               : 0.2
   alpha             : 1
-  num_cpu           : 1
-  particles_per_cpu : 32
+  num_cpu           : 4
+  particles_per_cpu : 8
 
 cem:
-  horizon           : 32
-  init_cov          : [3.5, 3.5, 3.5, 3.5, 3.5, 3.5, 3.5]
+  horizon           : 16
+  init_cov          : [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
   update_cov        : True
-  min_cov           : 2.5
-  filter_coeffs     : [0.7, 0.1, 0.0]
+  min_cov           : 0.1
+  beta              : 0.5
+  prior_cov         : 0.7
+  filter_coeffs     : [0.25, 0.8, 0.0]
   gamma             : 1.0
   n_iters           : 1
   step_size         : 1.0
   elite_frac        : 0.2
   num_cpu           : 4
-  particles_per_cpu : 9
+  particles_per_cpu : 8
+
+dmd:
+  horizon           : 16
+  init_cov          : [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+  min_cov           : 0.5
+  beta              : 1.0
+  prior_cov         : 0.7
+  filter_coeffs     : [0.25, 0.8, 0.0]
+  gamma             : 1.0
+  n_iters           : 1
+  step_size         : 0.6
+  lam               : 0.2
+  num_cpu           : 4
+  particles_per_cpu : 8

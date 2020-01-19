@@ -27,9 +27,9 @@ with open(args.config_file) as file:
 
 #Create the main environment
 env_name  = exp_params['env_name']
-np.random.seed(exp_params['seed'])
+# np.random.seed(exp_params['seed'])
 env = gym.make(env_name)
-env.seed(exp_params['seed'])
+# env.seed(exp_params['seed'])
 
 # Create vectorized environments for MPPI simulations
 def make_env():
@@ -44,7 +44,7 @@ d_action = env.action_space.high.shape[0]
 def main(controller_name):    
     num_cpu = exp_params[controller_name]['num_cpu']
     sim_env = SubprocVecEnv([make_env for i in range(num_cpu)])  
-    seed_list = [exp_params['seed'] + i*123 for i in range(num_cpu)]
+    seed_list = [exp_params['seed'] + i for i in range(num_cpu)]
     sim_env.seed(seed_list)
     _ = sim_env.reset()
 
@@ -62,7 +62,7 @@ def main(controller_name):
         in sim envs and return rewards and observations 
         received at every timestep
         """
-        obs_vec, rew_vec, done_vec, _ = sim_env.rollout(np.transpose(u_vec, (2, 0, 1)))
+        obs_vec, rew_vec, done_vec, _ = sim_env.rollout(np.transpose(u_vec, (2, 0, 1)).copy())
         return obs_vec, rew_vec.T, done_vec #state_vec
 
     #Create policy
@@ -89,16 +89,18 @@ def main(controller_name):
     logger.info('Runnning {0} episodes'.format(n_episodes))
     timeit.start('start_'+controller_name)
     for i in tqdm.tqdm(range(n_episodes)):
+        #seeding
         curr_seed = exp_params['seed']+i*12345
         policy_params['seed'] = curr_seed
         policy = MPCPolicy(controller_type=controller_name,
-                       param_dict=policy_params, batch_size=1)
+                            param_dict=policy_params, batch_size=1)
         env.seed(seed=curr_seed) #To enforce consistent episodes
+        sim_env.seed([curr_seed + j for j in range(num_cpu)])
+
         curr_obs = env.reset()
         _ = sim_env.reset()
-        
-        for t in tqdm.tqdm(range(max_ep_length)):
-            curr_state = env.get_env_state()
+        curr_state = deepcopy(env.get_env_state())
+        for t in tqdm.tqdm(range(max_ep_length)):   
             #Get action from policy
             action = policy.get_action(curr_state)
             #Perform action on environment
@@ -108,13 +110,14 @@ def main(controller_name):
             buff.add((curr_obs, action, obs, np.zeros_like(
                     action), reward, done, done, curr_state, next_state))
             curr_obs = obs.copy()
+            curr_state = deepcopy(next_state)
             ep_rewards[i] += reward
         
         logger.record_tabular(controller_name+'episodeReward', ep_rewards[i])
         logger.dump_tabular()
             
     timeit.stop('start_'+controller_name)
-    logger.info(timeit)
+    logger.info('Timing info (seconds): {0}'.format(timeit))
     logger.info('Buffer Length = {0}'.format(len(buff)))
     logger.info('Average reward = {0}. Closing...'.format(np.average(ep_rewards)))
     buff.save(LOG_DIR)
