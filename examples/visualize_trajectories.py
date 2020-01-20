@@ -13,7 +13,7 @@ from utils import helpers
 DESC = '''
 Helper script to visualize optimized trajectories (list of trajectories in format).\n
 USAGE:\n
-    $ python viz_trajectories.py --file path_to_file.pickle --env_name name_of_env --repeat 100\n
+    $ python visualize_trajectories.py --file path_to_file.pickle --env_name name_of_env --repeat 100\n
 '''
 @click.command(help=DESC)
 @click.option('--env_name', type=str, prompt='Name of environment', help='name of environment to render', required= True)

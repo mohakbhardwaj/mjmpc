@@ -13,7 +13,7 @@ import yaml
 from envs import GymEnvWrapper
 from envs.vec_env import SubprocVecEnv
 from mjrl.utils import tensor_utils
-from utils import logger, timeit, Buffer, helpers
+from utils import logger, timeit, helpers
 from policies import MPCPolicy
 
 
@@ -103,20 +103,14 @@ def main(controller_name):
         observations = []; actions = []; rewards = []; dones  = []; 
         infos = []; states = []
 
-        curr_obs = env.reset()
+        obs = env.reset()
         _ = sim_env.reset()
         
-        # curr_state = deepcopy(env.get_env_state())
         for t in tqdm.tqdm(range(max_ep_length)):   
-            #Get action from policy
             curr_state = deepcopy(env.get_env_state())
             action = policy.get_action(curr_state)
-            #Perform action on environment
             obs, reward, done, info = env.step(action)
-            #Add transition to buffer
-            # next_state = env.get_env_state()
-            # buff.add((curr_obs, action, obs, np.zeros_like(
-            #         action), reward, done, done, curr_state, next_state))
+
             observations.append(obs)
             actions.append(action)
             rewards.append(reward)
@@ -124,8 +118,6 @@ def main(controller_name):
             infos.append(info)
             states.append(curr_state)
 
-            # curr_obs = obs.copy()
-            # curr_state = deepcopy(next_state)
             ep_rewards[i] += reward
         
         traj = dict(
@@ -143,7 +135,8 @@ def main(controller_name):
             
     timeit.stop('start_'+controller_name)
     logger.info('Timing info (seconds): {0}'.format(timeit))
-    logger.info('Average reward = {0}. Closing...'.format(np.average(ep_rewards)))
+    logger.info('Average reward = {0}'.format(np.average(ep_rewards)))
+    logger.info('Episode rewards = {0}'.format(ep_rewards))
 
     if exp_params['render']:
         _ = input("Press enter to display optimized trajectory (will be played 10 times) : ")
@@ -151,7 +144,6 @@ def main(controller_name):
         
 
     sim_env.close()
-    print(ep_rewards)
     return np.average(ep_rewards)
 
 
