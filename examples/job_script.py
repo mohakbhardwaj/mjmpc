@@ -6,12 +6,14 @@ from copy import deepcopy
 from datetime import datetime
 import gym
 import numpy as np
+import pickle
 import tqdm
 import yaml
 
 from envs import GymEnvWrapper
 from envs.vec_env import SubprocVecEnv
-from utils import logger, timeit, Buffer
+from mjrl.utils import tensor_utils
+from utils import logger, timeit, Buffer, helpers
 from policies import MPCPolicy
 
 
@@ -84,7 +86,8 @@ def main(controller_name):
     ep_rewards = np.array([0.] * n_episodes)
 
     #Create experience buffer
-    buff = Buffer(d_obs, d_action, max_length=n_episodes*max_ep_length)
+    # buff = Buffer(d_obs, d_action, max_length=n_episodes*max_ep_length)
+    trajectories = []
 
     logger.info('Runnning {0} episodes'.format(n_episodes))
     timeit.start('start_'+controller_name)
@@ -97,33 +100,56 @@ def main(controller_name):
         env.seed(seed=curr_seed) #To enforce consistent episodes
         sim_env.seed([curr_seed + j for j in range(num_cpu)])
 
+        observations = []; actions = []; rewards = []; dones  = []; 
+        infos = []; states = []
+
         curr_obs = env.reset()
         _ = sim_env.reset()
-        curr_state = deepcopy(env.get_env_state())
+        
+        # curr_state = deepcopy(env.get_env_state())
         for t in tqdm.tqdm(range(max_ep_length)):   
             #Get action from policy
+            curr_state = deepcopy(env.get_env_state())
             action = policy.get_action(curr_state)
             #Perform action on environment
             obs, reward, done, info = env.step(action)
             #Add transition to buffer
-            next_state = env.get_env_state()
-            buff.add((curr_obs, action, obs, np.zeros_like(
-                    action), reward, done, done, curr_state, next_state))
-            curr_obs = obs.copy()
-            curr_state = deepcopy(next_state)
+            # next_state = env.get_env_state()
+            # buff.add((curr_obs, action, obs, np.zeros_like(
+            #         action), reward, done, done, curr_state, next_state))
+            observations.append(obs)
+            actions.append(action)
+            rewards.append(reward)
+            dones.append(done)
+            infos.append(info)
+            states.append(curr_state)
+
+            # curr_obs = obs.copy()
+            # curr_state = deepcopy(next_state)
             ep_rewards[i] += reward
         
+        traj = dict(
+            observations=np.array(observations),
+            actions=np.array(actions),
+            rewards=np.array(rewards),
+            dones=np.array(dones),
+            infos=infos,
+            states=states
+        )
+        trajectories.append(traj)
         logger.record_tabular(controller_name+'episodeReward', ep_rewards[i])
         logger.dump_tabular()
+        pickle.dump(trajectories, open(LOG_DIR+"/trajectories.p", 'wb'))
             
     timeit.stop('start_'+controller_name)
     logger.info('Timing info (seconds): {0}'.format(timeit))
-    logger.info('Buffer Length = {0}'.format(len(buff)))
     logger.info('Average reward = {0}. Closing...'.format(np.average(ep_rewards)))
-    buff.save(LOG_DIR)
 
     if exp_params['render']:
-        buff.render(env, n_times=3)
+        _ = input("Press enter to display optimized trajectory (will be played 10 times) : ")
+        helpers.render_trajs(env, trajectories, n_times=10)
+        
+
     sim_env.close()
     print(ep_rewards)
     return np.average(ep_rewards)
