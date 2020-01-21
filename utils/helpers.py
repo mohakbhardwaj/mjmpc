@@ -14,14 +14,13 @@ def set_qpos_qvel(sim, qpos, qvel, nq, nv):
     sim.forward()
 
 def render_trajs(env, trajectories, n_times=1):
-    for i in range(n_times):
+    for _ in range(n_times):
         for traj in trajectories:
             env.reset()
-            for i in range(len(traj['states'])):
-                state = traj['states'][i]
-                # action = traj['actions'][i]
-                env.unwrapped.set_env_state(state)
-                # env.step(self._actions[i].reshape(self._d_action,))
+            state = traj['states'][0]
+            env.unwrapped.set_env_state(state)
+            for action in traj['actions']:
                 env.render()
+                env.step(action)
 
 

@@ -33,7 +33,7 @@ cem:
   init_cov          : [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
   update_cov        : True
   min_cov           : 0.1
-  beta              : 0.5
+  beta              : 0.3
   prior_cov         : 0.7
   filter_coeffs     : [0.25, 0.8, 0.0]
   gamma             : 1.0
@@ -46,13 +46,13 @@ cem:
 dmd:
   horizon           : 16
   init_cov          : [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
-  min_cov           : 0.5
-  beta              : 1.0
+  min_cov           : 0.1
+  beta              : 0.3
   prior_cov         : 0.7
   filter_coeffs     : [0.25, 0.8, 0.0]
   gamma             : 1.0
   n_iters           : 1
-  step_size         : 0.6
+  step_size         : 0.55
   lam               : 0.2
   num_cpu           : 4
   particles_per_cpu : 8

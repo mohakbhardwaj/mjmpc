@@ -62,22 +62,17 @@ class MPPI(GaussianMPC):
            Update moments in the direction of current gradient estimated
            using samples
         """
-        delta = act_seq - self.mean_action[:, :, np.newaxis]
+        delta = act_seq - self.mean_action[None, :, :]
         w = self._exp_util(costs, delta)
+        weighted_seq = w * act_seq.T
         self.mean_action = (1.0 - self.step_size) * self.mean_action +\
-                            self.step_size * np.matmul(act_seq, w) 
-
-
-        # if np.any(np.isnan(self.mean_action)):
-        #     print('warning: nan in mean_action, resetting the controller')
-        #     self.reset()
-
+                            self.step_size * np.sum(weighted_seq.T, axis=0) 
         
     def _exp_util(self, costs, delta):
         """
             Calculate weights using exponential utility
         """
-        traj_costs = cost_to_go(costs, self.gamma_seq)[0, :]
+        traj_costs = cost_to_go(costs, self.gamma_seq)[:,0]
         control_costs = self._control_costs(delta)
         total_costs = traj_costs + self.lam * control_costs 
         # #calculate soft-max
@@ -87,12 +82,12 @@ class MPPI(GaussianMPC):
 
     def _control_costs(self, delta):
         if self.alpha == 1:
-            control_costs = np.zeros((delta.shape[0], delta.shape[-1]))
+            return np.zeros(delta.shape[0])
         else:
             u_normalized = self.mean_action/self.cov_action
-            control_costs = u_normalized[:,:,np.newaxis] * delta
-            control_costs = np.sum(control_costs, axis=1)
-        control_costs = cost_to_go(control_costs, self.gamma_seq)[0,:]
+            control_costs = u_normalized[None, :,:] * delta
+            control_costs = np.sum(control_costs, axis=-1)
+            control_costs = cost_to_go(control_costs, self.gamma_seq)[:,0]
         return control_costs
 
 

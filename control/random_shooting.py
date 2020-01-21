@@ -52,9 +52,9 @@ class RandomShooting(GaussianMPC):
            sequence
         """
         Q = cost_to_go(costs, self.gamma_seq)
-        best_id = np.argmin(Q, axis = -1)[0]
+        best_id = np.argmin(Q, axis = 0)[0]
         self.mean_action = (1.0 - self.step_size) * self.mean_action +\
-                            self.step_size * act_seq[:, :, best_id]
+                            self.step_size * act_seq[best_id]
      
 
 

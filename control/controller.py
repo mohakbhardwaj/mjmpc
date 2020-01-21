@@ -22,8 +22,8 @@ def generate_noise(std_dev, filter_coeffs, shape, base_seed):
     np.random.seed(base_seed)
     beta_0, beta_1, beta_2 = filter_coeffs
     eps = np.random.normal(loc=0.0, scale=1.0, size=shape) * std_dev
-    for i in range(2, eps.shape[0]):
-        eps[i] = beta_0*eps[i] + beta_1*eps[i-1] + beta_2*eps[i-2]
+    for i in range(2, eps.shape[1]):
+        eps[:,i,:] = beta_0*eps[:,i,:] + beta_1*eps[:,i-1,:] + beta_2*eps[:,i-2,:]
     return eps 
 
 def cost_to_go(sk, gamma_seq):
@@ -31,7 +31,7 @@ def cost_to_go(sk, gamma_seq):
         Calculate (discounted) cost to go for given reward sequence
     """
     sk = gamma_seq * sk  # discounted reward sequence
-    sk = np.cumsum(sk[::-1, :], axis=0)[::-1, :]  # cost to go (but scaled by [1 , gamma, gamma*2 and so on])
+    sk = np.cumsum(sk[:, ::-1], axis=-1)[:, ::-1]  # cost to go (but scaled by [1 , gamma, gamma*2 and so on])
     sk /= gamma_seq  # un-scale it to get true discounted cost to go
     return sk
 
@@ -57,7 +57,7 @@ class Controller(ABC):
         self.horizon = horizon
         self.num_particles = num_particles
         self.gamma = gamma
-        self.gamma_seq = np.cumprod([1.0] + [self.gamma] * (horizon - 1)).reshape(horizon, 1)
+        self.gamma_seq = np.cumprod([1.0] + [self.gamma] * (horizon - 1)).reshape(1, horizon)
         self.n_iters = n_iters
         self.set_state_fn = set_state_fn
         self.rollout_fn = rollout_fn
@@ -115,13 +115,6 @@ class Controller(ABC):
         """
         pass
 
-    @abstractmethod
-    def reset(self):
-        """
-        Reset the controller
-        """
-        pass
-
     def set_terminal_cost_fn(self, fn):
         self.terminal_cost_fn = fn
 
@@ -147,7 +140,7 @@ class Controller(ABC):
         """
             Optimize for best action at current state
         """
-        for itr in range(self.n_iters):
+        for _ in range(self.n_iters):
             self.set_state_fn(state) #set state of simulation
             # generate random trajectories
             obs_vec, sk, act_seq = self._generate_rollouts() #state_vec
@@ -201,7 +194,7 @@ class GaussianMPC(Controller):
         self.init_cov = init_cov
         self.mean_action = init_mean
         self.base_action = base_action
-        self.cov_action = self.init_cov * np.ones(shape=(horizon, num_actions))
+        self.cov_action = self.init_cov #* np.ones(shape=(horizon, num_actions))
         self.step_size = step_size
         self.filter_coeffs = filter_coeffs
 
@@ -210,10 +203,10 @@ class GaussianMPC(Controller):
         return next_action.reshape(self.num_actions, )
     
     def _sample_actions(self):
-        delta = generate_noise(np.sqrt(self.cov_action[:, :, np.newaxis]), self.filter_coeffs,
-                                       shape=(self.horizon, self.num_actions, self.num_particles), 
+        delta = generate_noise(np.sqrt(self.cov_action[None,None,:]), self.filter_coeffs,
+                                       shape=(self.num_particles, self.horizon, self.num_actions), 
                                        base_seed = self.seed + self.num_steps)
-        act_seq = self.mean_action[:, :, np.newaxis] + delta
+        act_seq = self.mean_action[None, :, :] + delta
         return act_seq
     
     def _shift(self):
@@ -229,15 +222,13 @@ class GaussianMPC(Controller):
         elif self.base_action == 'repeat':
             self.mean_action[-1] = self.mean_action[-2]
         else:
-            raise(NotImplementedError, "invalid option for base action during shift")
+            raise NotImplementedError("invalid option for base action during shift")
 
     def reset(self):
         self.num_steps = 0
         self.mean_action = np.zeros(shape=(self.horizon, self.num_actions))
-        self.cov_action = self.init_cov * np.ones(shape=(self.horizon, self.num_actions))
-        self.gamma_seq = np.cumprod([1.0] + [self.gamma] * (self.horizon - 1)).reshape(self.horizon, 1)
-        self._val = 0.0
-    
+        self.cov_action = self.init_cov # * np.ones(shape=(self.horizon, self.num_actions))
+
     def _calc_val(self, state):
-        raise(NotImplementedError, "_calc val not implemented yet")
+        raise NotImplementedError("_calc val not implemented yet")
 

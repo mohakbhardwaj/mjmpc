@@ -64,8 +64,8 @@ def main(controller_name):
         in sim envs and return rewards and observations 
         received at every timestep
         """
-        obs_vec, rew_vec, done_vec, _ = sim_env.rollout(np.transpose(u_vec, (2, 0, 1)).copy())
-        return obs_vec, rew_vec.T, done_vec #state_vec
+        obs_vec, rew_vec, done_vec, _ = sim_env.rollout(u_vec.copy())
+        return obs_vec, rew_vec, done_vec #state_vec
 
     #Create policy
     policy_params = exp_params[controller_name]
@@ -86,7 +86,6 @@ def main(controller_name):
     ep_rewards = np.array([0.] * n_episodes)
 
     #Create experience buffer
-    # buff = Buffer(d_obs, d_action, max_length=n_episodes*max_ep_length)
     trajectories = []
 
     logger.info('Runnning {0} episodes'.format(n_episodes))

@@ -71,26 +71,20 @@ class CEM(GaussianMPC):
            Update moments using elite samples
         """
         Q = cost_to_go(costs, self.gamma_seq)
-        elite_ids = np.argsort(Q[0,:], axis=-1)[0:self.num_elite]
-        elite_actions = act_seq[:, :, elite_ids]
+        elite_ids = np.argsort(Q[:,0], axis=-1)[0:self.num_elite]
+        elite_actions = act_seq[elite_ids, :, :]
         
         if self.update_cov:
-            elite_deltas = (act_seq - self.mean_action[:,:,np.newaxis])[:, :, elite_ids]
-            # elite_cov = np.zeros((self.horizon, self.num_actions))
-            # for i in range(self.horizon):
-            #     for j in range(self.num_actions):
-            #         elite_cov[i, j] = np.cov(elite_deltas[i, j, :])
-            elite_cov = np.var(elite_deltas, axis=-1)
+            elite_deltas = (act_seq - self.mean_action[None, :,:])[elite_ids, :, :]
+            elite_deltas = elite_deltas.reshape(self.horizon * self.num_elite, self.num_actions)
+            elite_cov = np.var(elite_deltas, axis=0)
             self.cov_action = (1.0 - self.step_size) * self.cov_action +\
                                 self.step_size * elite_cov
+
             self.cov_action = np.clip(self.cov_action, self.min_cov, None)
-            if self.beta > 0.0:
-                update = self.cov_action < self.prior_cov
-                cov_shifted = (1-self.beta) * self.cov_action + self.beta * self.prior_cov
-                self.cov_action = update * cov_shifted + (1.0 - update) * self.cov_action
 
         self.mean_action = (1.0 - self.step_size) * self.mean_action +\
-                            self.step_size * np.mean(elite_actions, axis=-1)
+                            self.step_size * np.mean(elite_actions, axis=0)
 
         if np.any(np.isnan(self.mean_action)):
             print('warning: nan in mean_action or cov_action...resetting the controller')
@@ -102,9 +96,10 @@ class CEM(GaussianMPC):
             shifting the mean forward one step and growing the covariance
         """
         super()._shift()
-        if self.update_cov:
-            self.cov_action[:-1] = self.cov_action[1:]
-            self.cov_action[-1] = self.init_cov * np.ones(shape=(self.num_actions,))
+        if self.update_cov and self.beta > 0.0:
+            update = self.cov_action < self.prior_cov
+            cov_shifted = (1-self.beta) * self.cov_action + self.beta * self.prior_cov
+            self.cov_action = update * cov_shifted + (1.0 - update) * self.cov_action
         
 
 

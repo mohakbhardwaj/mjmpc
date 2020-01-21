@@ -1,5 +1,5 @@
 env_name          : 'pen-v0'
-n_episodes        : 10
+n_episodes        : 5
 max_ep_length     : 75
 seed              : 123
 base_action       : 'null'
@@ -39,7 +39,7 @@ cem:
   gamma             : 1.0
   n_iters           : 1
   step_size         : 1.0
-  elite_frac        : 0.2
+  elite_frac        : 0.1
   num_cpu           : 10
   particles_per_cpu : 10
 
