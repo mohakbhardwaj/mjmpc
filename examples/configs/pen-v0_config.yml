@@ -3,7 +3,7 @@ n_episodes        : 5
 max_ep_length     : 75
 seed              : 123
 base_action       : 'null'
-render            : True
+render            : False
 exp_notes         : 'In-hand manipulation of a 6-DOF pen with a 24-DOF Shadow Hand (Adroit).'
 
 random_shooting:
@@ -32,6 +32,7 @@ cem:
   horizon           : 32
   init_cov          : [1.0]
   update_cov        : True
+  cov_type          : 'diagonal'
   min_cov           : 0.5
   beta              : 0.5
   prior_cov         : 0.7
@@ -39,20 +40,22 @@ cem:
   gamma             : 1.0
   n_iters           : 1
   step_size         : 1.0
-  elite_frac        : 0.1
+  elite_frac        : 0.12
   num_cpu           : 10
   particles_per_cpu : 10
 
 dmd:
   horizon           : 32
   init_cov          : [1.0]
-  min_cov           : 0.5
-  beta              : 1.0
-  prior_cov         : 0.7
+  update_cov        : True
+  cov_type          : 'diagonal'
+  min_cov           : 0.7
+  beta              : 0.1
+  prior_cov         : 0.8
   filter_coeffs     : [0.25, 0.8, 0.0]
   gamma             : 1.0
   n_iters           : 1
-  step_size         : 0.55
+  step_size         : 1.0
   lam               : 1.0
   num_cpu           : 10
   particles_per_cpu : 10

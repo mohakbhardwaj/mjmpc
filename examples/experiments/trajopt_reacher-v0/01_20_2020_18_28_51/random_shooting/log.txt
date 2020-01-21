@@ -1,0 +1,7 @@
+01-20 18:28:51 random_shooting INFO     Running experiment: random_shooting. Results dir: /home/mohak/workspace/mjmpc/examples/experiments/trajopt_reacher-v0/01_20_2020_18_28_51/random_shooting
+01-20 18:28:51 random_shooting INFO     Runnning 10 episodes
+01-20 18:28:58 random_shooting INFO     Timing info (seconds): : start_random_shooting 6.8
+
+01-20 18:28:58 random_shooting INFO     Average reward = -114.58635380414849
+01-20 18:28:58 random_shooting INFO     Episode rewards = [-111.0774598   -77.80443757  -86.75734093 -101.54414519 -108.46012959
+ -178.63452354  -91.83344867 -135.43556519  -95.09671814 -159.21976943]

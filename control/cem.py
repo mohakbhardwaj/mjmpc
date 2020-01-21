@@ -32,6 +32,7 @@ class CEM(GaussianMPC):
                  min_cov=1.0,
                  prior_cov=1.0,
                  beta=0.0,
+                 cov_type='diagonal',
                  terminal_cost_fn=None,
                  rollout_callback=None,
                  batch_size=1,
@@ -55,6 +56,7 @@ class CEM(GaussianMPC):
                                    set_state_fn, 
                                    rollout_fn,
                                    rollout_callback,
+                                   cov_type,
                                    terminal_cost_fn,
                                    batch_size,
                                    seed)
@@ -81,7 +83,6 @@ class CEM(GaussianMPC):
             self.cov_action = (1.0 - self.step_size) * self.cov_action +\
                                 self.step_size * elite_cov
 
-            self.cov_action = np.clip(self.cov_action, self.min_cov, None)
 
         self.mean_action = (1.0 - self.step_size) * self.mean_action +\
                             self.step_size * np.mean(elite_actions, axis=0)
@@ -96,10 +97,12 @@ class CEM(GaussianMPC):
             shifting the mean forward one step and growing the covariance
         """
         super()._shift()
-        if self.update_cov and self.beta > 0.0:
-            update = self.cov_action < self.prior_cov
-            cov_shifted = (1-self.beta) * self.cov_action + self.beta * self.prior_cov
-            self.cov_action = update * cov_shifted + (1.0 - update) * self.cov_action
+        if self.update_cov:
+            self.cov_action = np.clip(self.cov_action, self.min_cov, None)
+            if self.beta > 0.0:
+                update = self.cov_action < self.prior_cov
+                cov_shifted = (1-self.beta) * self.cov_action + self.beta * self.prior_cov
+                self.cov_action = update * cov_shifted + (1.0 - update) * self.cov_action
         
 
 

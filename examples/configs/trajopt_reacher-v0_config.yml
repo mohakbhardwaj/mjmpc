@@ -3,7 +3,7 @@ n_episodes        : 10
 max_ep_length     : 75
 seed              : 123
 base_action       : 'null'
-render            : True
+render            : False
 exp_notes         : '7-DOF Sawyer arm reaching various spatial goals for the end effector'
 
 random_shooting:
@@ -32,6 +32,7 @@ cem:
   horizon           : 16
   init_cov          : [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
   update_cov        : True
+  cov_type          : 'diagonal'
   min_cov           : 0.1
   beta              : 0.3
   prior_cov         : 0.7
@@ -46,13 +47,15 @@ cem:
 dmd:
   horizon           : 16
   init_cov          : [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+  update_cov        : True
+  cov_type          : 'diagonal'
   min_cov           : 0.1
-  beta              : 0.3
+  beta              : 0.5
   prior_cov         : 0.7
   filter_coeffs     : [0.25, 0.8, 0.0]
   gamma             : 1.0
   n_iters           : 1
-  step_size         : 0.55
+  step_size         : 0.7
   lam               : 0.2
   num_cpu           : 4
   particles_per_cpu : 8

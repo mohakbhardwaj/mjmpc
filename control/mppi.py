@@ -50,6 +50,7 @@ class MPPI(GaussianMPC):
                                    set_state_fn, 
                                    rollout_fn,
                                    rollout_callback,
+                                   'diagonal',
                                    terminal_cost_fn,
                                    batch_size,
                                    seed)

@@ -173,6 +173,7 @@ class GaussianMPC(Controller):
                  set_state_fn,
                  rollout_fn,
                  rollout_callback,
+                 cov_type='diagonal',
                  terminal_cost_fn=None,
                  batch_size=1,
                  seed=0):
@@ -194,7 +195,11 @@ class GaussianMPC(Controller):
         self.init_cov = init_cov
         self.mean_action = init_mean
         self.base_action = base_action
-        self.cov_action = self.init_cov #* np.ones(shape=(horizon, num_actions))
+        self.cov_type = cov_type
+        if self.cov_type == 'diagonal':
+            self.cov_action = self.init_cov #* np.ones(shape=(horizon, num_actions))
+        else: 
+            raise NotImplementedError('Only diagonal covariances supported')
         self.step_size = step_size
         self.filter_coeffs = filter_coeffs
 

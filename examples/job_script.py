@@ -92,10 +92,12 @@ def main(controller_name):
     timeit.start('start_'+controller_name)
     for i in tqdm.tqdm(range(n_episodes)):
         #seeding
+
         curr_seed = exp_params['seed']+i*12345
         policy_params['seed'] = curr_seed
         policy = MPCPolicy(controller_type=controller_name,
                             param_dict=policy_params, batch_size=1)
+        np.random.seed(curr_seed)
         env.seed(seed=curr_seed) #To enforce consistent episodes
         sim_env.seed([curr_seed + j for j in range(num_cpu)])
 

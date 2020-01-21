@@ -32,6 +32,8 @@ class DMDMPC(GaussianMPC):
                  action_highs,
                  set_state_fn,
                  rollout_fn,
+                 update_cov=False,
+                 cov_type='diagonal',
                  terminal_cost_fn=None,
                  rollout_callback=None,
                  batch_size=1,
@@ -53,6 +55,7 @@ class DMDMPC(GaussianMPC):
                                    set_state_fn, 
                                    rollout_fn,
                                    rollout_callback,
+                                   cov_type,
                                    terminal_cost_fn,
                                    batch_size,
                                    seed)
@@ -60,6 +63,7 @@ class DMDMPC(GaussianMPC):
         self.beta = beta
         self.min_cov = min_cov
         self.prior_cov = prior_cov
+        self.update_cov = update_cov
 
 
     def _update_distribution(self, costs, act_seq):
@@ -70,15 +74,15 @@ class DMDMPC(GaussianMPC):
         delta = act_seq - self.mean_action[None, :, :]
         w = self._exp_util(costs)
         weighted_seq = w * act_seq.T
+        weighted_deltas = w * (delta ** 2).T
+        if self.update_cov:
+            self.cov_action = (1.0 - self.step_size) * self.cov_action +\
+                                    self.step_size * np.mean(np.sum(weighted_deltas.T, axis=0), axis=0)
+
         self.mean_action = (1.0 - self.step_size) * self.mean_action +\
                             self.step_size * np.sum(weighted_seq.T, axis=0) 
 
-        self.cov_action = (1.0 - self.step_size) * self.cov_action +\
-                                self.step_size * np.matmul(delta ** 2, w)
-        self.cov_action = np.clip(self.cov_action, self.min_cov, None)
 
-        
-        
     def _exp_util(self, costs):
         """
             Calculate weights using exponential utility
@@ -95,10 +99,12 @@ class DMDMPC(GaussianMPC):
             shifting the mean forward one step and growing the covariance
         """
         super()._shift()
-        if self.update_cov and self.beta > 0.0:
-            update = self.cov_action < self.prior_cov
-            cov_shifted = (1-self.beta) * self.cov_action + self.beta * self.prior_cov
-            self.cov_action = update * cov_shifted + (1.0 - update) * self.cov_action
+        if self.update_cov:
+            self.cov_action = np.clip(self.cov_action, self.min_cov, None)
+            if self.beta > 0.0:
+                update = self.cov_action < self.prior_cov
+                cov_shifted = (1-self.beta) * self.cov_action + self.beta * self.prior_cov
+                self.cov_action = update * cov_shifted + (1.0 - update) * self.cov_action
 
 
 

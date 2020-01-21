@@ -1,0 +1,7 @@
+01-20 18:29:48 cem        INFO     Running experiment: cem. Results dir: /home/mohak/workspace/mjmpc/examples/experiments/trajopt_reacher-v0/01_20_2020_18_29_35/cem
+01-20 18:29:48 cem        INFO     Runnning 10 episodes
+01-20 18:29:55 cem        INFO     Timing info (seconds): : start_cem  6.7
+
+01-20 18:29:55 cem        INFO     Average reward = -113.35530376222134
+01-20 18:29:55 cem        INFO     Episode rewards = [-108.33708139  -77.41278543  -83.47283363  -99.79042339 -107.09060584
+ -169.13099358  -92.06940409 -133.9605115  -101.32336923 -160.96502954]
