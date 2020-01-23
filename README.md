@@ -1,12 +1,16 @@
 # mjmpc
 Sampling based Model Predictive Control using MuJoCo simulator
 ## Installation
+[1]
 ```
+git clone git@github.com:mohakbhardwaj/mjmpc.git && cd mjmpc
 conda create --name mjmpc python=3.7
 conda activate mjmpc
 conda env update -f environment.yml
 ```
-Install gym and mujoco_py
+[2] Install gym and mujoco_py
+
+[3] Install mj_envs, mjrl
 
 ## Examples
 ```
@@ -15,9 +19,9 @@ python job_script.py --config_file <config_file> --controller_type  <controller_
 ```
 For example, to run MPPI on trajopt_reacher-v0 we can use
 ```
-python job_script.py --config_file configs/trajopt_reacher-v0_config.yml --controller_type mppi
+python job_script.py --config_file configs/sawyer_reacher-v0.yml --controller_type mppi
 ```
-Replace mppi with random_shooting to run RandomShootingMPC
+Replace mppi with random_shooting, cem or dmd to run different controllers using parameters provided in the config files.
 
 
 ## MPPI Parameters
