@@ -1,0 +1,31 @@
+01-22 14:25:46 mppi       INFO     Running experiment: mppi. Results dir: /home/mohak/workspace/mjmpc/examples/experiments/pen-v0/01_22_2020_14_21_21/mppi
+01-22 14:25:46 mppi       INFO     {'horizon': 32, 'init_cov': [1.0], 'filter_coeffs': [0.25, 0.8, 0.0], 'gamma': 1.0, 'n_iters': 1, 'step_size': 1.0, 'lam': 2.5, 'alpha': 1, 'num_cpu': 16, 'particles_per_cpu': 4}
+01-22 14:25:46 mppi       INFO     Runnning 20 episodes
+01-22 14:26:04 mppi       INFO     Episode reward = 3007.6505348263295
+01-22 14:26:18 mppi       INFO     Episode reward = 2775.392188660826
+01-22 14:26:31 mppi       INFO     Episode reward = 2269.71567662837
+01-22 14:26:45 mppi       INFO     Episode reward = 3734.8505342237972
+01-22 14:26:58 mppi       INFO     Episode reward = 287.5765724599425
+01-22 14:27:12 mppi       INFO     Episode reward = 1386.049183844999
+01-22 14:27:25 mppi       INFO     Episode reward = 19.126054206185753
+01-22 14:27:38 mppi       INFO     Episode reward = 1916.1680521806604
+01-22 14:27:53 mppi       INFO     Episode reward = 2905.8957164844965
+01-22 14:28:06 mppi       INFO     Episode reward = 2206.770498985569
+01-22 14:28:19 mppi       INFO     Episode reward = -154.62061534835908
+01-22 14:28:33 mppi       INFO     Episode reward = 3735.5529095192924
+01-22 14:28:46 mppi       INFO     Episode reward = 2861.208330838652
+01-22 14:29:00 mppi       INFO     Episode reward = 2783.291415381323
+01-22 14:29:14 mppi       INFO     Episode reward = 1807.33103961645
+01-22 14:29:27 mppi       INFO     Episode reward = 737.5066316302192
+01-22 14:29:41 mppi       INFO     Episode reward = 2675.5598175194373
+01-22 14:29:54 mppi       INFO     Episode reward = 784.9773179818156
+01-22 14:30:06 mppi       INFO     Episode reward = -82.90429216446115
+01-22 14:30:20 mppi       INFO     Episode reward = 2718.436825340374
+01-22 14:30:20 mppi       INFO     Timing info (seconds): : start_mppi 273.6
+
+01-22 14:30:20 mppi       INFO     Average reward = 1918.776719640796
+01-22 14:30:20 mppi       INFO     Success metric = 70.0
+01-22 14:30:20 mppi       INFO     Episode rewards = [3007.65053483 2775.39218866 2269.71567663 3734.85053422  287.57657246
+ 1386.04918384   19.12605421 1916.16805218 2905.89571648 2206.77049899
+ -154.62061535 3735.55290952 2861.20833084 2783.29141538 1807.33103962
+  737.50663163 2675.55981752  784.97731798  -82.90429216 2718.43682534]

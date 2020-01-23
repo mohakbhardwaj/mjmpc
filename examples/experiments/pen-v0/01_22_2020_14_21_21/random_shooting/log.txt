@@ -1,0 +1,31 @@
+01-22 14:21:21 random_shooting INFO     Running experiment: random_shooting. Results dir: /home/mohak/workspace/mjmpc/examples/experiments/pen-v0/01_22_2020_14_21_21/random_shooting
+01-22 14:21:21 random_shooting INFO     {'horizon': 32, 'init_cov': [1.0], 'filter_coeffs': [0.25, 0.8, 0.0], 'gamma': 1.0, 'n_iters': 1, 'step_size': 1.0, 'num_cpu': 16, 'particles_per_cpu': 4}
+01-22 14:21:21 random_shooting INFO     Runnning 20 episodes
+01-22 14:21:34 random_shooting INFO     Episode reward = -33.797171731899745
+01-22 14:21:48 random_shooting INFO     Episode reward = 1533.5095147751545
+01-22 14:22:01 random_shooting INFO     Episode reward = 724.6699683683509
+01-22 14:22:15 random_shooting INFO     Episode reward = 3526.583049153519
+01-22 14:22:27 random_shooting INFO     Episode reward = -125.0950804218268
+01-22 14:22:40 random_shooting INFO     Episode reward = 1316.509503710517
+01-22 14:22:54 random_shooting INFO     Episode reward = 1864.1837464809448
+01-22 14:23:07 random_shooting INFO     Episode reward = 1476.3168625062788
+01-22 14:23:21 random_shooting INFO     Episode reward = 2996.1344224887757
+01-22 14:23:34 random_shooting INFO     Episode reward = -169.43298574456443
+01-22 14:23:46 random_shooting INFO     Episode reward = 39.75856846963679
+01-22 14:24:00 random_shooting INFO     Episode reward = 3625.8659163620437
+01-22 14:24:13 random_shooting INFO     Episode reward = 1053.785774288063
+01-22 14:24:26 random_shooting INFO     Episode reward = -72.19210026177154
+01-22 14:24:40 random_shooting INFO     Episode reward = 3211.858498265647
+01-22 14:24:53 random_shooting INFO     Episode reward = 3626.992455823187
+01-22 14:25:09 random_shooting INFO     Episode reward = 3262.73985443717
+01-22 14:25:21 random_shooting INFO     Episode reward = 335.5734226302828
+01-22 14:25:34 random_shooting INFO     Episode reward = -68.53091481450637
+01-22 14:25:46 random_shooting INFO     Episode reward = 214.6371652959929
+01-22 14:25:46 random_shooting INFO     Timing info (seconds): : start_random_shooting 265.0
+
+01-22 14:25:46 random_shooting INFO     Average reward = 1417.0035235040496
+01-22 14:25:46 random_shooting INFO     Success metric = 45.0
+01-22 14:25:46 random_shooting INFO     Episode rewards = [ -33.79717173 1533.50951478  724.66996837 3526.58304915 -125.09508042
+ 1316.50950371 1864.18374648 1476.31686251 2996.13442249 -169.43298574
+   39.75856847 3625.86591636 1053.78577429  -72.19210026 3211.85849827
+ 3626.99245582 3262.73985444  335.57342263  -68.53091481  214.6371653 ]

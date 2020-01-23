@@ -6,6 +6,7 @@ Author: Mohak Bhardwaj
 Date: January 9, 2020
 """
 import numpy as np
+from copy import deepcopy
 
 class GymEnvWrapper():
     def __init__(self, gym_env):
@@ -61,7 +62,7 @@ class GymEnvWrapper():
         # state_vec = np.zeros((self.batch_size, n_steps, self.d_state))
         rew_vec = np.zeros((batch_size, n_steps))
         done_vec = np.zeros((batch_size, n_steps))
-        curr_state = self.get_env_state()
+        curr_state = deepcopy(self.get_env_state())
 
         for b in range(batch_size):
             #Set the state to the current state

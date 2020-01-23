@@ -1,0 +1,31 @@
+01-22 14:30:20 cem        INFO     Running experiment: cem. Results dir: /home/mohak/workspace/mjmpc/examples/experiments/pen-v0/01_22_2020_14_21_21/cem
+01-22 14:30:20 cem        INFO     {'horizon': 32, 'init_cov': [1.0], 'cov_type': 'full', 'beta': 0.7, 'filter_coeffs': [0.25, 0.8, 0.0], 'gamma': 1.0, 'n_iters': 1, 'step_size': 1.0, 'elite_frac': 0.05, 'num_cpu': 16, 'particles_per_cpu': 4}
+01-22 14:30:20 cem        INFO     Runnning 20 episodes
+01-22 14:30:36 cem        INFO     Episode reward = 2616.581746819591
+01-22 14:30:50 cem        INFO     Episode reward = 3229.6772010990453
+01-22 14:31:06 cem        INFO     Episode reward = 2560.2758792065347
+01-22 14:31:20 cem        INFO     Episode reward = 3806.9765484494055
+01-22 14:31:34 cem        INFO     Episode reward = 3139.651885393692
+01-22 14:31:47 cem        INFO     Episode reward = -61.12392837152228
+01-22 14:32:01 cem        INFO     Episode reward = 1243.6690829495885
+01-22 14:32:16 cem        INFO     Episode reward = 3940.9717991953216
+01-22 14:32:29 cem        INFO     Episode reward = 718.0124373068971
+01-22 14:32:42 cem        INFO     Episode reward = -46.768764833706285
+01-22 14:32:55 cem        INFO     Episode reward = -139.27899428850264
+01-22 14:33:09 cem        INFO     Episode reward = 3424.7592282654255
+01-22 14:33:22 cem        INFO     Episode reward = 26.345093148895728
+01-22 14:33:37 cem        INFO     Episode reward = 2431.243635754067
+01-22 14:33:49 cem        INFO     Episode reward = 532.4787966099658
+01-22 14:34:03 cem        INFO     Episode reward = 3396.343529855918
+01-22 14:34:16 cem        INFO     Episode reward = 676.751508898483
+01-22 14:34:29 cem        INFO     Episode reward = 465.63858092132966
+01-22 14:34:42 cem        INFO     Episode reward = 1940.9888511599293
+01-22 14:34:56 cem        INFO     Episode reward = 2939.4748096077674
+01-22 14:34:56 cem        INFO     Timing info (seconds): : start_cem  275.7
+
+01-22 14:34:56 cem        INFO     Average reward = 1842.1334463574062
+01-22 14:34:56 cem        INFO     Success metric = 55.0
+01-22 14:34:56 cem        INFO     Episode rewards = [2616.58174682 3229.6772011  2560.27587921 3806.97654845 3139.65188539
+  -61.12392837 1243.66908295 3940.9717992   718.01243731  -46.76876483
+ -139.27899429 3424.75922827   26.34509315 2431.24363575  532.47879661
+ 3396.34352986  676.7515089   465.63858092 1940.98885116 2939.47480961]

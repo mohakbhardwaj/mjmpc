@@ -17,13 +17,13 @@ register(
 )
 
 register(
-    id='trajopt_reacher-v0',
+    id='reacher-v0',
     entry_point='envs.basic.reacher_env:Reacher7DOFEnv',
     max_episode_steps=75,
 )
 
 register(
-    id='trajopt_continual_reacher-v0',
+    id='continual_reacher-v0',
     entry_point='envs.basic.reacher_env:ContinualReacher7DOFEnv',
     max_episode_steps=250,
 )

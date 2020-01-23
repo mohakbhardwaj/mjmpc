@@ -18,8 +18,6 @@ class DMDMPC(GaussianMPC):
     def __init__(self,
                  horizon,
                  init_cov,
-                 min_cov, 
-                 prior_cov,
                  beta,
                  base_action,
                  lam,
@@ -44,7 +42,7 @@ class DMDMPC(GaussianMPC):
                                    action_lows, 
                                    action_highs,
                                    horizon,
-                                   np.array(init_cov),
+                                   init_cov,
                                    np.zeros(shape=(horizon, num_actions)),
                                    base_action,
                                    num_particles,
@@ -61,10 +59,7 @@ class DMDMPC(GaussianMPC):
                                    seed)
         self.lam = lam
         self.beta = beta
-        self.min_cov = min_cov
-        self.prior_cov = prior_cov
         self.update_cov = update_cov
-
 
     def _update_distribution(self, costs, act_seq):
         """
@@ -73,12 +68,20 @@ class DMDMPC(GaussianMPC):
         """
         delta = act_seq - self.mean_action[None, :, :]
         w = self._exp_util(costs)
-        weighted_seq = w * act_seq.T
-        weighted_deltas = w * (delta ** 2).T
         if self.update_cov:
-            self.cov_action = (1.0 - self.step_size) * self.cov_action +\
-                                    self.step_size * np.mean(np.sum(weighted_deltas.T, axis=0), axis=0)
+            if self.cov_type == 'diagonal':
+                weighted_delta = w * (delta ** 2).T
+                cov_update = np.diag(np.mean(np.sum(weighted_delta.T, axis=0), axis=0))
+            elif self.cov_type == 'full':
+                weighted_delta = np.sqrt(w) * (delta).T
+                weighted_delta = weighted_delta.T.reshape((self.horizon * self.num_particles, self.num_actions))
+                cov_update = np.dot(weighted_delta.T, weighted_delta)
+                cov_update = cov_update/self.horizon
 
+            self.cov_action = (1.0 - self.step_size) * self.cov_action +\
+                                    self.step_size * cov_update
+
+        weighted_seq = w * act_seq.T
         self.mean_action = (1.0 - self.step_size) * self.mean_action +\
                             self.step_size * np.sum(weighted_seq.T, axis=0) 
 
@@ -100,11 +103,14 @@ class DMDMPC(GaussianMPC):
         """
         super()._shift()
         if self.update_cov:
-            self.cov_action = np.clip(self.cov_action, self.min_cov, None)
-            if self.beta > 0.0:
-                update = self.cov_action < self.prior_cov
-                cov_shifted = (1-self.beta) * self.cov_action + self.beta * self.prior_cov
-                self.cov_action = update * cov_shifted + (1.0 - update) * self.cov_action
+            #self.cov_action += self.beta * np.eye(self.num_actions)
+            self.cov_action += self.beta * np.diag(self.init_cov)
+        # if self.update_cov:
+        #     self.cov_action = np.clip(self.cov_action, self.min_cov, None)
+        #     if self.beta > 0.0:
+        #         update = self.cov_action < self.prior_cov
+        #         cov_shifted = (1-self.beta) * self.cov_action + self.beta * self.prior_cov
+        #         self.cov_action = update * cov_shifted + (1.0 - update) * self.cov_action
 
 
 

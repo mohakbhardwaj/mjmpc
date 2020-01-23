@@ -1,9 +1,9 @@
-env_name          : 'trajopt_reacher-v0'
+env_name          : 'sawyer_reacher-v0'
 n_episodes        : 10
 max_ep_length     : 75
 seed              : 123
 base_action       : 'null'
-render            : False
+render            : True
 exp_notes         : '7-DOF Sawyer arm reaching various spatial goals for the end effector'
 
 random_shooting:
@@ -13,8 +13,8 @@ random_shooting:
   gamma             : 1.0
   n_iters           : 1
   step_size         : 1.0
-  num_cpu           : 4
-  particles_per_cpu : 8
+  num_cpu           : 8
+  particles_per_cpu : 4
 
 mppi:
   horizon           : 16
@@ -25,37 +25,32 @@ mppi:
   step_size         : 1.0
   lam               : 0.2
   alpha             : 1
-  num_cpu           : 4
-  particles_per_cpu : 8
+  num_cpu           : 8
+  particles_per_cpu : 4
 
 cem:
   horizon           : 16
   init_cov          : [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
-  update_cov        : True
-  cov_type          : 'diagonal'
-  min_cov           : 0.1
+  cov_type          : 'full'
   beta              : 0.3
-  prior_cov         : 0.7
   filter_coeffs     : [0.25, 0.8, 0.0]
   gamma             : 1.0
   n_iters           : 1
   step_size         : 1.0
   elite_frac        : 0.2
-  num_cpu           : 4
-  particles_per_cpu : 8
+  num_cpu           : 8
+  particles_per_cpu : 4
 
 dmd:
   horizon           : 16
   init_cov          : [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
-  update_cov        : True
-  cov_type          : 'diagonal'
-  min_cov           : 0.1
-  beta              : 0.5
-  prior_cov         : 0.7
+  update_cov        : False
+  cov_type          : 'full'
+  beta              : 0.3
   filter_coeffs     : [0.25, 0.8, 0.0]
   gamma             : 1.0
   n_iters           : 1
-  step_size         : 0.7
+  step_size         : 1.0
   lam               : 0.2
-  num_cpu           : 4
-  particles_per_cpu : 8
+  num_cpu           : 8
+  particles_per_cpu : 4

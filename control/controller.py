@@ -15,16 +15,30 @@ def scale_ctrl(ctrl, action_low_limit, action_up_limit):
     ctrl = np.clip(ctrl, -1.0, 1.0)
     return act_mid_range[np.newaxis, :, np.newaxis] + ctrl * act_half_range[np.newaxis, :, np.newaxis]
 
-def generate_noise(std_dev, filter_coeffs, shape, base_seed):
+# def generate_noise(std_dev, filter_coeffs, shape, base_seed):
+#     """
+#         Generate noisy samples using autoregressive process
+#     """
+#     np.random.seed(base_seed)
+#     beta_0, beta_1, beta_2 = filter_coeffs
+#     eps = np.random.normal(loc=0.0, scale=1.0, size=shape) * std_dev
+#     for i in range(2, eps.shape[1]):
+#         eps[:,i,:] = beta_0*eps[:,i,:] + beta_1*eps[:,i-1,:] + beta_2*eps[:,i-2,:]
+#     return eps 
+
+def generate_noise(cov, filter_coeffs, shape, base_seed):
     """
         Generate noisy samples using autoregressive process
     """
     np.random.seed(base_seed)
     beta_0, beta_1, beta_2 = filter_coeffs
-    eps = np.random.normal(loc=0.0, scale=1.0, size=shape) * std_dev
+    N = cov.shape[0]
+    eps = np.random.multivariate_normal(mean=np.zeros((N,)), cov = cov, size=shape)
     for i in range(2, eps.shape[1]):
         eps[:,i,:] = beta_0*eps[:,i,:] + beta_1*eps[:,i-1,:] + beta_2*eps[:,i-2,:]
     return eps 
+
+
 
 def cost_to_go(sk, gamma_seq):
     """
@@ -141,7 +155,7 @@ class Controller(ABC):
             Optimize for best action at current state
         """
         for _ in range(self.n_iters):
-            self.set_state_fn(state) #set state of simulation
+            self.set_state_fn(copy.deepcopy(state)) #set state of simulation
             # generate random trajectories
             obs_vec, sk, act_seq = self._generate_rollouts() #state_vec
             # update moments
@@ -192,14 +206,11 @@ class GaussianMPC(Controller):
                                           terminal_cost_fn,
                                           batch_size,
                                           seed)
-        self.init_cov = init_cov
+        self.init_cov = np.array([init_cov] * self.num_actions)
         self.mean_action = init_mean
         self.base_action = base_action
         self.cov_type = cov_type
-        if self.cov_type == 'diagonal':
-            self.cov_action = self.init_cov #* np.ones(shape=(horizon, num_actions))
-        else: 
-            raise NotImplementedError('Only diagonal covariances supported')
+        self.cov_action = np.diag(self.init_cov)
         self.step_size = step_size
         self.filter_coeffs = filter_coeffs
 
@@ -208,9 +219,9 @@ class GaussianMPC(Controller):
         return next_action.reshape(self.num_actions, )
     
     def _sample_actions(self):
-        delta = generate_noise(np.sqrt(self.cov_action[None,None,:]), self.filter_coeffs,
-                                       shape=(self.num_particles, self.horizon, self.num_actions), 
-                                       base_seed = self.seed + self.num_steps)
+        delta = generate_noise(self.cov_action, self.filter_coeffs,
+                               shape=(self.num_particles, self.horizon), 
+                               base_seed = self.seed + self.num_steps)        
         act_seq = self.mean_action[None, :, :] + delta
         return act_seq
     

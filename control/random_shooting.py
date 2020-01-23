@@ -30,7 +30,7 @@ class RandomShooting(GaussianMPC):
                                    action_lows, 
                                    action_highs,
                                    horizon,
-                                   np.array(init_cov),
+                                   init_cov,
                                    np.zeros(shape=(horizon, num_actions)),
                                    base_action,
                                    num_particles,
