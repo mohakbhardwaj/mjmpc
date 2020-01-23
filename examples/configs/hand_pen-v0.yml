@@ -41,20 +41,6 @@ cem:
   num_cpu           : 16
   particles_per_cpu : 4
 
-# cem:
-#   horizon           : 32
-#   init_cov          : [1.0]
-#   cov_type          : 'diagonal'
-#   beta              : 0.3
-#   filter_coeffs     : [0.25, 0.8, 0.0]
-#   gamma             : 1.0
-#   n_iters           : 1
-#   step_size         : 1.0
-#   elite_frac        : 0.05
-#   num_cpu           : 16
-#   particles_per_cpu : 4
-
-
 dmd:
   horizon           : 32
   init_cov          : [1.0]
@@ -68,17 +54,3 @@ dmd:
   lam               : 2.5
   num_cpu           : 16
   particles_per_cpu : 4
-
-# dmd:
-#   horizon           : 32
-#   init_cov          : [1.0]
-#   update_cov        : True
-#   cov_type          : 'diagonal'
-#   beta              : 0.6
-#   filter_coeffs     : [0.25, 0.8, 0.0]
-#   gamma             : 1.0
-#   n_iters           : 1
-#   step_size         : 0.55
-#   lam               : 2.5
-#   num_cpu           : 16
-#   particles_per_cpu : 4

@@ -167,7 +167,10 @@ def main(controller_name):
                                                                     exp_params['seed'],
                                                                     num_cpu)
             if success_metric is not None: 
-                logger.info('Success metric = {0}, Best success metric = {1}'.format(success_metric, best_success_metric))
+                logger.info('Success metric = {0}, Average reward = {1}, Best success metric = {2}, Best average reward = {3}'.format(success_metric, 
+                                                                                                                                      avg_reward, 
+                                                                                                                                      best_success_metric, 
+                                                                                                                                      best_avg_reward))
                 if success_metric > best_success_metric:
                     logger.info('Better success metric, updating best params...')
                     best_params = True

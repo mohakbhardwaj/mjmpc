@@ -1,9 +1,9 @@
-env_name          : 'sawyer_peg_insertion-v0'
-n_episodes        : 30
-max_ep_length     : 75
+env_name          : 'sawyer_pusher-v0'
+n_episodes        : 20
+max_ep_length     : 100
 seed              : 123
 base_action       : 'null'
-render            : False
+render            : True
 exp_notes         : '7-DOF Sawyer arm reaching various spatial goals for the end effector'
 
 random_shooting:
@@ -18,26 +18,26 @@ random_shooting:
 
 mppi:
   horizon           : 16
-  init_cov          : [0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1.0]
+  init_cov          : 0.1
   filter_coeffs     : [0.25, 0.8, 0.0]
   gamma             : 1.0
   n_iters           : 1
   step_size         : 1.0
-  lam               : [0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1.0]
+  lam               : 0.1
   alpha             : 1
   num_cpu           : 8
   particles_per_cpu : 4
 
 cem:
   horizon           : 16
-  init_cov          : [0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1.0]
+  init_cov          : 1.0
   cov_type          : 'full'
-  beta              : [0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1.0]
+  beta              : 0.6
   filter_coeffs     : [0.25, 0.8, 0.0]
   gamma             : 1.0
   n_iters           : 1
   step_size         : 1.0
-  elite_frac        : [0.1, 0.15, 0.2, 0.25, 0.3]
+  elite_frac        : 0.15
   num_cpu           : 8
   particles_per_cpu : 4
 

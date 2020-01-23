@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-config_files=('sawyer_reacher-v0.yml' 'pen-v0_config.yml') #list of config files
-controllers=('random_shooting' 'mppi' 'cem' 'dmd') #list of controllers
+config_files=('sawyer_reacher-v0' 'sawyer_peg_insertion-v0.yml' 'sawyer_pusher-v0' 'sawyer_door-v0' 'hand_pen-v0') #list of config files
+controllers=('mppi' 'cem') #list of controllers
 run_files=(1) #idxs of config files to run
 
 
