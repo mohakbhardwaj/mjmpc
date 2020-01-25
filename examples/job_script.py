@@ -68,6 +68,8 @@ def gather_paths(controller_name, policy_params, n_episodes, ep_length, base_see
     policy_params['set_state_fn'] = set_state_fn
     policy_params['rollout_fn'] = rollout_fn
     policy_params['rollout_callback'] = None
+    del policy_params['particles_per_cpu'], policy_params['num_cpu']
+
 
     ep_rewards = np.array([0.] * n_episodes)
     trajectories = []
@@ -132,13 +134,11 @@ def main(controller_name):
     policy_params = exp_params[controller_name]
 
     policy_params['base_action'] = exp_params['base_action']
-    policy_params['num_particles'] = policy_params['particles_per_cpu'] * policy_params['num_cpu']
     policy_params['num_actions'] = env.action_space.low.shape[0]
     policy_params['action_lows'] = env.action_space.low
     policy_params['action_highs'] = env.action_space.high
     num_cpu = policy_params['num_cpu']
-    particles_per_cpu = policy_params['particles_per_cpu']
-    del policy_params['particles_per_cpu'], policy_params['num_cpu']
+    #particles_per_cpu = policy_params['particles_per_cpu']
 
     #Add logic for iterating through policy parameters 
     search_param_keys = []
@@ -158,24 +158,27 @@ def main(controller_name):
             best_params = False
             for i in range(len(search_param_tuple)):
                 policy_params[search_param_keys[i]] = search_param_tuple[i]
+            policy_params['num_particles'] = policy_params['particles_per_cpu'] * policy_params['num_cpu']
             logger.info('Current params')
             logger.info(policy_params)
+
             trajectories, avg_reward, success_metric = gather_paths(controller_name,
                                                                     deepcopy(policy_params), 
                                                                     exp_params['n_episodes'], 
                                                                     exp_params['max_ep_length'], 
                                                                     exp_params['seed'],
                                                                     num_cpu)
+            logger.info('Success metric = {0}, Average reward = {1}, Best success metric = {2}, Best average reward = {3}'.format(success_metric, 
+                                                                                                                                  avg_reward, 
+                                                                                                                                  best_success_metric, 
+                                                                                                                                  best_avg_reward))
             if success_metric is not None: 
-                logger.info('Success metric = {0}, Average reward = {1}, Best success metric = {2}, Best average reward = {3}'.format(success_metric, 
-                                                                                                                                      avg_reward, 
-                                                                                                                                      best_success_metric, 
-                                                                                                                                      best_avg_reward))
                 if success_metric > best_success_metric:
                     logger.info('Better success metric, updating best params...')
                     best_params = True
             else:
                 if avg_reward > best_avg_reward:
+                    logger.info('Best average reward, updating best params...')
                     best_params = True
 
             if best_params:
@@ -185,17 +188,21 @@ def main(controller_name):
                 best_param_dict = deepcopy(policy_params)
             logger.info('Best params so far ...')
             logger.info(best_param_dict)
+            
         if best_success_metric > 95:
             logger.info('Success metric greater than 95, early stopping')
 
     else:
+        policy_params['num_particles'] = policy_params['particles_per_cpu'] * policy_params['num_cpu']
         logger.info(policy_params)
+
         best_trajectories, best_avg_reward, best_success_metric = gather_paths(controller_name,
                                                                                deepcopy(policy_params), 
                                                                                exp_params['n_episodes'], 
                                                                                exp_params['max_ep_length'], 
                                                                                exp_params['seed'],
                                                                                num_cpu)
+    logger.info('Dumping trajectories')
     pickle.dump(best_trajectories, open(LOG_DIR+"/trajectories.p", 'wb'))
         
     return best_avg_reward, best_success_metric
