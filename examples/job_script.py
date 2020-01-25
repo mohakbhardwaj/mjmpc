@@ -189,8 +189,8 @@ def main(controller_name):
             logger.info('Best params so far ...')
             logger.info(best_param_dict)
             
-        if best_success_metric > 95:
-            logger.info('Success metric greater than 95, early stopping')
+            if success_metric is not None and best_success_metric > 95:
+                logger.info('Success metric greater than 95, early stopping')
 
     else:
         policy_params['num_particles'] = policy_params['particles_per_cpu'] * policy_params['num_cpu']
