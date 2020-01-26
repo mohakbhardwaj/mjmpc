@@ -176,6 +176,9 @@ def main(controller_name):
                 if success_metric > best_success_metric:
                     logger.info('Better success metric, updating best params...')
                     best_params = True
+                elif np.allclose(success_metric, best_success_metric) and (avg_reward > best_avg_reward):
+                    logger.info('Similar success but better reward, updating params...')
+                    best_params = True
             else:
                 if avg_reward > best_avg_reward:
                     logger.info('Best average reward, updating best params...')

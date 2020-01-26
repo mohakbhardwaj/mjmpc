@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-config_files=('sawyer_reacher-v0' 'sawyer_peg_insertion-v0.yml' 'sawyer_pusher-v0.yml' 'sawyer_door-v0.yml' 'hand_pen-v0') #list of config files
-controllers=('cem' 'dmd') #list of controllers
-run_files=(3) #idxs of config files to run
+config_files=('sawyer_reacher-v0.yml' 'sawyer_peg_insertion-v0.yml' 'sawyer_pusher-v0.yml' 'sawyer_door-v0.yml' \
+		      'hand_pen-v0.yml' 'hand_door-v0.yml') #list of config files
+controllers=('mppi' 'cem') #list of controllers
+run_files=(5) #idxs of config files to run
 
 
 for ((j=0;j<${#run_files[@]};++j)); do
