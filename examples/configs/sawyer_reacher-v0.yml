@@ -4,11 +4,12 @@ max_ep_length     : 75
 seed              : 123
 base_action       : 'null'
 render            : False
+job_mode          : 'enum'
 exp_notes         : '7-DOF Sawyer arm reaching various spatial goals for the end effector'
 
 random_shooting:
   horizon           : 16
-  init_cov          : [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+  init_cov          : [0.1, 0.2, 0.3]
   filter_coeffs     : [0.25, 0.8, 0.0]
   gamma             : 1.0
   n_iters           : 1

@@ -130,9 +130,7 @@ def gather_paths(controller_name, policy_params, n_episodes, ep_length, base_see
     return trajectories, average_reward, success_metric
 
 def main(controller_name):    
-
     policy_params = exp_params[controller_name]
-
     policy_params['base_action'] = exp_params['base_action']
     policy_params['num_actions'] = env.action_space.low.shape[0]
     policy_params['action_lows'] = env.action_space.low
@@ -153,7 +151,7 @@ def main(controller_name):
         best_success_metric = -np.inf
         best_trajectories = None
         best_param_dict = None
-        
+        count = 0
         for search_param_tuple in product(*search_param_vals):
             best_params = False
             for i in range(len(search_param_tuple)):
@@ -172,41 +170,48 @@ def main(controller_name):
                                                                                                                                   avg_reward, 
                                                                                                                                   best_success_metric, 
                                                                                                                                   best_avg_reward))
-            if success_metric is not None: 
-                if success_metric > best_success_metric:
-                    logger.info('Better success metric, updating best params...')
-                    best_params = True
-                elif np.allclose(success_metric, best_success_metric) and (avg_reward > best_avg_reward):
-                    logger.info('Similar success but better reward, updating params...')
-                    best_params = True
+            if exp_params['job_mode'] == 'tune':
+                if success_metric is not None: 
+                    if success_metric > best_success_metric:
+                        logger.info('Better success metric, updating best params...')
+                        best_params = True
+                    elif np.allclose(success_metric, best_success_metric) and (avg_reward > best_avg_reward):
+                        logger.info('Similar success but better reward, updating params...')
+                        best_params = True
+                else:
+                    if avg_reward > best_avg_reward:
+                        logger.info('Best average reward, updating best params...')
+                        best_params = True
+
+                if best_params:
+                    best_trajectories = trajectories
+                    best_avg_reward = avg_reward
+                    best_success_metric = success_metric
+                    best_param_dict = deepcopy(policy_params)
+                logger.info('Best params so far ...')
+                logger.info(best_param_dict)
+                
+                if success_metric is not None and best_success_metric > 95:
+                    logger.info('Success metric greater than 95, early stopping')
             else:
-                if avg_reward > best_avg_reward:
-                    logger.info('Best average reward, updating best params...')
-                    best_params = True
-
-            if best_params:
-                best_trajectories = trajectories
-                best_avg_reward = avg_reward
-                best_success_metric = success_metric
-                best_param_dict = deepcopy(policy_params)
-            logger.info('Best params so far ...')
-            logger.info(best_param_dict)
-            
-            if success_metric is not None and best_success_metric > 95:
-                logger.info('Success metric greater than 95, early stopping')
-
+                logger.info('Dumping trajectories')
+                pickle.dump(trajectories, open(LOG_DIR+"/trajectories_"+str(count)+".p", 'wb'))
+                count += 1
+        if exp_params['job_mode'] == 'tune':
+            logger.info('Dumping best trajectories')
+            pickle.dump(best_trajectories, open(LOG_DIR+"/trajectories.p", 'wb'))
+ 
     else:
         policy_params['num_particles'] = policy_params['particles_per_cpu'] * policy_params['num_cpu']
         logger.info(policy_params)
-
-        best_trajectories, best_avg_reward, best_success_metric = gather_paths(controller_name,
+        trajectories, best_avg_reward, best_success_metric = gather_paths(controller_name,
                                                                                deepcopy(policy_params), 
                                                                                exp_params['n_episodes'], 
                                                                                exp_params['max_ep_length'], 
                                                                                exp_params['seed'],
                                                                                num_cpu)
-    logger.info('Dumping trajectories')
-    pickle.dump(best_trajectories, open(LOG_DIR+"/trajectories.p", 'wb'))
+        logger.info('Dumping trajectories')
+        pickle.dump(trajectories, open(LOG_DIR+"/trajectories.p", 'wb'))
         
     return best_avg_reward, best_success_metric
 
@@ -221,7 +226,7 @@ if __name__ == '__main__':
         LOG_DIR = os.path.join(os.path.abspath(args.save_dir) + "/" + exp_params['env_name'] + "/" + date_time, controller)
         if not os.path.exists(LOG_DIR): os.makedirs(LOG_DIR)
         logger.setup(controller, os.path.join(LOG_DIR, 'log.txt'), 'debug')
-        logger.info('Running experiment: {0}. Results dir: {1}'.format(controller, LOG_DIR))
+        logger.info('Running experiment: {0}. Results dir: {1}. Mode = {2}'.format(controller, LOG_DIR, exp_params['job_mode']))
         avg_reward, success_metric = main(controller)
         print(avg_reward)
         avg_rewards[i] = avg_reward
