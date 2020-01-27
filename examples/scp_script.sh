@@ -1,1 +1,1 @@
-scp -i ~/mohak.pem -r ubuntu@ec2-52-53-252-14.us-west-1.compute.amazonaws.com:~/workspace/mjmpc/examples/experiments/sawyer_peg_insertion-v0/01_27_2020_07_26_17/ /home/mohak/workspace/mjmpc/examples/experiments/sawyer_peg_insertion-v0/
+scp -i ~/mohak.pem -r ubuntu@ec2-18-144-42-51.us-west-1.compute.amazonaws.com:~/workspace/mjmpc/examples/experiments/sawyer_door-v0/01_27_2020_07_59_48 /home/mohak/workspace/mjmpc/examples/experiments/sawyer_door-v0/
