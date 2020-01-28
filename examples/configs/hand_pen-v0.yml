@@ -4,7 +4,7 @@ max_ep_length     : 100
 seed              : 123
 base_action       : 'null'
 render            : False
-job_mode          : 'tune'
+job_mode          : 'enum'
 exp_notes         : 'In-hand manipulation of a 6-DOF pen with a 24-DOF Shadow Hand (Adroit).'
 
 random_shooting:
@@ -14,11 +14,11 @@ random_shooting:
   gamma             : 1.0
   n_iters           : 1
   step_size         : 1.0
-  num_cpu           : 8
+  num_cpu           : 10
   particles_per_cpu : [2, 4, 6, 8, 10, 12]
 
 mppi:
-  horizon           : 32
+  horizon           : [8, 16, 32, 64, 128]
   init_cov          : 0.25
   filter_coeffs     : [0.25, 0.8, 0.0]
   gamma             : 1.0
@@ -26,11 +26,11 @@ mppi:
   step_size         : 1.0
   lam               : 0.2
   alpha             : 1
-  num_cpu           : 8
-  particles_per_cpu : 5
+  num_cpu           : 10
+  particles_per_cpu : [2, 4, 6, 8, 10, 12]
 
 cem:
-  horizon           : 32
+  horizon           : [8, 16, 32, 64, 128]
   init_cov          : 0.25
   cov_type          : 'full'
   beta              : 0.9
@@ -39,8 +39,8 @@ cem:
   n_iters           : 1
   step_size         : 1.0
   elite_frac        : 0.05
-  num_cpu           : 8
-  particles_per_cpu : 5
+  num_cpu           : 10
+  particles_per_cpu : [2, 4, 6, 8, 10, 12]
 
 dmd:
   horizon           : 32
