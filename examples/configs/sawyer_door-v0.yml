@@ -1,7 +1,7 @@
 env_name          : 'sawyer_door-v0'
 n_episodes        : 25
 max_ep_length     : 75
-seed              : 0
+seed              : 123
 base_action       : 'null'
 render            : False
 job_mode          : 'enum'
@@ -53,18 +53,18 @@ cem:
   particles_per_cpu : [2, 4, 6, 8, 10, 12]
 
 dmd:
-  horizon           : 32
+  horizon           : [8, 16, 32, 64, 128]
   init_cov          : 0.35
   update_cov        : True
   cov_type          : 'full'
-  beta              : [0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1.0]
+  beta              : 0.2
   filter_coeffs     : [0.25, 0.8, 0.0]
   gamma             : 1.0
   n_iters           : 1
-  step_size         : [0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1.0]
+  step_size         : 0.95
   lam               : 0.1
-  num_cpu           : 8
-  particles_per_cpu : 5
+  num_cpu           : 10
+  particles_per_cpu : [2, 4, 6, 8, 10, 12]
 
 
 
