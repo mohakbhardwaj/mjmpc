@@ -1,10 +1,10 @@
 env_name          : 'sawyer_peg_insertion-v0'
 n_episodes        : 25
 max_ep_length     : 75
-seed              : 123
+seed              : 0
 base_action       : 'null'
 render            : False
-job_mode          : 'tune'
+job_mode          : 'enum'
 exp_notes         : '7-DOF Sawyer arm reaching various spatial goals for the end effector'
 
 

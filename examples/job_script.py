@@ -118,8 +118,10 @@ def gather_paths(controller_name, policy_params, n_episodes, ep_length, base_see
     timeit.stop('start_'+controller_name)
     success_metric = env.unwrapped.evaluate_success(trajectories)
     average_reward = np.average(ep_rewards)
+    reward_std = np.std(ep_rewards)
     logger.info('Timing info (seconds): {0}'.format(timeit))
     logger.info('Average reward = {0}'.format(average_reward))
+    logger.info('Reward std = {0}'.format(reward_std))
     logger.info('Success metric = {0}'.format(success_metric))
     logger.info('Episode rewards = {0}'.format(ep_rewards))
 
@@ -127,7 +129,7 @@ def gather_paths(controller_name, policy_params, n_episodes, ep_length, base_see
         _ = input("Press enter to display optimized trajectory (will be played 10 times) : ")
         helpers.render_trajs(env, trajectories, n_times=10)
     sim_env.close()
-    return trajectories, average_reward, success_metric
+    return trajectories, average_reward, reward_std, success_metric
 
 def main(controller_name):    
     policy_params = exp_params[controller_name]
@@ -149,6 +151,7 @@ def main(controller_name):
     if len(search_param_keys) > 0:
         best_avg_reward = -np.inf
         best_success_metric = -np.inf
+        best_reward_std = -np.inf
         best_trajectories = None
         best_param_dict = None
         count = 0
@@ -160,7 +163,7 @@ def main(controller_name):
             logger.info('Current params')
             logger.info(policy_params)
 
-            trajectories, avg_reward, success_metric = gather_paths(controller_name,
+            trajectories, avg_reward, reward_std, success_metric = gather_paths(controller_name,
                                                                     deepcopy(policy_params), 
                                                                     exp_params['n_episodes'], 
                                                                     exp_params['max_ep_length'], 
@@ -186,6 +189,7 @@ def main(controller_name):
                 if best_params:
                     best_trajectories = trajectories
                     best_avg_reward = avg_reward
+                    best_reward_std = reward_std
                     best_success_metric = success_metric
                     best_param_dict = deepcopy(policy_params)
                 logger.info('Best params so far ...')
@@ -204,7 +208,7 @@ def main(controller_name):
     else:
         policy_params['num_particles'] = policy_params['particles_per_cpu'] * policy_params['num_cpu']
         logger.info(policy_params)
-        trajectories, best_avg_reward, best_success_metric = gather_paths(controller_name,
+        trajectories, best_avg_reward, best_reward_std, best_success_metric = gather_paths(controller_name,
                                                                                deepcopy(policy_params), 
                                                                                exp_params['n_episodes'], 
                                                                                exp_params['max_ep_length'], 
@@ -213,7 +217,7 @@ def main(controller_name):
         logger.info('Dumping trajectories')
         pickle.dump(trajectories, open(LOG_DIR+"/trajectories.p", 'wb'))
         
-    return best_avg_reward, best_success_metric
+    return best_avg_reward, best_reward_std, best_success_metric
 
 
 if __name__ == '__main__':
@@ -227,8 +231,7 @@ if __name__ == '__main__':
         if not os.path.exists(LOG_DIR): os.makedirs(LOG_DIR)
         logger.setup(controller, os.path.join(LOG_DIR, 'log.txt'), 'debug')
         logger.info('Running experiment: {0}. Results dir: {1}. Mode = {2}'.format(controller, LOG_DIR, exp_params['job_mode']))
-        avg_reward, success_metric = main(controller)
-        print(avg_reward)
+        avg_reward, reward_std, success_metric = main(controller)
         avg_rewards[i] = avg_reward
         success[i] = success_metric
 

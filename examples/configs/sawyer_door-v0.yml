@@ -1,7 +1,7 @@
 env_name          : 'sawyer_door-v0'
 n_episodes        : 25
 max_ep_length     : 75
-seed              : 123
+seed              : 0
 base_action       : 'null'
 render            : False
 job_mode          : 'enum'
