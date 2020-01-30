@@ -5,7 +5,7 @@ seed              : 123
 base_action       : 'null'
 render            : True
 job_mode          : 'enum'
-exp_notes         : '7-DOF Sawyer arm reaching various spatial goals for the end effector'
+exp_notes         : '7-DOF Sawyer arm inserting peg in hole at different locations'
 
 
 random_shooting:
