@@ -1,35 +1,25 @@
 env_name          : 'sawyer_door-v0'
-n_episodes        : 25
+n_episodes        : 20
 max_ep_length     : 75
 seed              : 123
 base_action       : 'null'
 render            : False
-job_mode          : 'enum'
+job_mode          : 'tune'
 exp_notes         : '7-DOF Sawyer arm opening a door at different locations'
 
-# random_shooting:
-#   horizon           : 16
-#   init_cov          : 0.85
-#   filter_coeffs     : [0.25, 0.8, 0.0]
-#   gamma             : 1.0
-#   n_iters           : 1
-#   step_size         : 1.0
-#   num_cpu           : 8
-#   particles_per_cpu : 4
-
 random_shooting:
-  horizon           : [8, 16, 32, 64, 128]
-  init_cov          : 0.35
+  horizon           : 16
+  init_cov          : 0.25
   filter_coeffs     : [0.25, 0.8, 0.0]
   gamma             : 1.0
   n_iters           : 1
   step_size         : 1.0
   num_cpu           : 10
-  particles_per_cpu : [2, 4, 6, 8, 10, 12]
+  particles_per_cpu : 10
 
 mppi:
-  horizon           : [8, 16, 32, 64, 128]
-  init_cov          : 0.35
+  horizon           : 16
+  init_cov          : 0.25
   filter_coeffs     : [0.25, 0.8, 0.0]
   gamma             : 1.0
   n_iters           : 1
@@ -37,7 +27,7 @@ mppi:
   lam               : 0.1
   alpha             : 1
   num_cpu           : 10
-  particles_per_cpu : [2, 4, 6, 8, 10, 12]
+  particles_per_cpu : 10
 
 cem:
   horizon           : [8, 16, 32, 64, 128]
@@ -65,6 +55,18 @@ dmd:
   lam               : 0.1
   num_cpu           : 10
   particles_per_cpu : [2, 4, 6, 8, 10, 12]
+
+
+pfmpc:
+  horizon           : 16
+  cov_shift         : 0.25
+  cov_resample      : 1.0
+  filter_coeffs     : [0.25, 0.8, 0.0]
+  gamma             : 1.0
+  n_iters           : 1
+  lam               : 0.1
+  num_cpu           : 10
+  particles_per_cpu : 10
 
 
 

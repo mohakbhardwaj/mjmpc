@@ -67,7 +67,7 @@ class PFMPC(Controller):
         w = self._exp_util(costs)
         random.seed(self.seed + self.num_steps)
         np.random.seed(self.seed + self.num_steps)
-        self.action_samples = np.array(random.choices(self.action_samples, weights=w, k=self.num_particles))
+        self.action_samples = self._resampling(self.action_samples, w, low_variance=True)
 
         
     def _exp_util(self, costs):
@@ -120,8 +120,26 @@ class PFMPC(Controller):
         self.num_steps = 0
         self.action_samples = generate_noise(self.cov_resample, self.filter_coeffs,
                                              shape=(self.num_particles, self.horizon),
-                                                    base_seed=self.seed)
+                                             base_seed=self.seed)
 
 
     def _calc_val(self, state):
         raise NotImplementedError("_calc val not implemented yet")
+
+
+    def _resampling(self, act_seq, weights, low_variance=True):
+        if low_variance:
+            M = act_seq.shape[0]
+            act_seq2 = np.zeros_like(act_seq)
+            r = random.uniform(0.0, 1.0/M*1.0)
+            c  = 0.0; i = 0
+            for m in range(M):
+                u = r + m*1.0/M*1.0
+                while (c < u and i < M):
+                    c += weights[i]
+                    i += 1
+                act_seq2[m] = act_seq[i-1]
+        else:
+            act_seq2 = np.array(random.choices(self.action_samples, weights=weights, k=self.num_particles))
+        
+        return act_seq2
