@@ -161,7 +161,7 @@ class Controller(ABC):
             # update moments
             self._update_distribution(sk, act_seq)
             #calculate best action
-            curr_action = self._get_next_action(state, sk, act_seq)
+            curr_action = self._get_next_action()
             
         self.num_steps += 1
         # shift distribution to hotstart next timestep
@@ -214,7 +214,7 @@ class GaussianMPC(Controller):
         self.step_size = step_size
         self.filter_coeffs = filter_coeffs
 
-    def _get_next_action(self, state, sk, act_seq):
+    def _get_next_action(self):
         next_action = self.mean_action[0]
         return next_action.reshape(self.num_actions, )
     

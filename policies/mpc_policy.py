@@ -15,6 +15,8 @@ class MPCPolicy(Policy):
             self.controller = control.CEM(**param_dict)
         elif controller_type == "dmd":
             self.controller = control.DMDMPC(**param_dict)
+        elif controller_type == "pfmpc":
+            self.controller = control.PFMPC(**param_dict)
         else:
             raise(NotImplementedError, "Controller type does not exist")
 
