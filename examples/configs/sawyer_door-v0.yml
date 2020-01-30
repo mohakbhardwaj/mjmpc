@@ -66,7 +66,7 @@ pfmpc:
   n_iters           : 1
   lam               : 0.1
   num_cpu           : 10
-  particles_per_cpu : 10
+  particles_per_cpu : 12
 
 
 
