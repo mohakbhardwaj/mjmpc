@@ -19,12 +19,12 @@ random_shooting:
 
 mppi:
   horizon           : 32
-  init_cov          : 0.65
+  init_cov          : 0.55
   filter_coeffs     : [0.25, 0.8, 0.0]
   gamma             : 1.0
   n_iters           : 1
   step_size         : 1.0
-  lam               : 0.2
+  lam               : 0.9
   alpha             : 1
   num_cpu           : 10
   particles_per_cpu : 10
