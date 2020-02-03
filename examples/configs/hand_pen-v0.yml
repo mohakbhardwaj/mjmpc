@@ -1,10 +1,10 @@
 env_name          : 'pen-v0'
-n_episodes        : 100
+n_episodes        : 25
 max_ep_length     : 100
 seed              : 123
 base_action       : 'null'
 render            : False
-job_mode          : 'sweep'
+job_mode          : 'tune'
 exp_notes         : 'In-hand manipulation of a 6-DOF pen with a 24-DOF Shadow Hand (Adroit).'
 
 random_shooting:
@@ -29,6 +29,19 @@ mppi:
   num_cpu           : 10
   particles_per_cpu : 10
 
+# mppi:
+#   horizon           : 32
+#   init_cov          : 0.65
+#   filter_coeffs     : [0.25, 0.8, 0.0]
+#   gamma             : 1.0
+#   n_iters           : 1
+#   step_size         : 1.0
+#   lam               : 0.35
+#   alpha             : 1
+#   num_cpu           : 10
+#   particles_per_cpu : 10
+
+
 cem:
   horizon           : [8, 16, 32, 64, 128]
   init_cov          : 0.25
@@ -43,18 +56,18 @@ cem:
   particles_per_cpu : [2, 4, 6, 8, 10, 12]
 
 dmd:
-  horizon           : [8, 16, 32, 64, 128]
-  init_cov          : 0.25
+  horizon           : 32
+  init_cov          : 0.55
   update_cov        : True
   cov_type          : 'full'
-  beta              : 0.6
+  beta              : 0.4
   filter_coeffs     : [0.25, 0.8, 0.0]
   gamma             : 1.0
   n_iters           : 1
-  step_size         : 0.7
-  lam               : 0.2
+  step_size         : 0.95
+  lam               : 0.9
   num_cpu           : 10
-  particles_per_cpu : [2, 4, 6, 8, 10, 12]
+  particles_per_cpu : 10
 
 
 pfmpc:

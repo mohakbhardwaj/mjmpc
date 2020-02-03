@@ -1,10 +1,10 @@
 env_name          : 'sawyer_door-v0'
-n_episodes        : 25
+n_episodes        : 5
 max_ep_length     : 75
 seed              : 123
 base_action       : 'null'
-render            : False
-job_mode          : 'tune'
+render            : True
+job_mode          : 'sweep'
 exp_notes         : '7-DOF Sawyer arm opening a door at different locations'
 
 random_shooting:
@@ -45,13 +45,13 @@ cem:
 dmd:
   horizon           : 16
   init_cov          : 0.3
-  update_cov        : False
+  update_cov        : True
   cov_type          : 'full'
-  beta              : 0.2
+  beta              : 0.3
   filter_coeffs     : [0.25, 0.8, 0.0]
   gamma             : 1.0
   n_iters           : 1
-  step_size         : [0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1.0]
+  step_size         : 1.0
   lam               : 0.45
   num_cpu           : 10
   particles_per_cpu : 12

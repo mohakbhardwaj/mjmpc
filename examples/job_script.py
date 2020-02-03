@@ -65,6 +65,9 @@ def gather_paths(controller_name, policy_params, n_episodes, ep_length, base_see
         """
         obs_vec, rew_vec, done_vec, _ = sim_env.rollout(u_vec.copy())
         return obs_vec, rew_vec, done_vec #state_vec
+    
+    # def rollout_callback()
+
     policy_params['set_state_fn'] = set_state_fn
     policy_params['rollout_fn'] = rollout_fn
     policy_params['rollout_callback'] = None
