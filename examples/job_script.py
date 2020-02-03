@@ -14,6 +14,7 @@ import yaml
 from envs import GymEnvWrapper
 from envs.vec_env import SubprocVecEnv
 from mjrl.utils import tensor_utils
+from mjrl.utils.gym_env import GymEnv
 from utils import logger, timeit, helpers
 from policies import MPCPolicy
 
@@ -30,13 +31,12 @@ with open(args.config_file) as file:
 
 #Create the main environment
 env_name  = exp_params['env_name']
-# np.random.seed(exp_params['seed'])
-env = gym.make(env_name)
-# env.seed(exp_params['seed'])
+env = GymEnv(env_name)
 
 # Create vectorized environments for MPPI simulations
 def make_env():
-    gym_env = gym.make(env_name)
+    # gym_env = gym.make(env_name)
+    gym_env = GymEnv(env_name)
     rollout_env = GymEnvWrapper(gym_env)
     return rollout_env
 
@@ -45,9 +45,6 @@ d_action = env.action_space.high.shape[0]
 
 def gather_paths(controller_name, policy_params, n_episodes, ep_length, base_seed, num_cpu):
     sim_env = SubprocVecEnv([make_env for i in range(num_cpu)])  
-    seed_list = [exp_params['seed'] + i for i in range(num_cpu)]
-    sim_env.seed(seed_list)
-    _ = sim_env.reset()
 
     #Create functions for controller
     def set_state_fn(state_dict: dict):
@@ -66,7 +63,6 @@ def gather_paths(controller_name, policy_params, n_episodes, ep_length, base_see
         obs_vec, rew_vec, done_vec, _ = sim_env.rollout(u_vec.copy())
         return obs_vec, rew_vec, done_vec #state_vec
     
-    # def rollout_callback()
 
     policy_params['set_state_fn'] = set_state_fn
     policy_params['rollout_fn'] = rollout_fn
@@ -80,20 +76,16 @@ def gather_paths(controller_name, policy_params, n_episodes, ep_length, base_see
     timeit.start('start_'+controller_name)
 
     for i in tqdm.tqdm(range(n_episodes)):
+        observations = []; actions = []; rewards = []; dones  = []; 
+        infos = []; states = []
         #seeding
         episode_seed = base_seed+i*12345
         policy_params['seed'] = episode_seed
+        env.reset(seed=episode_seed) #To enforce consistent episodes
+        sim_env.reset()
+        
         policy = MPCPolicy(controller_type=controller_name,
-                            param_dict=policy_params, batch_size=1)
-        np.random.seed(episode_seed)
-        env.seed(seed=episode_seed) #To enforce consistent episodes
-        sim_env.seed([episode_seed + j for j in range(num_cpu)])
-
-        observations = []; actions = []; rewards = []; dones  = []; 
-        infos = []; states = []
-
-        obs = env.reset()
-        _ = sim_env.reset()
+                           param_dict=policy_params, batch_size=1)
         
         for _ in tqdm.tqdm(range(ep_length)):   
             curr_state = deepcopy(env.get_env_state())
@@ -119,7 +111,7 @@ def gather_paths(controller_name, policy_params, n_episodes, ep_length, base_see
         logger.dump_tabular()
             
     timeit.stop('start_'+controller_name)
-    success_metric = env.unwrapped.evaluate_success(trajectories)
+    success_metric = env.env.evaluate_success(trajectories)
     average_reward = np.average(ep_rewards)
     reward_std = np.std(ep_rewards)
     logger.info('Timing info (seconds): {0}'.format(timeit))
@@ -141,7 +133,6 @@ def main(controller_name):
     policy_params['action_lows'] = env.action_space.low
     policy_params['action_highs'] = env.action_space.high
     num_cpu = policy_params['num_cpu']
-    #particles_per_cpu = policy_params['particles_per_cpu']
 
     #Add logic for iterating through policy parameters 
     search_param_keys = []
@@ -238,4 +229,4 @@ if __name__ == '__main__':
         avg_rewards[i] = avg_reward
         success[i] = success_metric
 
-    env.close()
+    env.env.close()

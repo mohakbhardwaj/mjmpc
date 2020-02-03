@@ -65,9 +65,9 @@ class MPPI(GaussianMPC):
         """
         delta = act_seq - self.mean_action[None, :, :]
         w = self._exp_util(costs, delta)
+        
         weighted_seq = w * act_seq.T
-        self.mean_action = (1.0 - self.step_size) * self.mean_action +\
-                            self.step_size * np.sum(weighted_seq.T, axis=0) 
+        self.mean_action = np.sum(weighted_seq.T, axis=0) / (np.sum(w) + 1e-6)
         
     def _exp_util(self, costs, delta):
         """
@@ -77,8 +77,7 @@ class MPPI(GaussianMPC):
         control_costs = self._control_costs(delta)
         total_costs = traj_costs + self.lam * control_costs 
         # #calculate soft-max
-        w = np.exp(-(total_costs - np.min(total_costs)) / self.lam)
-        w /= np.sum(w) + 1e-6  # normalize the weights
+        w = np.exp(-1.0 * (total_costs - np.min(total_costs)) / self.lam*1.0)
         return w
 
     def _control_costs(self, delta):

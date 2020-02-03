@@ -18,7 +18,7 @@ def render_trajs(env, trajectories, n_times=1):
         for traj in trajectories:
             env.reset()
             state = traj['states'][0]
-            env.unwrapped.set_env_state(state)
+            env.env.set_env_state(state)
             for action in traj['actions']:
                 env.render()
                 env.step(action)

@@ -1,5 +1,5 @@
 env_name          : 'sawyer_peg_insertion-v0'
-n_episodes        : 10
+n_episodes        : 30
 max_ep_length     : 75
 seed              : 123
 base_action       : 'null'
@@ -32,7 +32,7 @@ random_shooting:
 
 mppi:
   horizon           : 16
-  init_cov          : 0.15
+  init_cov          : 1.0 #0.15
   filter_coeffs     : [0.25, 0.8, 0.0]
   gamma             : 1.0
   n_iters           : 1

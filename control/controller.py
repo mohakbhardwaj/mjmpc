@@ -44,9 +44,19 @@ def cost_to_go(sk, gamma_seq):
     """
         Calculate (discounted) cost to go for given reward sequence
     """
+    # N, H = sk.shape
+    # rewards = sk.copy()
     sk = gamma_seq * sk  # discounted reward sequence
     sk = np.cumsum(sk[:, ::-1], axis=-1)[:, ::-1]  # cost to go (but scaled by [1 , gamma, gamma*2 and so on])
     sk /= gamma_seq  # un-scale it to get true discounted cost to go
+
+    # scores = np.zeros((N,))
+    # for i in range(N):
+    #     scores[i] = 0.0
+    #     for t in range(H):
+    #         scores[i] += rewards[i][t]
+    # print(scores)
+    # input('..')
     return sk
 
 class Controller(ABC):
@@ -243,7 +253,7 @@ class GaussianMPC(Controller):
     def reset(self):
         self.num_steps = 0
         self.mean_action = np.zeros(shape=(self.horizon, self.num_actions))
-        self.cov_action = self.init_cov # * np.ones(shape=(self.horizon, self.num_actions))
+        self.cov_action = np.diag(self.init_cov)
 
     def _calc_val(self, state):
         raise NotImplementedError("_calc val not implemented yet")

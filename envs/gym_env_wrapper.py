@@ -75,13 +75,17 @@ class GymEnvWrapper():
                 # state_vec[:, t, :] = self.state.copy()
                 rew_vec[b, t] = rew
                 done_vec[b, t] = done
-
         return obs_vec, rew_vec, done_vec, {}
     
     def seed(self, seed=None):
         return self.gym_env.seed(seed)
     
-    def reset(self):
+    def reset(self, seed=None):
+        if seed is not None:
+            try:
+                self.gym_env.seed(seed)
+            except AttributeError:
+                self.gym_env._seed(seed)
         return self.gym_env.reset()
 
     def render(self):
