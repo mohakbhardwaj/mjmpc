@@ -9,10 +9,7 @@ from .controller import Controller, scale_ctrl, generate_noise, cost_to_go
 import copy
 import numpy as np
 import random
-from scipy.signal import savgol_filter
-import scipy.stats
 import scipy.special
-
 
 class PFMPC(Controller):
     def __init__(self,
@@ -78,6 +75,7 @@ class PFMPC(Controller):
         # #calculate soft-max
         w = np.exp(-(traj_costs - np.min(traj_costs)) / self.lam)
         w /= np.sum(w) + 1e-6  # normalize the weights
+        # w = scipy.special.softmax((-1.0/self.lam) * traj_costs)
         return w
     
     def _sample_actions(self):

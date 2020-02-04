@@ -6,12 +6,12 @@ Date - Dec 20, 2019
 TODO:
  - Make it a work for batch of start states 
 """
-from .controller import Controller, GaussianMPC, scale_ctrl, generate_noise, cost_to_go
+from .controller import Controller, GaussianMPC, cost_to_go
 import copy
 import numpy as np
-from scipy.signal import savgol_filter
-import scipy.stats
+# import scipy.stats
 import scipy.special
+import scipy.misc
 
 class MPPI(GaussianMPC):
     def __init__(self,
@@ -67,7 +67,7 @@ class MPPI(GaussianMPC):
         w = self._exp_util(costs, delta)
         
         weighted_seq = w * act_seq.T
-        self.mean_action = np.sum(weighted_seq.T, axis=0) / (np.sum(w) + 1e-6)
+        self.mean_action = np.sum(weighted_seq.T, axis=0)
         
     def _exp_util(self, costs, delta):
         """
@@ -75,9 +75,11 @@ class MPPI(GaussianMPC):
         """
         traj_costs = cost_to_go(costs, self.gamma_seq)[:,0]
         control_costs = self._control_costs(delta)
-        total_costs = traj_costs + self.lam * control_costs 
+        total_costs = traj_costs + self.lam * control_costs
         # #calculate soft-max
-        w = np.exp(-1.0 * (total_costs - np.min(total_costs)) / self.lam*1.0)
+        # w = np.exp(-(1.0/self.lam) * (total_costs - np.min(total_costs)))
+        # w /= np.sum(w) + 1e-6  # normalize the weights
+        w = scipy.special.softmax((-1.0/self.lam) * total_costs)
         return w
 
     def _control_costs(self, delta):

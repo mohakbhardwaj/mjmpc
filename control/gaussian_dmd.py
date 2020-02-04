@@ -10,8 +10,6 @@ Date - Jan 19, 2020
 from .controller import Controller, GaussianMPC, cost_to_go
 import copy
 import numpy as np
-from scipy.signal import savgol_filter
-import scipy.stats
 import scipy.special
 
 class DMDMPC(GaussianMPC):
@@ -92,8 +90,10 @@ class DMDMPC(GaussianMPC):
         """
         traj_costs = cost_to_go(costs, self.gamma_seq)[:,0]
         # #calculate soft-max
-        w = np.exp(-(traj_costs - np.min(traj_costs)) / self.lam)
-        w /= np.sum(w) + 1e-6  # normalize the weights
+        # w = np.exp(-(traj_costs - np.min(traj_costs)) / self.lam)
+        # w /= np.sum(w) + 1e-6  # normalize the weights
+        w = scipy.special.softmax((-1.0/self.lam) * traj_costs)
+
         return w
     
     def _shift(self):

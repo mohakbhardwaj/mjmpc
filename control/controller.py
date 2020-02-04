@@ -15,16 +15,15 @@ def scale_ctrl(ctrl, action_low_limit, action_up_limit):
     ctrl = np.clip(ctrl, -1.0, 1.0)
     return act_mid_range[np.newaxis, :, np.newaxis] + ctrl * act_half_range[np.newaxis, :, np.newaxis]
 
-# def generate_noise(std_dev, filter_coeffs, shape, base_seed):
+# def generate_noise(std_dev, filter_coeffs, base_act):
 #     """
 #         Generate noisy samples using autoregressive process
 #     """
-#     np.random.seed(base_seed)
 #     beta_0, beta_1, beta_2 = filter_coeffs
-#     eps = np.random.normal(loc=0.0, scale=1.0, size=shape) * std_dev
-#     for i in range(2, eps.shape[1]):
-#         eps[:,i,:] = beta_0*eps[:,i,:] + beta_1*eps[:,i-1,:] + beta_2*eps[:,i-2,:]
-#     return eps 
+#     eps = np.random.normal(loc=0.0, scale=1.0, size=base_act.shape) * std_dev
+#     for i in range(2, eps.shape[0]):
+#         eps[i] = beta_0*eps[i] + beta_1*eps[i-1] + beta_2*eps[i-2]
+#     return base_act + eps 
 
 def generate_noise(cov, filter_coeffs, shape, base_seed):
     """
@@ -151,7 +150,8 @@ class Controller(ABC):
 
         act_seq = self._sample_actions() #sample actions using current control distribution
         obs_vec, rew_vec, _ = self.rollout_fn(act_seq)  # rollout function returns the observations, rewards 
-        sk = -rew_vec  # rollout_fn returns a REWARD and we need a COST
+        sk = -1.0 * rew_vec  # rollout_fn returns a REWARD and we need a COST
+        
         if self.terminal_cost_fn is not None:
             term_states = obs_vec[:, -1, :].reshape(obs_vec.shape[0], obs_vec.shape[-1])
             sk[-1, :] = self.terminal_cost_fn(term_states, act_seq[-1].T)
@@ -225,15 +225,15 @@ class GaussianMPC(Controller):
         self.filter_coeffs = filter_coeffs
 
     def _get_next_action(self):
-        next_action = self.mean_action[0]
-        return next_action.reshape(self.num_actions, )
+        next_action = self.mean_action[0].copy()
+        return next_action #.reshape(self.num_actions, )
     
     def _sample_actions(self):
         delta = generate_noise(self.cov_action, self.filter_coeffs,
                                shape=(self.num_particles, self.horizon), 
                                base_seed = self.seed + self.num_steps)        
         act_seq = self.mean_action[None, :, :] + delta
-        return act_seq
+        return np.array(act_seq)
     
     def _shift(self):
         """

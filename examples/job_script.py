@@ -76,10 +76,10 @@ def gather_paths(controller_name, policy_params, n_episodes, ep_length, base_see
     timeit.start('start_'+controller_name)
 
     for i in tqdm.tqdm(range(n_episodes)):
-        observations = []; actions = []; rewards = []; dones  = []; 
+        observations = []; actions = []; rewards = []; dones  = []
         infos = []; states = []
         #seeding
-        episode_seed = base_seed+i*12345
+        episode_seed = base_seed + i*12345
         policy_params['seed'] = episode_seed
         env.reset(seed=episode_seed) #To enforce consistent episodes
         sim_env.reset()
