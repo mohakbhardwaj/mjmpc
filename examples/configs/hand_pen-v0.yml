@@ -1,10 +1,10 @@
 env_name          : 'pen-v0'
-n_episodes        : 20
-max_ep_length     : 75 #100(this is what I have been using)
+n_episodes        : 100
+max_ep_length     : 75
 seed              : 123
 base_action       : 'null'
 render            : False
-job_mode          : 'tune'
+job_mode          : 'sweep'
 exp_notes         : 'In-hand manipulation of a 6-DOF pen with a 24-DOF Shadow Hand (Adroit).'
 
 #re-tuned
@@ -18,16 +18,43 @@ random_shooting:
   num_cpu           : 10
   particles_per_cpu : 10
 
+mppi:
+ horizon           : 32
+ init_cov          : 0.3
+ filter_coeffs     : [0.25, 0.8, 0.0]
+ gamma             : 1.0
+ n_iters           : 1
+ step_size         : 1.0
+ lam               : 0.15
+ alpha             : 1
+ num_cpu           : 10
+ particles_per_cpu : 10
+
+dmd:
+  horizon           : 32
+  init_cov          : 0.3
+  update_cov        : True
+  cov_type          : 'full'
+  beta              : [0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1.0]
+  filter_coeffs     : [0.25, 0.8, 0.0]
+  gamma             : 1.0
+  n_iters           : 1
+  step_size         : [0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1.0]
+  lam               : 0.15
+  num_cpu           : 10
+  particles_per_cpu : 10
+
 pfmpc:
   horizon           : 32
-  cov_shift         : [0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1.0]
+  cov_shift         : 0.55
   cov_resample      : 1.0
   filter_coeffs     : [0.25, 0.8, 0.0]
   gamma             : 1.0
   n_iters           : 1
-  lam               : [0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1.0]
+  lam               : 0.5
   num_cpu           : 10
-  particles_per_cpu : 6
+  particles_per_cpu : 10
+
 
 
 # Tuned
@@ -41,7 +68,7 @@ pfmpc:
 #   num_cpu           : 10
 #   particles_per_cpu : 10
 
-#mppi:
+# mppi:
 #  horizon           : 32
 #  init_cov          : 0.55
 #  filter_coeffs     : [0.25, 0.8, 0.0]
@@ -90,7 +117,7 @@ dmd:
 #   n_iters           : 1
 #   lam               : 0.5
 #   num_cpu           : 10
-#   particles_per_cpu : 6
+#   particles_per_cpu : 10
 
 
 #Lyceum params
