@@ -3,13 +3,11 @@ n_episodes        : 100
 max_ep_length     : 75
 seed              : 123
 base_action       : 'null'
-render            : True
+render            : False
 job_mode          : 'sweep'
 exp_notes         : '7-DOF Sawyer arm opening a door at different locations'
 
-
-
-#Tuned
+########Re-tuned########
 random_shooting:
   horizon           : 16
   init_cov          : 0.25
@@ -31,6 +29,30 @@ mppi:
   alpha             : 1
   num_cpu           : 10
   particles_per_cpu : 12
+
+
+#Tuned
+# random_shooting:
+#   horizon           : 16
+#   init_cov          : 0.25
+#   filter_coeffs     : [0.25, 0.8, 0.0]
+#   gamma             : 1.0
+#   n_iters           : 1
+#   step_size         : 1.0
+#   num_cpu           : 10
+#   particles_per_cpu : 12
+
+# mppi:
+#   horizon           : 16
+#   init_cov          : 0.3
+#   filter_coeffs     : [0.25, 0.8, 0.0]
+#   gamma             : 1.0
+#   n_iters           : 1
+#   step_size         : 1.0
+#   lam               : 0.45
+#   alpha             : 1
+#   num_cpu           : 10
+#   particles_per_cpu : 12
 
 cem:
   horizon           : 16

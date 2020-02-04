@@ -73,9 +73,9 @@ class PFMPC(Controller):
         """
         traj_costs = cost_to_go(costs, self.gamma_seq)[:, 0]
         # #calculate soft-max
-        w = np.exp(-(traj_costs - np.min(traj_costs)) / self.lam)
-        w /= np.sum(w) + 1e-6  # normalize the weights
-        # w = scipy.special.softmax((-1.0/self.lam) * traj_costs)
+        #w = np.exp(-(traj_costs - np.min(traj_costs)) / self.lam)
+        #w /= np.sum(w) + 1e-6  # normalize the weights
+        w = scipy.special.softmax((-1.0/self.lam) * traj_costs)
         return w
     
     def _sample_actions(self):
@@ -86,7 +86,7 @@ class PFMPC(Controller):
             Return the average of current action samples
             TODO: Add other sampling strategies
         """
-        action = np.mean(self.action_samples, axis=0)[0]
+        action = np.mean(self.action_samples, axis=0)[0].copy()
         return action
 
     def _shift(self):
