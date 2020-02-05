@@ -90,3 +90,9 @@ class GymEnvWrapper():
 
     def render(self):
         self.gym_env.render()
+    
+    def real_env_step(self, bool_val):
+        try:
+            self.gym_env.real_env_step(bool_val)
+        except:
+            raise NotImplementedError

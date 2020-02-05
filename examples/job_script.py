@@ -37,6 +37,7 @@ env = GymEnv(env_name)
 def make_env():
     # gym_env = gym.make(env_name)
     gym_env = GymEnv(env_name)
+    gym_env.real_env_step(False)
     rollout_env = GymEnvWrapper(gym_env)
     return rollout_env
 
