@@ -1,0 +1,24 @@
+name: mjmpc
+channels:
+  - conda-forge
+dependencies:
+  - numpy==1.17.2
+  - pytest
+  - colorlog
+  - pandas
+  - tabulate
+  - pip
+  - patchelf
+  - pip:
+    - click
+    - cloudpickle
+    - gym>=0.13
+    - mujoco-py<2.1,>=2.0
+    - tqdm=4.32.1
+    - wheel
+    - scipy
+    - pyyaml
+
+
+
+
