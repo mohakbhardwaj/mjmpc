@@ -2,7 +2,7 @@ import os
 
 from gym.wrappers.monitoring import video_recorder
 
-from utils import logger#from stable_baselines import logger
+from mjmpc.utils import logger
 from . import VecEnvWrapper, DummyVecEnv, VecNormalize, VecFrameStack, SubprocVecEnv
 
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import numpy as np
 from .policy import  Policy
-import control
+import mjmpc.control as control
 
 
 class MPCPolicy(Policy):

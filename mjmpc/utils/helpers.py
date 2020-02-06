@@ -1,6 +1,6 @@
 #!/usr/bin/env python
-from envs import *
-from policies import *
+from mjmpc.envs import *
+from mjmpc.policies import *
 import numpy as np
 
 

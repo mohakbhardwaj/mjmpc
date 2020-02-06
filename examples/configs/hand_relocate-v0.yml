@@ -1,11 +1,11 @@
-env_name          : 'door-v0'
-n_episodes        : 100
+env_name          : 'relocate-v0'
+n_episodes        : 5
 max_ep_length     : 200
 seed              : 123
 base_action       : 'null'
-render            : False
+render            : True
 job_mode          : 'sweep'
-exp_notes         : 'Opening a door with a 24-DOF Shadow Hand (Adroit).'
+exp_notes         : 'Relocate object with a 24-DOF Shadow Hand (Adroit).'
 
 random_shooting:
   horizon           : 32

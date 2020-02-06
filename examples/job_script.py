@@ -11,12 +11,12 @@ import pickle
 import tqdm
 import yaml
 
-from envs import GymEnvWrapper
-from envs.vec_env import SubprocVecEnv
+from mjmpc.envs import GymEnvWrapper
+from mjmpc.envs.vec_env import SubprocVecEnv
 from mjrl.utils import tensor_utils
 from mjrl.utils.gym_env import GymEnv
-from utils import logger, timeit, helpers
-from policies import MPCPolicy
+from mjmpc.utils import logger, timeit, helpers
+from mjmpc.policies import MPCPolicy
 
 
 parser = argparse.ArgumentParser(description='Run MPC algorithm on given environment')
