@@ -1,4 +1,4 @@
-from .logger import logger
+from .logger import logger, LoggerClass
 from .timer import timeit
 from .helpers import render_trajs
 

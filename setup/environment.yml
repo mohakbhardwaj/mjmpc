@@ -14,10 +14,11 @@ dependencies:
     - cloudpickle
     - gym>=0.13
     - mujoco-py<2.1,>=2.0
-    - tqdm=4.32.1
+    - tqdm==4.32.1
     - wheel
     - scipy
     - pyyaml
+    - argcomplete
 
 
 

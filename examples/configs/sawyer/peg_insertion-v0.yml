@@ -1,60 +1,70 @@
 env_name          : 'sawyer_peg_insertion-v0'
-n_episodes        : 10
+n_episodes        : 5
 max_ep_length     : 75
 seed              : 123
 base_action       : 'null'
 render            : False
-job_mode          : 'sweep'
 exp_notes         : '7-DOF Sawyer arm inserting peg in a hole at different locations'
 
 
 ##########Re-tuned
+# random_shooting:
+#   horizon           : [16]
+#   init_cov          : [0.15]
+#   filter_coeffs     : [0.25, 0.8, 0.0]
+#   gamma             : [1.0]
+#   n_iters           : [1]
+#   step_size         : [1.0]
+#   num_cpu           : 10
+#   particles_per_cpu : [4]
+
 random_shooting:
-  horizon           : 16
-  init_cov          : 0.15
+  horizon           : [16, 32]
+  init_cov          : [0.15, 0.25, 0.3]
   filter_coeffs     : [0.25, 0.8, 0.0]
-  gamma             : 1.0
-  n_iters           : 1
-  step_size         : 1.0
+  gamma             : [1.0]
+  n_iters           : [1]
+  step_size         : [1.0]
   num_cpu           : 10
-  particles_per_cpu : 4
+  particles_per_cpu : [4, 8, 10]
+
 
 mppi:
-  horizon           : 16
-  init_cov          : 0.45
+  horizon           : [16]
+  init_cov          : [0.45]
   filter_coeffs     : [0.25, 0.8, 0.0]
-  gamma             : 1.0
-  n_iters           : 1
-  step_size         : 1.0
-  lam               : 0.1
-  alpha             : 1
+  gamma             : [1.0]
+  n_iters           : [1]
+  step_size         : [1.0]
+  lam               : [0.1]
+  alpha             : [1]
   num_cpu           : 10
-  particles_per_cpu : 4
+  particles_per_cpu : [4]
 
 dmd:
-  horizon           : 16
-  init_cov          : 0.45
-  update_cov        : True
-  cov_type          : 'full'
-  beta              : 0.85
+  horizon           : [16]
+  init_cov          : [0.45]
+  update_cov        : [True]
+  cov_type          : ['full']
+  beta              : [0.85]
   filter_coeffs     : [0.25, 0.8, 0.0]
-  gamma             : 1.0
+  gamma             : [1.0]
   n_iters           : 1
-  step_size         : 0.7
-  lam               : 0.1
+  step_size         : [0.7]
+  lam               : [0.1]
   num_cpu           : 10
-  particles_per_cpu : 4
+  particles_per_cpu : [4]
 
 pfmpc:
-  horizon           : 16
-  cov_shift         : 0.55
-  cov_resample      : 1.0
+  horizon           : [16]
+  cov_shift         : [0.55]
+  cov_resample      : [1.0]
   filter_coeffs     : [0.25, 0.8, 0.0]
-  gamma             : 1.0
-  n_iters           : 1
-  lam               : 0.2
+  gamma             : [1.0]
+  n_iters           : [1]
+  lam               : [0.2]
   num_cpu           : 10
-  particles_per_cpu : 4
+  particles_per_cpu : [4]
 
 
 #####################TUNED###############################
