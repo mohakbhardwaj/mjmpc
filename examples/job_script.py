@@ -11,7 +11,8 @@ import pickle
 import tqdm
 import yaml
 
-from mjmpc.envs import GymEnvWrapper
+# from mjmpc.envs import GymEnvWrapper
+from mjmpc.envs import make_wrapper
 from mjmpc.envs.vec_env import SubprocVecEnv
 from mjrl.utils import tensor_utils
 from mjrl.utils.gym_env import GymEnv
@@ -33,14 +34,16 @@ with open(args.config) as file:
 env_name  = exp_params['env_name']
 # env = GymEnv(env_name)
 env = gym.make(env_name)
-env = GymEnvWrapper(env)
+# env = GymEnvWrapper(env)
+env = make_wrapper(env)
 env.real_env_step(True)
 
 # Create vectorized environments for MPPI simulations
 def make_env():
     gym_env = gym.make(env_name)
     # gym_env = GymEnv(env_name) 
-    rollout_env = GymEnvWrapper(gym_env)
+    # rollout_env = GymEnvWrapper(gym_env)
+    rollout_env = make_wrapper(gym_env)
     rollout_env.real_env_step(False)
     return rollout_env
 
@@ -76,21 +79,21 @@ def gather_trajectories(controller_name, policy_params, n_episodes, ep_length, b
 
     ep_rewards = np.array([0.] * n_episodes)
     trajectories = []
-    logger.info('Runnning {0} episodes'.format(n_episodes))
+    logger.info('Runnning {0} episodes. Base seed = {1}'.format(n_episodes, base_seed))
     timeit.start('start_'+controller_name)
 
     for i in tqdm.tqdm(range(n_episodes)):
-        observations = []; actions = []; rewards = []; dones  = []
-        infos = []; states = []
-        #seeding
+        #seeding to enforce consistent episodes
         episode_seed = base_seed + i*12345
         policy_params['seed'] = episode_seed
-        env.reset(seed=episode_seed) #To enforce consistent episodes
+        env.reset(seed=episode_seed)
         sim_env.reset()
-        
+ 
         policy = MPCPolicy(controller_type=controller_name,
                            param_dict=policy_params, batch_size=1)
         
+        observations = []; actions = []; rewards = []; dones  = []
+        infos = []; states = []
         for _ in tqdm.tqdm(range(ep_length)):   
             curr_state = deepcopy(env.get_env_state())
             action = policy.get_action(curr_state)
@@ -110,7 +113,6 @@ def gather_trajectories(controller_name, policy_params, n_episodes, ep_length, b
             states=states
         )
         trajectories.append(traj)
-        # logger.info('Episode reward = {0}'.format(ep_rewards[i]))
         logger.record_tabular(controller_name+'episodeReward', ep_rewards[i])
         logger.dump_tabular()
             
@@ -137,48 +139,118 @@ def main(controller_name, main_dir):
     policy_params['action_lows'] = env.action_space.low
     policy_params['action_highs'] = env.action_space.high
     num_cpu = policy_params['num_cpu']
-
-    # For every combination of horizon and number of particles, 
-    # we run all combinations of algorithm parameters and 
-    # save the results in sub-folder named H_#_N_#
-    
     search_param_keys = []
     search_param_vals = []
-    horizon_num_particles = []
     
     for k in policy_params:
         if isinstance(policy_params[k], list) and k not in ['filter_coeffs', 'horizon', 'num_cpu', 'particles_per_cpu']:
             search_param_keys.append(k)
             search_param_vals.append(policy_params[k])
 
-    horizon_num_particles.append(policy_params['horizon'])
     num_particles = []
-    for i in range(len(policy_params['particles_per_cpu'])):
-        num_particles.append(policy_params['num_cpu'] * policy_params['particles_per_cpu'][i])
-    horizon_num_particles.append(num_particles)
-    # if len(search_param_keys) > 0:
-    for horizon_particle_tuple in product(*horizon_num_particles):
-        print(horizon_particle_tuple)
-        s = "H_" + str(horizon_particle_tuple[0]) + "_N_" + str(horizon_particle_tuple[1])
-        SUB_LOG_DIR = os.path.join(main_dir + "/" + s)
-        sub_logger = helpers.get_logger(controller_name + "_" + s, SUB_LOG_DIR, 'debug')
-       
-        best_avg_reward = -np.inf
-        best_success_metric = -np.inf
-        best_reward_std = -np.inf
-        best_trajectories = None
-        best_param_dict = None
-        count = 0
+    if isinstance(policy_params['horizon'], list):
+        horizons = policy_params['horizon']
+    else: horizons =  [policy_params['horizon']]    
+    if isinstance(policy_params['particles_per_cpu'], list):
+        for i in range(len(policy_params['particles_per_cpu'])):
+            num_particles.append(policy_params['num_cpu'] * policy_params['particles_per_cpu'][i])
+    else:
+        num_particles.append(policy_params['num_cpu'] * policy_params['particles_per_cpu'])
 
-        policy_params['horizon'] = horizon_particle_tuple[0]
-        policy_params['num_particles'] = horizon_particle_tuple[1] #policy_params['particles_per_cpu'] * policy_params['num_cpu']
+
+    if exp_params['job_mode'] == 'tune':
+        ############### Tune mode #################
+        # For every combination of horizon and number of particles, 
+        # we run all combinations of controller parameters and 
+        # save the results in sub-folder named H_#_N_#
+        #############################################
+        horizon_num_particles = []
+        horizon_num_particles.append(horizons)
+        horizon_num_particles.append(num_particles)
+        for tup in product(*horizon_num_particles):
+            s = "H_" + str(tup[0]) + "_N_" + str(tup[1])
+            SUB_LOG_DIR = os.path.join(main_dir + "/" + s)
+            sub_logger = helpers.get_logger(controller_name + "_" + s, SUB_LOG_DIR, 'debug')
         
-        for search_param_tuple in product(*search_param_vals):
-            best_params = False
-            for i in range(len(search_param_tuple)):
-                policy_params[search_param_keys[i]] = search_param_tuple[i]
+            best_avg_reward = -np.inf
+            best_success_metric = -np.inf
+            best_reward_std = -np.inf
+            best_trajectories = None
+            best_param_dict = None
+
+            policy_params['horizon'] = tup[0]
+            policy_params['num_particles'] = tup[1]
+            
+            for search_param_tuple in product(*search_param_vals):
+                best_params = False
+                for i in range(len(search_param_tuple)):
+                    policy_params[search_param_keys[i]] = search_param_tuple[i]
+                policy_params['particles_per_cpu'] = int(policy_params['num_particles']/policy_params['num_cpu'])
+                sub_logger.info('Current params')
+                sub_logger.info(policy_params)
+
+                trajectories, avg_reward, reward_std, success_metric = gather_trajectories(controller_name,
+                                                                                            deepcopy(policy_params), 
+                                                                                            exp_params['n_episodes'], 
+                                                                                            exp_params['max_ep_length'], 
+                                                                                            exp_params['seed'],
+                                                                                            num_cpu,
+                                                                                            sub_logger)
+                sub_logger.info('Success metric = {0}, Average reward = {1}, Best success metric = {2}, Best average reward = {3}'.format(success_metric, 
+                                                                                                                                            avg_reward, 
+                                                                                                                                            best_success_metric, 
+                                                                                                                                            best_avg_reward))
+                if success_metric is not None: 
+                    if success_metric > best_success_metric:
+                        sub_logger.info('Better success metric, updating best params...')
+                        best_params = True
+                    elif np.allclose(success_metric, best_success_metric) and (avg_reward > best_avg_reward):
+                        sub_logger.info('Similar success but better reward, updating params...')
+                        best_params = True
+                else:
+                    if avg_reward > best_avg_reward:
+                        sub_logger.info('Best average reward, updating best params...')
+                        best_params = True
+
+                if best_params:
+                    best_trajectories = trajectories
+                    best_avg_reward = avg_reward
+                    best_reward_std = reward_std
+                    best_success_metric = success_metric
+                    best_param_dict = deepcopy(policy_params)
+                sub_logger.info('Best params so far ...')
+                sub_logger.info(best_param_dict)
+                    
+                if success_metric is not None and best_success_metric > 95:
+                    sub_logger.info('Success metric greater than 95, early stopping')
+                    break
+
+                sub_logger.info('Dumping trajectories')
+                pickle.dump(best_trajectories, open(SUB_LOG_DIR+"/trajectories.p", 'wb'))
+    
+    elif exp_params['job_mode'] == 'sweep':
+        ############### Sweep mode #################
+        # For corresponding horizon and number of particles, 
+        # we run corresponding controller parameters and 
+        # save the results in sub-folder named H_#_N_#. This 
+        # mode is used for benchmarking purposes after tuning
+        #############################################
+        assert len(horizons) == len(num_particles), \
+                "Please provide correct number of parameters"
+        for i in range(len(horizons)):
+            s = "H_" + str(horizons[i]) + "_N_" + str(num_particles[i])
+            SUB_LOG_DIR = os.path.join(main_dir + "/" + s)
+            if not os.path.exists(SUB_LOG_DIR):
+                sub_logger = helpers.get_logger(controller_name + "_" + s, SUB_LOG_DIR, 'debug')
+            policy_params['horizon'] = horizons[i]
+            policy_params['num_particles'] = num_particles[i]
+            
+            search_param_tuple = [v[i] for v in search_param_vals]
+            # search_param_tuple = search_param_vals[i]
+            for j in range(len(search_param_tuple)):
+                policy_params[search_param_keys[j]] = search_param_tuple[j]
             policy_params['particles_per_cpu'] = int(policy_params['num_particles']/policy_params['num_cpu'])
-            sub_logger.info('Current params')
+            sub_logger.info('Running parameters')
             sub_logger.info(policy_params)
 
             trajectories, avg_reward, reward_std, success_metric = gather_trajectories(controller_name,
@@ -188,57 +260,26 @@ def main(controller_name, main_dir):
                                                                                         exp_params['seed'],
                                                                                         num_cpu,
                                                                                         sub_logger)
-            sub_logger.info('Success metric = {0}, Average reward = {1}, Best success metric = {2}, Best average reward = {3}'.format(success_metric, 
-                                                                                                                                        avg_reward, 
-                                                                                                                                        best_success_metric, 
-                                                                                                                                        best_avg_reward))
-            # if exp_params['job_mode'] == 'tune':
-            if success_metric is not None: 
-                if success_metric > best_success_metric:
-                    sub_logger.info('Better success metric, updating best params...')
-                    best_params = True
-                elif np.allclose(success_metric, best_success_metric) and (avg_reward > best_avg_reward):
-                    sub_logger.info('Similar success but better reward, updating params...')
-                    best_params = True
-            else:
-                if avg_reward > best_avg_reward:
-                    sub_logger.info('Best average reward, updating best params...')
-                    best_params = True
-
-            if best_params:
-                best_trajectories = trajectories
-                best_avg_reward = avg_reward
-                best_reward_std = reward_std
-                best_success_metric = success_metric
-                best_param_dict = deepcopy(policy_params)
-            sub_logger.info('Best params so far ...')
-            sub_logger.info(best_param_dict)
-                
-            if success_metric is not None and best_success_metric > 95:
-                sub_logger.info('Success metric greater than 95, early stopping')
-                break
-
+            sub_logger.info('Success metric = {0}, Average reward = {1}, Std. Reward = {2}'.format(success_metric, 
+                                                                                                   avg_reward, 
+                                                                                                   reward_std))
+            
+            
             sub_logger.info('Dumping trajectories')
-            pickle.dump(best_trajectories, open(SUB_LOG_DIR+"/trajectories.p", 'wb'))
-            count += 1
-        
-    return best_avg_reward, best_reward_std, best_success_metric
+            pickle.dump(trajectories, open(SUB_LOG_DIR+"/trajectories.p", 'wb'))
+                    
+    else:
+        raise NotImplementedError('Unidentified job mode. Must be either "tune" or "sweep" ')
+
+    env.close() 
 
 
 if __name__ == '__main__':
-    avg_rewards = np.array([0.] * len(args.controllers))
-    success = np.array([0.] * len(args.controllers))
     now = datetime.now()
     date_time = now.strftime("%m_%d_%Y_%H_%M_%S")
     for i, controller in enumerate(args.controllers):
         timeit.reset()
         LOG_DIR = os.path.join(os.path.abspath(args.save_dir) + "/" + exp_params['env_name'] + "/" + date_time, controller)
         if not os.path.exists(LOG_DIR): os.makedirs(LOG_DIR)
-        # logger = LoggerClass()
-        # logger.setup(controller, os.path.join(LOG_DIR, 'log.txt'), 'debug')
-        # logger.info('Running experiment: {0}. Results dir: {1}'.format(controller, LOG_DIR))
-        avg_reward, reward_std, success_metric = main(controller, LOG_DIR)
-        avg_rewards[i] = avg_reward
-        success[i] = success_metric
+        main(controller, LOG_DIR)
 
-    env.env.close()

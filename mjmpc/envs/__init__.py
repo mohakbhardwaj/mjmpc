@@ -1,4 +1,5 @@
-from .gym_env_wrapper import GymEnvWrapper
+# from .gym_env_wrapper import GymEnvWrapper
+from .gym_env_wrapper import make_wrapper#GymEnvWrapper
 from gym.envs.registration import register
 
 register(

@@ -1,6 +1,8 @@
 import os
 import sys
 from setuptools import setup, find_packages
+from Cython.Build import cythonize
+
 
 if sys.version_info.major != 3:
     print("This Python is only compatible with Python 3, but you are running "
@@ -27,4 +29,5 @@ setup(
         'tabulate',
         'pandas',
     ],
+    ext_modules = cythonize(["mjmpc/envs/gym_env_wrapper.pyx"], annotate=True)
 )
