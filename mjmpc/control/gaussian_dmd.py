@@ -112,5 +112,5 @@ class DMDMPC(GaussianMPC):
         #         cov_shifted = (1-self.beta) * self.cov_action + self.beta * self.prior_cov
         #         self.cov_action = update * cov_shifted + (1.0 - update) * self.cov_action
 
-
-
+    def _calc_val(self, state):
+        return 0.0

@@ -21,10 +21,52 @@ def render_trajs(env, trajectories, n_times=1):
         for traj in trajectories:
             env.reset()
             state = traj['states'][0]
-            env.env.set_env_state(state)
+            env.set_env_state(state)
             for action in traj['actions']:
                 env.render()
                 env.step(action)
+
+def dump_videos(env,
+                trajectories,
+                frame_size=(640,480),
+                folder='/tmp/',
+                filename='newvid',
+                camera_name=None,
+                device_id=0):
+
+    import skvideo.io
+    for ep, traj in enumerate(trajectories):
+        arrs = []
+        env.reset()
+        state = traj['states'][0]
+        env.set_env_state(state)
+        for action in traj['actions']:
+            env.step(action)
+            curr_frame = env.get_curr_frame(frame_size=frame_size, camera_name=camera_name, device_id=device_id)
+            arrs.append(curr_frame)
+
+    # for ep in range(num_episodes):
+    #     print("Episode %d: rendering offline " % ep, end='', flush=True)
+    #     o = self.reset()
+    #     d = False
+    #     t = 0
+    #     arrs = []
+    #     t0 = timer.time()
+    #     while t < horizon and d is False:
+    #         a = policy.get_action(o)[0] if mode == 'exploration' else policy.get_action(o)[1]['evaluation']
+    #         o, r, d, _ = self.step(a)
+    #         t = t+1
+    #         curr_frame = self.sim.render(width=frame_size[0], height=frame_size[1],
+    #                                      mode='offscreen', camera_name=camera_name, device_id=0)
+    #         arrs.append(curr_frame[::-1,:,:])
+            # print(t, end=', ', flush=True)
+        out_file = os.path.join(folder, filename + str(ep) + ".mp4")
+        skvideo.io.vwrite(out_file, np.asarray(arrs))
+        print("saved", out_file)
+            # t1 = timer.time()
+            # print("time taken = %f"% (t1-t0))
+
+
 
 def get_logger(display_name, log_dir, mode):
     if not os.path.exists(log_dir):

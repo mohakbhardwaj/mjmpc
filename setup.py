@@ -15,8 +15,9 @@ setup(
     name='mjmpc',
     version='1.0.0',
     packages=find_packages(),
-    description='Model-Predictive Control (MPC) algorithms for environments in MuJoCo',
+    description='Model-Predictive Control (MPC) algorithms for gym environments in MuJoCo',
     long_description=read('README.md'),
+    long_description_content_type="text/markdown",
     url='https://github.com/mohakbhardwaj/mjmpc.git',
     author='Mohak Bhardwaj',
     install_requires=[
@@ -29,5 +30,5 @@ setup(
         'tabulate',
         'pandas',
     ],
-    ext_modules = cythonize(["mjmpc/envs/gym_env_wrapper.pyx"], annotate=True)
+    ext_modules = cythonize(["mjmpc/envs/gym_env_wrapper_cy.pyx"], annotate=True)
 )

@@ -129,14 +129,24 @@ class Controller(ABC):
         Reset the controller
         """
         pass
-    
+
     @abstractmethod
     def _calc_val(self, state):
         """
-        Calculate optimal value of a state
-        (Must call step function before this)
+        Calculate value of state under current policy
         """
         pass
+
+    def get_value(self, state):
+        """
+        Calculate optimal value of a state, i.e 
+        value under optimal policy. Hence, it calls step 
+        function first 
+        """
+        _ = self.step(state)
+        value = self._calc_val(state)
+        return value
+    
 
     def set_terminal_cost_fn(self, fn):
         self.terminal_cost_fn = fn
@@ -256,5 +266,5 @@ class GaussianMPC(Controller):
         self.cov_action = np.diag(self.init_cov)
 
     def _calc_val(self, state):
-        raise NotImplementedError("_calc val not implemented yet")
+        raise NotImplementedError("_calc_val not implemented")
 

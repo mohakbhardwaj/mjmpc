@@ -91,6 +91,9 @@ class MPPI(GaussianMPC):
             control_costs = np.sum(control_costs, axis=-1)
             control_costs = cost_to_go(control_costs, self.gamma_seq)[:,0]
         return control_costs
+    
+    def _calc_val(self, state):
+        return 0.0
 
 
 

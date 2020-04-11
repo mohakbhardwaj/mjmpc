@@ -1,9 +1,9 @@
 env_name          : 'sawyer_door-v0'
-n_episodes        : 100
+n_episodes        : 10
 max_ep_length     : 75
 seed              : 123
 base_action       : 'null'
-render            : False
+render            : True
 job_mode          : 'sweep'
 exp_notes         : '7-DOF Sawyer arm opening a door at different locations'
 

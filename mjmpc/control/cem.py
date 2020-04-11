@@ -100,3 +100,5 @@ class CEM(GaussianMPC):
         # input('..')
 
 
+    def _calc_val(self, state):
+        return 0.0

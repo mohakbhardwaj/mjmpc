@@ -5,7 +5,7 @@ seed              : 123
 base_action       : 'null'
 render            : True
 job_mode          : 'sweep'
-exp_notes         : 'Relocate object with a 24-DOF Shadow Hand (Adroit).'
+exp_notes         : 'Relocate object from one position to another with a 24-DOF Shadow Hand (Adroit).'
 
 random_shooting:
   horizon           : 32

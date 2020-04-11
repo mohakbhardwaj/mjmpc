@@ -141,3 +141,6 @@ class PFMPC(Controller):
             act_seq2 = np.array(random.choices(self.action_samples, weights=weights, k=self.num_particles))
         
         return act_seq2
+
+    def _calc_val(self, state):
+        return 0.0

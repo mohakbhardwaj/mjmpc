@@ -11,11 +11,12 @@ import pickle
 import tqdm
 import yaml
 
-# from mjmpc.envs import GymEnvWrapper
-from mjmpc.envs import make_wrapper
+import mj_envs
+from mjmpc.envs import GymEnvWrapper
+# from mjmpc.envs.gym_env_wrapper_cy import GymEnvWrapperCy
+# from mjmpc.envs import make_wrapper
 from mjmpc.envs.vec_env import SubprocVecEnv
 from mjrl.utils import tensor_utils
-from mjrl.utils.gym_env import GymEnv
 from mjmpc.utils import LoggerClass, timeit, helpers
 from mjmpc.policies import MPCPolicy
 
@@ -24,6 +25,7 @@ parser = argparse.ArgumentParser(description='Run MPC algorithm on given environ
 parser.add_argument('--config', type=str, help='yaml file with experiment parameters')
 parser.add_argument('--save_dir', type=str, default='/tmp', help='folder to save data in')
 parser.add_argument('--controllers', type=str, default='mppi', nargs='+', help='controller(s) to run')
+parser.add_argument('--dump_vids', action='store_true', help='flag to dump video of episodes' )
 args = parser.parse_args()
 
 #Load experiment parameters from config file
@@ -32,18 +34,16 @@ with open(args.config) as file:
 
 #Create the main environment
 env_name  = exp_params['env_name']
-# env = GymEnv(env_name)
 env = gym.make(env_name)
-# env = GymEnvWrapper(env)
-env = make_wrapper(env)
+env = GymEnvWrapper(env)
+# env = make_wrapper(env)
 env.real_env_step(True)
 
 # Create vectorized environments for MPPI simulations
 def make_env():
     gym_env = gym.make(env_name)
-    # gym_env = GymEnv(env_name) 
-    # rollout_env = GymEnvWrapper(gym_env)
-    rollout_env = make_wrapper(gym_env)
+    rollout_env = GymEnvWrapper(gym_env)
+    # rollout_env = make_wrapper(gym_env)
     rollout_env.real_env_step(False)
     return rollout_env
 
@@ -126,9 +126,9 @@ def gather_trajectories(controller_name, policy_params, n_episodes, ep_length, b
     logger.info('Success metric = {0}'.format(success_metric))
     logger.info('Episode rewards = {0}'.format(ep_rewards))
 
-    if exp_params['render']:
-        _ = input("Press enter to display optimized trajectory (will be played 10 times) : ")
-        helpers.render_trajs(env, trajectories, n_times=10)
+    # if exp_params['render']:
+    #     _ = input("Press enter to display optimized trajectory (will be played 10 times) : ")
+    #     helpers.render_trajs(env, trajectories, n_times=10)
     sim_env.close()
     return trajectories, average_reward, reward_std, success_metric
 
@@ -196,10 +196,19 @@ def main(controller_name, main_dir):
                                                                                             exp_params['seed'],
                                                                                             num_cpu,
                                                                                             sub_logger)
+            if exp_params['render']:
+                print('Dumping videos')
+                helpers.dump_videos(env=env, trajectories=trajectories, frame_size=(1280, 720), 
+                                    folder=SUB_LOG_DIR, filename='vid_traj_', camera_name=None,
+                                    device_id=1)
+                _ = input("Press enter to display optimized trajectory (will be played 10 times) : ")
+                helpers.render_trajs(env, trajectories, n_times=10)
+
+
                 sub_logger.info('Success metric = {0}, Average reward = {1}, Best success metric = {2}, Best average reward = {3}'.format(success_metric, 
-                                                                                                                                            avg_reward, 
-                                                                                                                                            best_success_metric, 
-                                                                                                                                            best_avg_reward))
+                                                                                                                                          avg_reward, 
+                                                                                                                                          best_success_metric, 
+                                                                                                                                          best_avg_reward))
                 if success_metric is not None: 
                     if success_metric > best_success_metric:
                         sub_logger.info('Better success metric, updating best params...')
@@ -260,6 +269,16 @@ def main(controller_name, main_dir):
                                                                                         exp_params['seed'],
                                                                                         num_cpu,
                                                                                         sub_logger)
+
+            if args.dump_vids:
+                print('Dumping videos')
+                helpers.dump_videos(env=env, trajectories=trajectories, frame_size=(1280, 720), 
+                                    folder=SUB_LOG_DIR, filename='vid_traj_', camera_name=None,
+                                    device_id=1)
+            if exp_params['render']:
+                _ = input("Press enter to display optimized trajectory (will be played 10 times) : ")
+                helpers.render_trajs(env, trajectories, n_times=10)
+            
             sub_logger.info('Success metric = {0}, Average reward = {1}, Std. Reward = {2}'.format(success_metric, 
                                                                                                    avg_reward, 
                                                                                                    reward_std))
