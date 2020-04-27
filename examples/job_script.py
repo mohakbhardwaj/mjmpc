@@ -196,13 +196,13 @@ def main(controller_name, main_dir):
                                                                                             exp_params['seed'],
                                                                                             num_cpu,
                                                                                             sub_logger)
-            if exp_params['render']:
-                print('Dumping videos')
-                helpers.dump_videos(env=env, trajectories=trajectories, frame_size=(1280, 720), 
-                                    folder=SUB_LOG_DIR, filename='vid_traj_', camera_name=None,
-                                    device_id=1)
-                _ = input("Press enter to display optimized trajectory (will be played 10 times) : ")
-                helpers.render_trajs(env, trajectories, n_times=10)
+                if exp_params['render']:
+                    print('Dumping videos')
+                    helpers.dump_videos(env=env, trajectories=trajectories, frame_size=(1280, 720), 
+                                        folder=SUB_LOG_DIR, filename='vid_traj_', camera_name=None,
+                                        device_id=1)
+                    _ = input("Press enter to display optimized trajectory (will be played 10 times) : ")
+                    helpers.render_trajs(env, trajectories, n_times=10)
 
 
                 sub_logger.info('Success metric = {0}, Average reward = {1}, Best success metric = {2}, Best average reward = {3}'.format(success_metric, 
