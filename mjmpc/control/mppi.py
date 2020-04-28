@@ -11,7 +11,6 @@ import copy
 import numpy as np
 # import scipy.stats
 import scipy.special
-import scipy.misc
 
 class MPPI(GaussianMPC):
     def __init__(self,
@@ -29,8 +28,6 @@ class MPPI(GaussianMPC):
                  action_highs,
                  set_state_fn,
                  rollout_fn,
-                 terminal_cost_fn=None,
-                 rollout_callback=None,
                  batch_size=1,
                  filter_coeffs = [1., 0., 0.],
                  seed=0):
@@ -49,9 +46,7 @@ class MPPI(GaussianMPC):
                                    filter_coeffs, 
                                    set_state_fn, 
                                    rollout_fn,
-                                   rollout_callback,
                                    'diagonal',
-                                   terminal_cost_fn,
                                    batch_size,
                                    seed)
         self.lam = lam
@@ -77,9 +72,10 @@ class MPPI(GaussianMPC):
         control_costs = self._control_costs(delta)
         total_costs = traj_costs + self.lam * control_costs
         # #calculate soft-max
-        # w = np.exp(-(1.0/self.lam) * (total_costs - np.min(total_costs)))
-        # w /= np.sum(w) + 1e-6  # normalize the weights
+        w1 = np.exp(-(1.0/self.lam) * (total_costs - np.min(total_costs)))
+        w1 /= np.sum(w1) + 1e-6  # normalize the weights
         w = scipy.special.softmax((-1.0/self.lam) * total_costs)
+        print(w, w1)
         return w
 
     def _control_costs(self, delta):
@@ -93,7 +89,27 @@ class MPPI(GaussianMPC):
         return control_costs
     
     def _calc_val(self, state):
-        return 0.0
+        self.set_state_fn(copy.deepcopy(state)) #set state of simulation
+        sk, act_seq = self._generate_rollouts()
+        delta = act_seq - self.mean_action[None, :, :]
+        
+        traj_costs = cost_to_go(sk,self.gamma_seq)[:,0]
+        control_costs = self._control_costs(delta)
+        total_costs = traj_costs + self.lam * control_costs
+
+		# calculate log-sum-exp
+        # c = (-1.0/self.lam) * total_costs.copy()
+        # cmax = np.max(c)
+        # c -= cmax
+        # c = np.exp(c)
+        # val = cmax + np.log(np.sum(c)) - np.log(c.shape[0])
+        # val = -self.lam * val
+
+        val = -self.lam * scipy.special.logsumexp((-1.0/self.lam) * total_costs, b=(1.0/total_costs.shape[0]))
+        return val
+        
+
+
 
 
 

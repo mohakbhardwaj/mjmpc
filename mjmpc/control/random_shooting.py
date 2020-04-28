@@ -20,8 +20,6 @@ class RandomShooting(GaussianMPC):
                  action_highs,
                  set_state_fn,
                  rollout_fn,
-                 terminal_cost_fn=None,
-                 rollout_callback=None,
                  filter_coeffs = [1.0, 0.0, 0.0],
                  batch_size=1,
                  seed=0):
@@ -40,9 +38,7 @@ class RandomShooting(GaussianMPC):
                                    filter_coeffs, 
                                    set_state_fn, 
                                    rollout_fn,
-                                   rollout_callback,
                                    'diagonal',
-                                   terminal_cost_fn,
                                    batch_size,
                                    seed)
 
@@ -56,7 +52,13 @@ class RandomShooting(GaussianMPC):
         best_id = np.argmin(Q, axis = 0)[0]
         self.mean_action = (1.0 - self.step_size) * self.mean_action +\
                             self.step_size * act_seq[best_id]
-     
-     
+    
+
     def _calc_val(self, state):
-        return 0.0
+        self.set_state_fn(copy.deepcopy(state)) #set state of simulation
+        sk, act_seq = self._generate_rollouts()
+        
+        traj_costs = cost_to_go(sk,self.gamma_seq)[:,0]
+        val = np.average(traj_costs)
+        print(val)
+        return val

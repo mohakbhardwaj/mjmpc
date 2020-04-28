@@ -38,24 +38,13 @@ def generate_noise(cov, filter_coeffs, shape, base_seed):
     return eps 
 
 
-
 def cost_to_go(sk, gamma_seq):
     """
         Calculate (discounted) cost to go for given reward sequence
     """
-    # N, H = sk.shape
-    # rewards = sk.copy()
     sk = gamma_seq * sk  # discounted reward sequence
     sk = np.cumsum(sk[:, ::-1], axis=-1)[:, ::-1]  # cost to go (but scaled by [1 , gamma, gamma*2 and so on])
     sk /= gamma_seq  # un-scale it to get true discounted cost to go
-
-    # scores = np.zeros((N,))
-    # for i in range(N):
-    #     scores[i] = 0.0
-    #     for t in range(H):
-    #         scores[i] += rewards[i][t]
-    # print(scores)
-    # input('..')
     return sk
 
 class Controller(ABC):
@@ -69,8 +58,6 @@ class Controller(ABC):
                  n_iters,
                  set_state_fn,
                  rollout_fn,
-                 rollout_callback,
-                 terminal_cost_fn=None,
                  batch_size=1,
                  seed=0):
                  
@@ -84,8 +71,6 @@ class Controller(ABC):
         self.n_iters = n_iters
         self.set_state_fn = set_state_fn
         self.rollout_fn = rollout_fn
-        self.rollout_callback = rollout_callback
-        self.terminal_cost_fn = terminal_cost_fn
         self.batch_size = batch_size
         self.seed = seed
         self.num_steps = 0
@@ -137,7 +122,7 @@ class Controller(ABC):
         """
         pass
 
-    def get_value(self, state):
+    def get_optimal_value(self, state):
         """
         Calculate optimal value of a state, i.e 
         value under optimal policy. Hence, it calls step 
@@ -159,16 +144,16 @@ class Controller(ABC):
          """
 
         act_seq = self._sample_actions() #sample actions using current control distribution
-        obs_vec, rew_vec, _ = self.rollout_fn(act_seq)  # rollout function returns the observations, rewards 
+        rew_vec = self.rollout_fn(act_seq)  # rollout function returns the observations, rewards 
         sk = -1.0 * rew_vec  # rollout_fn returns a REWARD and we need a COST
         
-        if self.terminal_cost_fn is not None:
-            term_states = obs_vec[:, -1, :].reshape(obs_vec.shape[0], obs_vec.shape[-1])
-            sk[-1, :] = self.terminal_cost_fn(term_states, act_seq[-1].T)
+        # if self.terminal_cost_fn is not None:
+        #     term_states = obs_vec[:, -1, :].reshape(obs_vec.shape[0], obs_vec.shape[-1])
+        #     sk[-1, :] = self.terminal_cost_fn(term_states, act_seq[-1].T)
 
-        if self.rollout_callback is not None: self.rollout_callback(obs_vec, act_seq) #state_vec # for example, visualize rollouts
+        # if self.rollout_callback is not None: self.rollout_callback(obs_vec, act_seq) #state_vec # for example, visualize rollouts
 
-        return obs_vec, sk, act_seq #state_vec
+        return sk, act_seq # obs_vec, act_seq #state_vec
 
     def step(self, state):
         """
@@ -177,7 +162,8 @@ class Controller(ABC):
         for _ in range(self.n_iters):
             self.set_state_fn(copy.deepcopy(state)) #set state of simulation
             # generate random trajectories
-            obs_vec, sk, act_seq = self._generate_rollouts() #state_vec
+            # obs_vec, sk, act_seq = self._generate_rollouts() #state_vec
+            sk, act_seq = self._generate_rollouts() #state_vec
             # update moments
             self._update_distribution(sk, act_seq)
             #calculate best action
@@ -206,9 +192,7 @@ class GaussianMPC(Controller):
                  filter_coeffs,
                  set_state_fn,
                  rollout_fn,
-                 rollout_callback,
                  cov_type='diagonal',
-                 terminal_cost_fn=None,
                  batch_size=1,
                  seed=0):
 
@@ -222,8 +206,6 @@ class GaussianMPC(Controller):
                                           n_iters,
                                           set_state_fn,
                                           rollout_fn,
-                                          rollout_callback, 
-                                          terminal_cost_fn,
                                           batch_size,
                                           seed)
         self.init_cov = np.array([init_cov] * self.num_actions)

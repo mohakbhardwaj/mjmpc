@@ -26,8 +26,6 @@ class PFMPC(Controller):
                  action_highs,
                  set_state_fn,
                  rollout_fn,
-                 terminal_cost_fn=None,
-                 rollout_callback=None,
                  batch_size=1,
                  filter_coeffs=[1., 0., 0.],
                  seed=0):
@@ -41,8 +39,6 @@ class PFMPC(Controller):
                                     n_iters,
                                     set_state_fn,
                                     rollout_fn,
-                                    rollout_callback,
-                                    terminal_cost_fn,
                                     batch_size,
                                     seed)
         self.lam = lam

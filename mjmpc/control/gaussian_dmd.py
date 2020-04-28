@@ -30,8 +30,6 @@ class DMDMPC(GaussianMPC):
                  rollout_fn,
                  update_cov=False,
                  cov_type='diagonal',
-                 terminal_cost_fn=None,
-                 rollout_callback=None,
                  batch_size=1,
                  filter_coeffs = [1., 0., 0.],
                  seed=0):
@@ -50,9 +48,7 @@ class DMDMPC(GaussianMPC):
                                    filter_coeffs, 
                                    set_state_fn, 
                                    rollout_fn,
-                                   rollout_callback,
                                    cov_type,
-                                   terminal_cost_fn,
                                    batch_size,
                                    seed)
         self.lam = lam
@@ -111,6 +107,21 @@ class DMDMPC(GaussianMPC):
         #         update = self.cov_action < self.prior_cov
         #         cov_shifted = (1-self.beta) * self.cov_action + self.beta * self.prior_cov
         #         self.cov_action = update * cov_shifted + (1.0 - update) * self.cov_action
-
+    
     def _calc_val(self, state):
-        return 0.0
+        self.set_state_fn(copy.deepcopy(state)) #set state of simulation
+        sk, act_seq = self._generate_rollouts()
+        traj_costs = cost_to_go(sk,self.gamma_seq)[:,0]
+
+		# calculate log-sum-exp
+        # c = (-1.0/self.lam) * traj_costs.copy()
+        # cmax = np.max(c)
+        # c -= cmax
+        # c = np.exp(c)
+        # val = cmax + np.log(np.sum(c)) - np.log(c.shape[0])
+        # val = -self.lam * val
+
+        val = -self.lam * scipy.special.logsumexp((-1.0/self.lam) * traj_costs, b=(1.0/traj_costs.shape[0]))
+        print(val)
+        return val
+

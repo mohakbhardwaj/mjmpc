@@ -20,7 +20,7 @@ from mjrl.utils import tensor_utils
 from mjmpc.utils import LoggerClass, timeit, helpers
 from mjmpc.policies import MPCPolicy
 
-
+gym.logger.set_level(40)
 parser = argparse.ArgumentParser(description='Run MPC algorithm on given environment')
 parser.add_argument('--config', type=str, help='yaml file with experiment parameters')
 parser.add_argument('--save_dir', type=str, default='/tmp', help='folder to save data in')
@@ -68,12 +68,11 @@ def gather_trajectories(controller_name, policy_params, n_episodes, ep_length, b
         received at every timestep
         """
         obs_vec, rew_vec, done_vec, _ = sim_env.rollout(u_vec.copy())
-        return obs_vec, rew_vec, done_vec #state_vec
+        return rew_vec
     
 
     policy_params['set_state_fn'] = set_state_fn
     policy_params['rollout_fn'] = rollout_fn
-    policy_params['rollout_callback'] = None
     del policy_params['particles_per_cpu'], policy_params['num_cpu']
 
 

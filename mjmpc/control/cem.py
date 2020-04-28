@@ -30,8 +30,6 @@ class CEM(GaussianMPC):
                  rollout_fn,
                  beta=0.0,
                  cov_type='diagonal',
-                 terminal_cost_fn=None,
-                 rollout_callback=None,
                  batch_size=1,
                  filter_coeffs = [1., 0., 0.],
                  seed=0):
@@ -52,9 +50,7 @@ class CEM(GaussianMPC):
                                    filter_coeffs, 
                                    set_state_fn, 
                                    rollout_fn,
-                                   rollout_callback,
                                    cov_type,
-                                   terminal_cost_fn,
                                    batch_size,
                                    seed)
 
@@ -96,9 +92,11 @@ class CEM(GaussianMPC):
             #     update = self.cov_action < self.prior_cov
             #     cov_shifted = (1-self.beta) * self.cov_action + self.beta * self.prior_cov
             #     self.cov_action = update * cov_shifted + (1.0 - update) * self.cov_action
-        # print(self.cov_action)
-        # input('..')
-
 
     def _calc_val(self, state):
-        return 0.0
+        self.set_state_fn(copy.deepcopy(state)) #set state of simulation
+        sk, act_seq = self._generate_rollouts()
+        
+        traj_costs = cost_to_go(sk,self.gamma_seq)[:,0]
+        val = np.average(traj_costs)
+        return val
