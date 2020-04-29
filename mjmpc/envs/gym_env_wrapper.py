@@ -5,19 +5,25 @@ as input and implements necessary functions for MPC rollouts
 Author: Mohak Bhardwaj
 Date: January 9, 2020
 """
+from gym import spaces
 import numpy as np
 from copy import deepcopy
 
 class GymEnvWrapper():
-    # cdef public int d_obs
-    # cdef public object env, observation_space, action_space 
-
     def __init__(self, env):
         self.env = env
         self.env.reset()
         observation, _reward, done, _info = self.env.step(np.zeros(self.env.action_space.low.shape))
         assert not done, ""
-        self.d_obs = np.sum([o.size for o in observation]) if type(observation) is tuple else observation.size
+        if type(observation) is tuple:
+            self.d_obs = np.sum([o.size for o in observation])
+        elif type(observation) is dict:
+            self.d_obs = 0.
+            for k in observation.keys():
+                self.d_obs += observation[k].size
+        else: self.d_obs = observation.size
+        # self.d_obs = np.sum([o.size for o in observation]) if type(observation) is tuple else observation.size
+
         self.observation_space = self.env.observation_space
         self.action_space = self.env.action_space
         super(GymEnvWrapper, self).__init__()
@@ -66,7 +72,9 @@ class GymEnvWrapper():
             info: dict
         """
         batch_size, n_steps, d_action = u_vec.shape
-        obs_vec = np.zeros((batch_size, n_steps, self.d_obs))
+        if type(self.observation_space) is spaces.Dict:
+            obs_vec = []
+        else: obs_vec = np.zeros((batch_size, n_steps, self.d_obs))
         # state_vec = np.zeros((self.batch_size, n_steps, self.d_state))
         rew_vec = np.zeros((batch_size, n_steps))
         done_vec = np.zeros((batch_size, n_steps))
@@ -79,7 +87,10 @@ class GymEnvWrapper():
             for t in range(n_steps):
                 u_curr = u_vec[b, t, :]
                 obs, rew, done, _ = self.step(u_curr)
-                obs_vec[b, t, :] = obs.copy().reshape(self.d_obs,)
+                if type(self.observation_space) is spaces.Dict:
+                    obs_vec.append(obs.copy())
+                else:
+                    obs_vec[b, t, :] = obs.copy().reshape(self.d_obs,)
                 # state_vec[:, t, :] = self.state.copy()
                 rew_vec[b, t] = rew
                 done_vec[b, t] = done
@@ -177,7 +188,10 @@ class GymEnvWrapper():
         try:
             self.env.env.real_step = bool_val
         except:
-            raise NotImplementedError
+            try:
+                self.env.real_step = bool_val
+            except:
+                raise NotImplementedError
     
     def evaluate_success(self, trajs):
         try:

@@ -36,7 +36,6 @@ with open(args.config) as file:
 env_name  = exp_params['env_name']
 env = gym.make(env_name)
 env = GymEnvWrapper(env)
-# env = make_wrapper(env)
 env.real_env_step(True)
 
 # Create vectorized environments for MPPI simulations
@@ -195,11 +194,12 @@ def main(controller_name, main_dir):
                                                                                             exp_params['seed'],
                                                                                             num_cpu,
                                                                                             sub_logger)
-                if exp_params['render']:
+                if args.dump_vids:
                     print('Dumping videos')
                     helpers.dump_videos(env=env, trajectories=trajectories, frame_size=(1280, 720), 
                                         folder=SUB_LOG_DIR, filename='vid_traj_', camera_name=None,
                                         device_id=1)
+                if exp_params['render']:
                     _ = input("Press enter to display optimized trajectory (will be played 10 times) : ")
                     helpers.render_trajs(env, trajectories, n_times=10)
 

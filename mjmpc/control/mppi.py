@@ -62,8 +62,10 @@ class MPPI(GaussianMPC):
         w = self._exp_util(costs, delta)
         
         weighted_seq = w * act_seq.T
-        self.mean_action = np.sum(weighted_seq.T, axis=0)
-        
+        # self.mean_action = np.sum(weighted_seq.T, axis=0)
+        self.mean_action = (1.0 - self.step_size) * self.mean_action +\
+                            self.step_size * np.sum(weighted_seq.T, axis=0) 
+
     def _exp_util(self, costs, delta):
         """
             Calculate weights using exponential utility
@@ -72,18 +74,17 @@ class MPPI(GaussianMPC):
         control_costs = self._control_costs(delta)
         total_costs = traj_costs + self.lam * control_costs
         # #calculate soft-max
-        w1 = np.exp(-(1.0/self.lam) * (total_costs - np.min(total_costs)))
-        w1 /= np.sum(w1) + 1e-6  # normalize the weights
+        # w1 = np.exp(-(1.0/self.lam) * (total_costs - np.min(total_costs)))
+        # w1 /= np.sum(w1) + 1e-6  # normalize the weights
         w = scipy.special.softmax((-1.0/self.lam) * total_costs)
-        print(w, w1)
         return w
 
     def _control_costs(self, delta):
         if self.alpha == 1:
             return np.zeros(delta.shape[0])
         else:
-            u_normalized = self.mean_action/self.cov_action
-            control_costs = u_normalized[None, :,:] * delta
+            u_normalized = self.mean_action.dot(np.linalg.inv(self.cov_action))[np.newaxis,:,:]
+            control_costs = 0.5 * u_normalized * (self.mean_action[np.newaxis,:,:] + 2.0 * delta)
             control_costs = np.sum(control_costs, axis=-1)
             control_costs = cost_to_go(control_costs, self.gamma_seq)[:,0]
         return control_costs
