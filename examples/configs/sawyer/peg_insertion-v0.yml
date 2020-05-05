@@ -1,5 +1,5 @@
 env_name          : 'sawyer_peg_insertion-v0'
-n_episodes        : 10
+n_episodes        : 30
 max_ep_length     : 75
 seed              : 123
 base_action       : 'null'
