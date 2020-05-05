@@ -6,6 +6,7 @@ from copy import deepcopy
 from datetime import datetime
 import gym
 from itertools import product
+import json
 import numpy as np
 import pickle
 import tqdm
@@ -137,14 +138,7 @@ def main(controller_name, main_dir):
     policy_params['action_lows'] = env.action_space.low
     policy_params['action_highs'] = env.action_space.high
     num_cpu = policy_params['num_cpu']
-    search_param_keys = []
-    search_param_vals = []
     
-    for k in policy_params:
-        if isinstance(policy_params[k], list) and k not in ['filter_coeffs', 'horizon', 'num_cpu', 'particles_per_cpu']:
-            search_param_keys.append(k)
-            search_param_vals.append(policy_params[k])
-
     num_particles = []
     if isinstance(policy_params['horizon'], list):
         horizons = policy_params['horizon']
@@ -165,7 +159,35 @@ def main(controller_name, main_dir):
         horizon_num_particles = []
         horizon_num_particles.append(horizons)
         horizon_num_particles.append(num_particles)
-        for tup in product(*horizon_num_particles):
+
+        # We will seperate out the parameters that need to be tuned 
+        # and the ones that are fixed
+        tune_param_keys = []
+        tune_param_vals = []
+        fix_param_keys = []
+        fix_param_vals = []
+        for k in policy_params:
+            if  isinstance(policy_params[k], list) and \
+                k not in ['filter_coeffs', 'horizon', 'num_cpu', 'particles_per_cpu', 'tune_keys']:
+                    if k in policy_params['tune_keys']:
+                        tune_param_keys.append(k)
+                        tune_param_vals.append(policy_params[k])
+                    else:
+                        assert len(policy_params[k]) == len(horizons) * len(num_particles), \
+                        "Please provide correct number of fixed parameters"
+                        fix_param_keys.append(k)
+                        fix_param_vals.append(policy_params[k])
+
+
+        # for k in policy_params:
+        #     if k not in policy_params['tune_keys'] and \
+        #        isinstance(policy_params[k], list) and \
+        #        k not in ['filter_coeffs', 'horizon', 'num_cpu', 'particles_per_cpu', 'tune_keys']:
+        policy_params.pop('tune_keys', None)
+        
+
+
+        for (n,tup) in enumerate(product(*horizon_num_particles)):
             s = "H_" + str(tup[0]) + "_N_" + str(tup[1])
             SUB_LOG_DIR = os.path.join(main_dir + "/" + s)
             sub_logger = helpers.get_logger(controller_name + "_" + s, SUB_LOG_DIR, 'debug')
@@ -178,15 +200,18 @@ def main(controller_name, main_dir):
 
             policy_params['horizon'] = tup[0]
             policy_params['num_particles'] = tup[1]
-            
-            for search_param_tuple in product(*search_param_vals):
+
+            for i in range(len(fix_param_keys)):
+                policy_params[fix_param_keys[i]] = fix_param_vals[i][n]
+
+            for tune_param_tuple in product(*tune_param_vals):
                 best_params = False
-                for i in range(len(search_param_tuple)):
-                    policy_params[search_param_keys[i]] = search_param_tuple[i]
+                for i in range(len(tune_param_tuple)):
+                    policy_params[tune_param_keys[i]] = tune_param_tuple[i]
+                
                 policy_params['particles_per_cpu'] = int(policy_params['num_particles']/policy_params['num_cpu'])
                 sub_logger.info('Current params')
                 sub_logger.info(policy_params)
-
                 trajectories, avg_reward, reward_std, success_metric = gather_trajectories(controller_name,
                                                                                             deepcopy(policy_params), 
                                                                                             exp_params['n_episodes'], 
@@ -204,14 +229,12 @@ def main(controller_name, main_dir):
                     helpers.render_trajs(env, trajectories, n_times=10)
 
 
-                sub_logger.info('Success metric = {0}, Average reward = {1}, \
-                                Std reward = {2},  Best success metric = {3}, \
-                                Best average reward = {4}, Best std reward = {5}'.format(success_metric, 
-                                                                                         avg_reward, 
-                                                                                         reward_std,
-                                                                                         best_success_metric, 
-                                                                                         best_avg_reward,
-                                                                                         best_reward_std))
+                sub_logger.info('Success metric = {0}, Average reward = {1}, Std reward = {2}, Best success metric = {3}, Best average reward = {4}, Best std reward = {5}'.format(success_metric, 
+                                                                                                                                                                                   avg_reward, 
+                                                                                                                                                                                   reward_std,
+                                                                                                                                                                                   best_success_metric, 
+                                                                                                                                                                                   best_avg_reward,
+                                                                                                                                                                                   best_reward_std))
                 if success_metric is not None: 
                     if success_metric > best_success_metric:
                         sub_logger.info('Better success metric, updating best params...')
@@ -237,8 +260,23 @@ def main(controller_name, main_dir):
                     sub_logger.info('Success metric greater than 95, early stopping')
                     break
 
-                sub_logger.info('Dumping trajectories')
+                ##Saving results###
+                sub_logger.info('Dumping results and trajectories')
+                best_results_dict = dict(best_avg_reward=best_avg_reward, best_reward_std=best_reward_std, 
+                                         best_success_metric=best_success_metric, num_episodes=exp_params['n_episodes'],
+                                         seed_val=exp_params['seed'])
+                save_param_dict = deepcopy(best_param_dict)
+                save_param_dict.pop('base_action', None)
+                save_param_dict.pop('num_actions', None)
+                save_param_dict.pop('action_lows', None)
+                save_param_dict.pop('action_highs', None)
+            
+                with open(SUB_LOG_DIR+"/best_results.txt", 'w') as f:
+                    json.dump(best_results_dict, f)
+                with open(SUB_LOG_DIR+"/best_params.txt", 'w') as f:
+                    json.dump(save_param_dict, f)
                 pickle.dump(best_trajectories, open(SUB_LOG_DIR+"/trajectories.p", 'wb'))
+                ######################
     
     elif exp_params['job_mode'] == 'sweep':
         ############### Sweep mode #################
@@ -247,6 +285,15 @@ def main(controller_name, main_dir):
         # save the results in sub-folder named H_#_N_#. This 
         # mode is used for benchmarking purposes after tuning
         #############################################
+        search_param_keys = []
+        search_param_vals = []
+        for k in policy_params:
+            if isinstance(policy_params[k], list) and \
+                k not in ['filter_coeffs', 'horizon', 'num_cpu', 'particles_per_cpu', 'tune_keys']:
+                search_param_keys.append(k)
+                search_param_vals.append(policy_params[k])
+        policy_params.pop('tune_keys', None)
+                
         assert len(horizons) == len(num_particles), \
                 "Please provide correct number of parameters"
         for i in range(len(horizons)):
