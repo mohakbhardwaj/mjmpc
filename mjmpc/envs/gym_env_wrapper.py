@@ -181,7 +181,11 @@ class GymEnvWrapper():
                                                 mode="offscreen", camera_name=camera_name, device_id=device_id)
             return curr_frame[::-1,:,:]
         except:
-            raise NotImplementedError('Getting frame not implemented')
+            try:
+                curr_frame = self.env.env.sim.render(width=frame_size[0], height=frame_size[1], 
+                                                    mode="offscreen", camera_name=camera_name, device_id=device_id)
+            except:
+                raise NotImplementedError('Getting frame not implemented')
 
 
     def real_env_step(self, bool_val):

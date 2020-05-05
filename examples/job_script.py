@@ -119,10 +119,10 @@ def gather_trajectories(controller_name, policy_params, n_episodes, ep_length, b
     average_reward = np.average(ep_rewards)
     reward_std = np.std(ep_rewards)
     logger.info('Timing info (seconds) {0}'.format(timeit))
-    logger.info('Average reward = {0}'.format(average_reward))
-    logger.info('Reward std = {0}'.format(reward_std))
-    logger.info('Success metric = {0}'.format(success_metric))
-    logger.info('Episode rewards = {0}'.format(ep_rewards))
+    # logger.info('Average reward = {0}'.format(average_reward))
+    # logger.info('Reward std = {0}'.format(reward_std))
+    # logger.info('Success metric = {0}'.format(success_metric))
+    # logger.info('Episode rewards = {0}'.format(ep_rewards))
 
     # if exp_params['render']:
     #     _ = input("Press enter to display optimized trajectory (will be played 10 times) : ")
@@ -204,10 +204,14 @@ def main(controller_name, main_dir):
                     helpers.render_trajs(env, trajectories, n_times=10)
 
 
-                sub_logger.info('Success metric = {0}, Average reward = {1}, Best success metric = {2}, Best average reward = {3}'.format(success_metric, 
-                                                                                                                                          avg_reward, 
-                                                                                                                                          best_success_metric, 
-                                                                                                                                          best_avg_reward))
+                sub_logger.info('Success metric = {0}, Average reward = {1}, \
+                                Std reward = {2},  Best success metric = {3}, \
+                                Best average reward = {4}, Best std reward = {5}'.format(success_metric, 
+                                                                                         avg_reward, 
+                                                                                         reward_std,
+                                                                                         best_success_metric, 
+                                                                                         best_avg_reward,
+                                                                                         best_reward_std))
                 if success_metric is not None: 
                     if success_metric > best_success_metric:
                         sub_logger.info('Better success metric, updating best params...')
