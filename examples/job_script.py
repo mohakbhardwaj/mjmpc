@@ -50,7 +50,7 @@ def make_env():
 d_obs = env.observation_space.high.shape[0]
 d_action = env.action_space.high.shape[0]
 
-def gather_trajectories(controller_name, policy_params, n_episodes, ep_length, base_seed, num_cpu, logger):
+def gather_trajectories(controller_name, policy_params, n_episodes, ep_length, base_seed, num_cpu):
     sim_env = SubprocVecEnv([make_env for i in range(num_cpu)])  
 
     #Create functions for controller
@@ -78,7 +78,6 @@ def gather_trajectories(controller_name, policy_params, n_episodes, ep_length, b
 
     ep_rewards = np.array([0.] * n_episodes)
     trajectories = []
-    logger.info('Runnning {0} episodes. Base seed = {1}'.format(n_episodes, base_seed))
     timeit.start('start_'+controller_name)
 
     for i in tqdm.tqdm(range(n_episodes)):
@@ -112,14 +111,14 @@ def gather_trajectories(controller_name, policy_params, n_episodes, ep_length, b
             states=states
         )
         trajectories.append(traj)
-        logger.record_tabular(controller_name+'episodeReward', ep_rewards[i])
-        logger.dump_tabular()
+        # logger.record_tabular(controller_name+'episodeReward', ep_rewards[i])
+        # logger.dump_tabular()
             
-    timeit.stop('start_'+controller_name)
+    timeit.stop('start_'+controller_name) #stop timer after trajectory collection
     success_metric = env.env.unwrapped.evaluate_success(trajectories)
     average_reward = np.average(ep_rewards)
     reward_std = np.std(ep_rewards)
-    logger.info('Timing info (seconds) {0}'.format(timeit))
+    # logger.info('Timing info (seconds) {0}'.format(timeit))
     # logger.info('Average reward = {0}'.format(average_reward))
     # logger.info('Reward std = {0}'.format(reward_std))
     # logger.info('Success metric = {0}'.format(success_metric))
@@ -149,7 +148,7 @@ def main(controller_name, main_dir):
     else:
         num_particles.append(policy_params['num_cpu'] * policy_params['particles_per_cpu'])
 
-
+    main_logger = helpers.get_logger(controller_name + "_" + exp_params['env_name'], main_dir, 'debug')
     if exp_params['job_mode'] == 'tune':
         ############### Tune mode #################
         # For every combination of horizon and number of particles, 
@@ -185,8 +184,6 @@ def main(controller_name, main_dir):
         #        k not in ['filter_coeffs', 'horizon', 'num_cpu', 'particles_per_cpu', 'tune_keys']:
         policy_params.pop('tune_keys', None)
         
-
-
         for (n,tup) in enumerate(product(*horizon_num_particles)):
             s = "H_" + str(tup[0]) + "_N_" + str(tup[1])
             SUB_LOG_DIR = os.path.join(main_dir + "/" + s)
@@ -212,13 +209,15 @@ def main(controller_name, main_dir):
                 policy_params['particles_per_cpu'] = int(policy_params['num_particles']/policy_params['num_cpu'])
                 sub_logger.info('Current params')
                 sub_logger.info(policy_params)
+                sub_logger.info('Runnning {0} episodes. Base seed = {1}'.format(exp_params['n_episodes'], exp_params['seed']))
                 trajectories, avg_reward, reward_std, success_metric = gather_trajectories(controller_name,
                                                                                             deepcopy(policy_params), 
                                                                                             exp_params['n_episodes'], 
                                                                                             exp_params['max_ep_length'], 
                                                                                             exp_params['seed'],
-                                                                                            num_cpu,
-                                                                                            sub_logger)
+                                                                                            num_cpu)
+                sub_logger.info('Timing info (seconds) {0}'.format(timeit))
+
                 if args.dump_vids:
                     print('Dumping videos')
                     helpers.dump_videos(env=env, trajectories=trajectories, frame_size=(1280, 720), 
@@ -256,10 +255,6 @@ def main(controller_name, main_dir):
                 sub_logger.info('Best params so far ...')
                 sub_logger.info(best_param_dict)
                     
-                if success_metric is not None and best_success_metric > 95:
-                    sub_logger.info('Success metric greater than 95, early stopping')
-                    break
-
                 ##Saving results###
                 sub_logger.info('Dumping results and trajectories')
                 best_results_dict = dict(best_avg_reward=best_avg_reward, best_reward_std=best_reward_std, 
@@ -276,7 +271,20 @@ def main(controller_name, main_dir):
                 with open(SUB_LOG_DIR+"/best_params.txt", 'w') as f:
                     json.dump(save_param_dict, f)
                 pickle.dump(best_trajectories, open(SUB_LOG_DIR+"/trajectories.p", 'wb'))
-                ######################
+                
+                if success_metric is not None and best_success_metric > 95:
+                    sub_logger.info('Success metric greater than 95, early stopping...')
+                    break
+            
+            #Log the best params in csv once tuning done
+            main_logger.record_tabular("Horizon", tup[0])
+            main_logger.record_tabular("NumParticles", tup[1])
+            main_logger.record_tabular("AverageReward", best_avg_reward)
+            main_logger.record_tabular("StdReward", best_reward_std)
+            main_logger.record_tabular("SuccessMetric", best_success_metric)
+            main_logger.record_tabular("NumEpisodes", exp_params['n_episodes'])
+            main_logger.dump_tabular()
+            ######################
     
     elif exp_params['job_mode'] == 'sweep':
         ############### Sweep mode #################
@@ -317,8 +325,7 @@ def main(controller_name, main_dir):
                                                                                         exp_params['n_episodes'], 
                                                                                         exp_params['max_ep_length'], 
                                                                                         exp_params['seed'],
-                                                                                        num_cpu,
-                                                                                        sub_logger)
+                                                                                        num_cpu)
 
             if args.dump_vids:
                 print('Dumping videos')
@@ -329,14 +336,20 @@ def main(controller_name, main_dir):
                 _ = input("Press enter to display optimized trajectory (will be played 10 times) : ")
                 helpers.render_trajs(env, trajectories, n_times=10)
             
-            sub_logger.info('Success metric = {0}, Average reward = {1}, Std. Reward = {2}'.format(success_metric, 
-                                                                                                   avg_reward, 
-                                                                                                   reward_std))
+            sub_logger.info('Average reward = {0}, Std. Reward = {1}, Success metric = {2}'.format(avg_reward, 
+                                                                                                   reward_std,
+                                                                                                   success_metric))
             
             
-            sub_logger.info('Dumping trajectories')
+            sub_logger.info('Dumping trajectories and results')
             pickle.dump(trajectories, open(SUB_LOG_DIR+"/trajectories.p", 'wb'))
-                    
+            main_logger.record_tabular("Horizon", horizons[i])
+            main_logger.record_tabular("NumParticles", num_particles[i])
+            main_logger.record_tabular("AverageReward", avg_reward)
+            main_logger.record_tabular("StdReward", reward_std)
+            main_logger.record_tabular("SuccessMetric", success_metric)
+            main_logger.record_tabular("NumEpisodes", exp_params['n_episodes'])
+            main_logger.dump_tabular()             
     else:
         raise NotImplementedError('Unidentified job mode. Must be either "tune" or "sweep" ')
 
