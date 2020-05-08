@@ -62,6 +62,9 @@ class DMDMPC(GaussianMPC):
         """
         delta = act_seq - self.mean_action[None, :, :]
         w = self._exp_util(costs)
+        # print(self.cov_action) 
+        # input('...')
+
         if self.update_cov:
             if self.cov_type == 'diagonal':
                 weighted_delta = w * (delta ** 2).T
@@ -77,7 +80,7 @@ class DMDMPC(GaussianMPC):
 
         weighted_seq = w * act_seq.T
         self.mean_action = (1.0 - self.step_size) * self.mean_action +\
-                            self.step_size * np.sum(weighted_seq.T, axis=0) 
+                            self.step_size * np.sum(weighted_seq.T, axis=0)
 
 
     def _exp_util(self, costs):
@@ -99,7 +102,7 @@ class DMDMPC(GaussianMPC):
         """
         super()._shift()
         if self.update_cov:
-            #self.cov_action += self.beta * np.eye(self.num_actions)
+            # self.cov_action += self.beta * np.eye(self.num_actions)
             self.cov_action += self.beta * np.diag(self.init_cov)
         # if self.update_cov:
         #     self.cov_action = np.clip(self.cov_action, self.min_cov, None)
