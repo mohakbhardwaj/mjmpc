@@ -13,20 +13,31 @@ cdef class GymEnvWrapperCy():
     cdef public object env, observation_space, action_space 
 
     def __init__(self, env):
+        # self.env = env
+        # self.env.reset()
+        # observation, _reward, done, _info = self.env.step(np.zeros(self.env.action_space.low.shape))
+        # assert not done, ""
+        # self.d_obs = np.sum([o.size for o in observation]) if type(observation) is tuple else observation.size
+        # self.observation_space = self.env.observation_space
+        # self.action_space = self.env.action_space
         self.env = env
         self.env.reset()
         observation, _reward, done, _info = self.env.step(np.zeros(self.env.action_space.low.shape))
         assert not done, ""
-        self.d_obs = np.sum([o.size for o in observation]) if type(observation) is tuple else observation.size
-        self.observation_space = self.env.observation_space
-        self.action_space = self.env.action_space
+        if type(observation) is tuple:
+            self.d_obs = np.sum([o.size for o in observation])
+        elif type(observation) is dict:
+            self.d_obs = 0.
+            for k in observation.keys():
+                self.d_obs += observation[k].size
+        else: self.d_obs = observation.size
+
 
     cdef step(self, double[:] u):
         cdef rew, done
-        cdef double[:] obs_view
+        # cdef double[:] obs_view
         obs_view, rew, done, info = self.env.step(u)
         return obs_view, rew, done, info
-        # return self.env.step(u)
  
     def set_env_state(self, state_dict):
         """
@@ -63,14 +74,15 @@ cdef class GymEnvWrapperCy():
         rew_vec = np.zeros((batch_size, n_steps))
         done_vec = np.zeros((batch_size, n_steps))
 
-        self.rollout_cy(u_vec, obs_vec, rew_vec, done_vec)
+        self.rollout_cy(u_vec, rew_vec, done_vec)
         return obs_vec, rew_vec, done_vec, {}
 
 
     cdef rollout_cy(self, double[:,:,:] u_vec,
-                          double[:,:,:] obs_vec,
                           double[:,:] rew_vec,
                           double[:,:] done_vec):
+                                                    # double[:,:,:] obs_vec,
+#
         """
         Given batch of action sequences, we perform rollouts 
         and return resulting observations, rewards etc.
@@ -93,7 +105,7 @@ cdef class GymEnvWrapperCy():
         cdef double[:] curr_state_view 
         curr_state_view = self.get_env_state().copy() #deepcopy(self.get_env_state())
         cdef double rew, done
-        cdef double[:] obs_view
+        # cdef double[:] obs_view
         for b in range(batch_size):
             #Set the state to the current state
             self.set_env_state(curr_state_view)
@@ -101,13 +113,15 @@ cdef class GymEnvWrapperCy():
             for t in range(n_steps):
                 # u_curr = u_vec[b, t, :]
                 # obs, rew, done, _ = self.step(u_curr)
-                
                 obs_view, rew, done, _ = self.step(u_vec[b,t,:].copy())
-                obs_vec[b, t, :] = obs_view.copy() #obs.copy().reshape(self.d_obs,)
+                if type(self.observation_space) is spaces.Dict:
+                    obs_vec.append(obs_view.copy())
+                else:
+                    obs_vec[b, t, :] = obs_view.copy() #obs.copy().reshape(self.d_obs,)
                 # state_vec[:, t, :] = self.state.copy()
                 rew_vec[b, t] = rew
                 done_vec[b, t] = done
- 
+        return obs_vec, rew_vec, done_vec, {}
     
     def seed(self, seed=None):
         return self.env.seed(seed)

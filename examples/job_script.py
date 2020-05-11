@@ -37,6 +37,7 @@ with open(args.config) as file:
 env_name  = exp_params['env_name']
 env = gym.make(env_name)
 env = GymEnvWrapper(env)
+# env = make_wrapper(env)
 env.real_env_step(True)
 
 # Create vectorized environments for MPPI simulations
@@ -217,7 +218,12 @@ def main(controller_name, main_dir):
                                                                                             exp_params['seed'],
                                                                                             num_cpu)
                 sub_logger.info('Timing info (seconds) {0}'.format(timeit))
-
+                sub_logger.info('Success metric = {0}, Average reward = {1}, Std reward = {2}, Best success metric = {3}, Best average reward = {4}, Best std reward = {5}'.format(success_metric, 
+                                                                                                                                                                                   avg_reward, 
+                                                                                                                                                                                   reward_std,
+                                                                                                                                                                                   best_success_metric, 
+                                                                                                                                                                                   best_avg_reward,
+                                                                                                                                                                                   best_reward_std))
                 if args.dump_vids:
                     print('Dumping videos')
                     helpers.dump_videos(env=env, trajectories=trajectories, frame_size=(1280, 720), 
@@ -228,12 +234,6 @@ def main(controller_name, main_dir):
                     helpers.render_trajs(env, trajectories, n_times=10)
 
 
-                sub_logger.info('Success metric = {0}, Average reward = {1}, Std reward = {2}, Best success metric = {3}, Best average reward = {4}, Best std reward = {5}'.format(success_metric, 
-                                                                                                                                                                                   avg_reward, 
-                                                                                                                                                                                   reward_std,
-                                                                                                                                                                                   best_success_metric, 
-                                                                                                                                                                                   best_avg_reward,
-                                                                                                                                                                                   best_reward_std))
                 if success_metric is not None: 
                     if success_metric > best_success_metric:
                         sub_logger.info('Better success metric, updating best params...')
@@ -326,7 +326,9 @@ def main(controller_name, main_dir):
                                                                                         exp_params['max_ep_length'], 
                                                                                         exp_params['seed'],
                                                                                         num_cpu)
-
+            sub_logger.info('Average reward = {0}, Std. Reward = {1}, Success metric = {2}'.format(avg_reward, 
+                                                                                                   reward_std,
+                                                                                                   success_metric))
             if args.dump_vids:
                 print('Dumping videos')
                 helpers.dump_videos(env=env, trajectories=trajectories, frame_size=(1280, 720), 
@@ -336,9 +338,7 @@ def main(controller_name, main_dir):
                 _ = input("Press enter to display optimized trajectory (will be played 10 times) : ")
                 helpers.render_trajs(env, trajectories, n_times=10)
             
-            sub_logger.info('Average reward = {0}, Std. Reward = {1}, Success metric = {2}'.format(avg_reward, 
-                                                                                                   reward_std,
-                                                                                                   success_metric))
+
             
             
             sub_logger.info('Dumping trajectories and results')

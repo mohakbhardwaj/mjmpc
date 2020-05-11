@@ -216,7 +216,7 @@ class GymEnvWrapper():
     
 
 
-def make_wrapper(env):
-    # cdef GymEnvWrapper env_wrap = GymEnvWrapper(env)
-    env_wrap = GymEnvWrapper(env)
-    return env_wrap
+# def make_wrapper(env):
+#     # cdef GymEnvWrapper env_wrap = GymEnvWrapper(env)
+#     env_wrap = GymEnvWrapper(env)
+#     return env_wrap
