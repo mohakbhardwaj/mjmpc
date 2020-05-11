@@ -1,6 +1,6 @@
 env_name          : 'cartpole-v0'
-n_episodes        : 3
-max_ep_length     : 75
+n_episodes        : 100
+max_ep_length     : 100
 seed              : 123 #testing: 0, tuning: 123
 base_action       : 'null'
 render            : True
@@ -21,7 +21,7 @@ random_shooting:
 
 
 mppi:
-  horizon           : [16]
+  horizon           : [32]
   init_cov          : [0.45]
   filter_coeffs     : [0.25, 0.8, 0.0]
   gamma             : [1.0]
