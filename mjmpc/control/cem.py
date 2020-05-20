@@ -26,14 +26,13 @@ class CEM(GaussianMPC):
                  num_actions,
                  action_lows,
                  action_highs,
-                 set_state_fn,
-                 rollout_fn,
+                 set_sim_state_fn=None,
+                 rollout_fn=None,
                  beta=0.0,
                  cov_type='diagonal',
                  batch_size=1,
                  filter_coeffs = [1., 0., 0.],
                  seed=0):
-
 
 
         super(CEM, self).__init__(num_actions,
@@ -48,7 +47,7 @@ class CEM(GaussianMPC):
                                    n_iters, 
                                    step_size,
                                    filter_coeffs, 
-                                   set_state_fn, 
+                                   set_sim_state_fn, 
                                    rollout_fn,
                                    cov_type,
                                    batch_size,
@@ -93,10 +92,10 @@ class CEM(GaussianMPC):
             #     cov_shifted = (1-self.beta) * self.cov_action + self.beta * self.prior_cov
             #     self.cov_action = update * cov_shifted + (1.0 - update) * self.cov_action
 
-    def _calc_val(self, state):
-        self.set_state_fn(copy.deepcopy(state)) #set state of simulation
-        sk, act_seq = self._generate_rollouts()
+    def _calc_val(self, cost_seq, act_seq):
+        # self._set_sim_state_fn(copy.deepcopy(state)) #set state of simulation
+        # cost_seq, act_seq = self._generate_rollouts()
         
-        traj_costs = cost_to_go(sk,self.gamma_seq)[:,0]
+        traj_costs = cost_to_go(cost_seq,self.gamma_seq)[:,0]
         val = np.average(traj_costs)
         return val

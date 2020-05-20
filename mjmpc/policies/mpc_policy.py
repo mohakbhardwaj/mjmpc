@@ -20,13 +20,10 @@ class MPCPolicy(Policy):
         else:
             raise(NotImplementedError, "Controller type does not exist")
 
-    def get_action(self, state: np.ndarray = None)-> np.ndarray:
-        action = self.controller.step(state)
-        return action
+    def get_action(self, state, calc_val=False):
+        action, value = self.controller.step(state, calc_val)
+        return action, value
 
     def reset(self):
         self.controller.reset()
     
-    def get_action_seq(self, obs: np.ndarray = None, horizon: int = 1)-> np.ndarray:
-        action = self.controller.step()
-        return action

@@ -24,8 +24,8 @@ class PFMPC(Controller):
                  num_actions,
                  action_lows,
                  action_highs,
-                 set_state_fn,
-                 rollout_fn,
+                 set_sim_state_fn=None,
+                 rollout_fn=None,
                  batch_size=1,
                  filter_coeffs=[1., 0., 0.],
                  seed=0):
@@ -37,7 +37,7 @@ class PFMPC(Controller):
                                     num_particles,
                                     gamma,
                                     n_iters,
-                                    set_state_fn,
+                                    set_sim_state_fn,
                                     rollout_fn,
                                     batch_size,
                                     seed)
@@ -117,10 +117,6 @@ class PFMPC(Controller):
                                              base_seed=self.seed)
 
 
-    def _calc_val(self, state):
-        raise NotImplementedError("_calc val not implemented yet")
-
-
     def _resampling(self, act_seq, weights, low_variance=True):
         if low_variance:
             M = act_seq.shape[0]
@@ -138,5 +134,5 @@ class PFMPC(Controller):
         
         return act_seq2
 
-    def _calc_val(self, state):
-        return 0.0
+    def _calc_val(self, cost_seq, act_seq):
+        raise NotImplementedError("_calc val not implemented yet")

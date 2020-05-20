@@ -38,14 +38,14 @@ def generate_noise(cov, filter_coeffs, shape, base_seed):
     return eps 
 
 
-def cost_to_go(sk, gamma_seq):
+def cost_to_go(cost_seq, gamma_seq):
     """
-        Calculate (discounted) cost to go for given reward sequence
+        Calculate (discounted) cost to go for given cost sequence
     """
-    sk = gamma_seq * sk  # discounted reward sequence
-    sk = np.cumsum(sk[:, ::-1], axis=-1)[:, ::-1]  # cost to go (but scaled by [1 , gamma, gamma*2 and so on])
-    sk /= gamma_seq  # un-scale it to get true discounted cost to go
-    return sk
+    cost_seq = gamma_seq * cost_seq  # discounted reward sequence
+    cost_seq = np.cumsum(cost_seq[:, ::-1], axis=-1)[:, ::-1]  # cost to go (but scaled by [1 , gamma, gamma*2 and so on])
+    cost_seq /= gamma_seq  # un-scale it to get true discounted cost to go
+    return cost_seq
 
 class Controller(ABC):
     def __init__(self,
@@ -56,8 +56,8 @@ class Controller(ABC):
                  num_particles,
                  gamma,
                  n_iters,
-                 set_state_fn,
-                 rollout_fn,
+                 set_sim_state_fn=None,
+                 rollout_fn=None,
                  batch_size=1,
                  seed=0):
                  
@@ -69,8 +69,8 @@ class Controller(ABC):
         self.gamma = gamma
         self.gamma_seq = np.cumprod([1.0] + [self.gamma] * (horizon - 1)).reshape(1, horizon)
         self.n_iters = n_iters
-        self.set_state_fn = set_state_fn
-        self.rollout_fn = rollout_fn
+        self._set_sim_state_fn = set_sim_state_fn
+        self._rollout_fn = rollout_fn
         self.batch_size = batch_size
         self.seed = seed
         self.num_steps = 0
@@ -116,36 +116,49 @@ class Controller(ABC):
         pass
 
     @abstractmethod
-    def _calc_val(self, state):
+    def _calc_val(self, cost_seq, act_seq):
         """
-        Calculate value of state under current policy
+        Calculate value of state given 
+        rollouts from a policy
         """
         pass
-
-    def get_optimal_value(self, state):
-        """
-        Calculate optimal value of a state, i.e 
-        value under optimal policy. Hence, it calls step 
-        function first 
-        """
-        _ = self.step(state)
-        value = self._calc_val(state)
-        return value
     
+    @property
+    def rollout_fn(self):
+        return self._rollout_fn
+    
+    @rollout_fn.setter
+    def rollout_fn(self, fn):
+        """
+        Set the rollout function used to 
+        given function pointer
+        """
+        self._rollout_fn = fn
+    
+    @property
+    def set_sim_state_fn(self):
+        return self._set_sim_state_fn
+    
+    @set_sim_state_fn.setter
+    def set_sim_state_fn(self, fn):
+        """
+        Set function that sets the simulation 
+        environment to a particular state
+        """
+        self._set_sim_state_fn = fn
 
-    def set_terminal_cost_fn(self, fn):
-        self.terminal_cost_fn = fn
 
-    def _generate_rollouts(self):
+    def _generate_rollouts(self, state):
         """
             Samples a batch of actions, rolls out trajectories for each particle
             and returns the resulting observations, states, costs and 
             actions
          """
-
+        
+        self._set_sim_state_fn(copy.deepcopy(state)) #set state of simulation
         act_seq = self._sample_actions() #sample actions using current control distribution
-        rew_vec = self.rollout_fn(act_seq)  # rollout function returns the observations, rewards 
-        sk = -1.0 * rew_vec  # rollout_fn returns a REWARD and we need a COST
+        rew_vec = self._rollout_fn(act_seq)  # rollout function returns the rewards 
+        cost_seq = -1.0 * rew_vec  # rollout_fn returns a REWARD and we need a COST
         
         # if self.terminal_cost_fn is not None:
         #     term_states = obs_vec[:, -1, :].reshape(obs_vec.shape[0], obs_vec.shape[-1])
@@ -153,27 +166,58 @@ class Controller(ABC):
 
         # if self.rollout_callback is not None: self.rollout_callback(obs_vec, act_seq) #state_vec # for example, visualize rollouts
 
-        return sk, act_seq # obs_vec, act_seq #state_vec
+        return cost_seq, act_seq
 
-    def step(self, state):
+    def step(self, state, calc_val=False):
         """
             Optimize for best action at current state
+
+            :param state (np.ndarray): state to calculate optimal action from
+            :param calc_val (bool): If true, calculate the optimal value estimate
+                                    of the state while doing online MPC
         """
+        if self._rollout_fn is None or self.set_sim_state_fn is None:
+            raise Exception("rollout_fn and set_sim_state_fn not set!!")
+
         for _ in range(self.n_iters):
-            self.set_state_fn(copy.deepcopy(state)) #set state of simulation
-            # generate random trajectories
-            # obs_vec, sk, act_seq = self._generate_rollouts() #state_vec
-            sk, act_seq = self._generate_rollouts() #state_vec
-            # update moments
-            self._update_distribution(sk, act_seq)
+            # generate random simulated trajectories
+            cost_seq, act_seq = self._generate_rollouts(copy.deepcopy(state))
+            # update distribution parameters
+            self._update_distribution(cost_seq, act_seq)
             #calculate best action
             curr_action = self._get_next_action()
-            
+        
+        value = 0.0
+        if calc_val:
+            cost_seq, act_seq = self._generate_rollouts(copy.deepcopy(state))
+            value = self._calc_val(cost_seq, act_seq)
+
         self.num_steps += 1
         # shift distribution to hotstart next timestep
         self._shift()
 
-        return curr_action
+        return curr_action, value
+
+    def get_optimal_value(self, state, n_iters=None):
+        """
+        Calculate optimal value of a state, i.e 
+        value under optimal policy. Hence, it calls step 
+        function first 
+        """
+        self.reset() #reset the control distribution
+        if n_iters is None:
+            n_iters = self.n_iters
+        # _ = self.step(state, n_iters)
+        # value = self._calc_val(state)
+        for _ in range(n_iters):
+            # generate random simulated trajectories
+            cost_seq, act_seq = self._generate_rollouts(copy.deepcopy(state))
+            # update distribution parameters
+            self._update_distribution(cost_seq, act_seq)
+        #generate rollouts from optimal policy to calculate optimal value
+        cost_seq, act_seq = self._generate_rollouts(copy.deepcopy(state))
+        value = self._calc_val(cost_seq, act_seq)
+        return value
 
 
 class GaussianMPC(Controller):
@@ -190,8 +234,8 @@ class GaussianMPC(Controller):
                  n_iters,
                  step_size,
                  filter_coeffs,
-                 set_state_fn,
-                 rollout_fn,
+                 set_sim_state_fn=None,
+                 rollout_fn=None,
                  cov_type='diagonal',
                  batch_size=1,
                  seed=0):
@@ -204,7 +248,7 @@ class GaussianMPC(Controller):
                                           num_particles,
                                           gamma,  
                                           n_iters,
-                                          set_state_fn,
+                                          set_sim_state_fn,
                                           rollout_fn,
                                           batch_size,
                                           seed)
@@ -218,7 +262,7 @@ class GaussianMPC(Controller):
 
     def _get_next_action(self):
         next_action = self.mean_action[0].copy()
-        return next_action #.reshape(self.num_actions, )
+        return next_action
     
     def _sample_actions(self):
         delta = generate_noise(self.cov_action, self.filter_coeffs,
@@ -247,6 +291,6 @@ class GaussianMPC(Controller):
         self.mean_action = np.zeros(shape=(self.horizon, self.num_actions))
         self.cov_action = np.diag(self.init_cov)
 
-    def _calc_val(self, state):
+    def _calc_val(self, cost_seq, act_seq):
         raise NotImplementedError("_calc_val not implemented")
 

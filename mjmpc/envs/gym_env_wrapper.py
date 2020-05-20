@@ -75,7 +75,7 @@ class GymEnvWrapper():
         if type(self.observation_space) is spaces.Dict:
             obs_vec = []
         else: obs_vec = np.zeros((batch_size, n_steps, self.d_obs))
-        # state_vec = np.zeros((self.batch_size, n_steps, self.d_state))
+        state_vec = [] #np.zeros((self.batch_size, n_steps, self.d_state))
         rew_vec = np.zeros((batch_size, n_steps))
         done_vec = np.zeros((batch_size, n_steps))
         curr_state = deepcopy(self.get_env_state())
@@ -91,10 +91,11 @@ class GymEnvWrapper():
                     obs_vec.append(obs.copy())
                 else:
                     obs_vec[b, t, :] = obs.copy().reshape(self.d_obs,)
-                # state_vec[:, t, :] = self.state.copy()
+                # state = self.get_env_state()
+                # state_vec.append(state.copy())
                 rew_vec[b, t] = rew
                 done_vec[b, t] = done
-        return obs_vec, rew_vec, done_vec, {}
+        return obs_vec, rew_vec, done_vec, {} #state_vec
     
 
     # cpdef rollout(self, double[:,:,:] u_vec):

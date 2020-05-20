@@ -1,22 +1,22 @@
-env_name          : 'cartpole-v0'
-n_episodes        : 30
-max_ep_length     : 100
+env_name          : 'acrobot-v0'
+n_episodes        : 3
+max_ep_length     : 75
 seed              : 123 #testing: 0, tuning: 123
 base_action       : 'null'
 render            : True
 job_mode          : 'sweep'
-exp_notes         : 'Swingup of cartpole'
+exp_notes         : 'Swingup of Acrobot'
 
 
 random_shooting:
   horizon           : [32]
-  init_cov          : [0.15]
+  init_cov          : [0.5]
   filter_coeffs     : [0.25, 0.8, 0.0]
   gamma             : [1.0]
   n_iters           : [1]
   step_size         : [1.0]
   num_cpu           : 10
-  particles_per_cpu : [6]
+  particles_per_cpu : [10]
 
 
 mppi:

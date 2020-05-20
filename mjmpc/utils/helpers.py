@@ -17,14 +17,18 @@ def set_qpos_qvel(sim, qpos, qvel, nq, nv):
     sim.forward()
 
 def render_trajs(env, trajectories, n_times=1):
-    for _ in range(n_times):
-        for traj in trajectories:
-            env.reset()
-            state = traj['states'][0]
-            env.set_env_state(state)
-            for action in traj['actions']:
-                env.render()
-                env.step(action)
+    try:
+        for _ in range(n_times):
+            for traj in trajectories:
+                env.reset()
+                state = traj['states'][0]
+                env.set_env_state(state)
+                for action in traj['actions']:
+                    env.render()
+                    env.step(action)
+    except KeyboardInterrupt:
+        print('Exiting ...')
+        
 
 def dump_videos(env,
                 trajectories,

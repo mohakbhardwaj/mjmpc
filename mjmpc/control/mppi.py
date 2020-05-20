@@ -26,8 +26,8 @@ class MPPI(GaussianMPC):
                  num_actions,
                  action_lows,
                  action_highs,
-                 set_state_fn,
-                 rollout_fn,
+                 set_sim_state_fn=None,
+                 rollout_fn=None,
                  batch_size=1,
                  filter_coeffs = [1., 0., 0.],
                  seed=0):
@@ -44,7 +44,7 @@ class MPPI(GaussianMPC):
                                    n_iters,
                                    step_size, 
                                    filter_coeffs, 
-                                   set_state_fn, 
+                                   set_sim_state_fn, 
                                    rollout_fn,
                                    'diagonal',
                                    batch_size,
@@ -89,12 +89,12 @@ class MPPI(GaussianMPC):
             control_costs = cost_to_go(control_costs, self.gamma_seq)[:,0]
         return control_costs
     
-    def _calc_val(self, state):
-        self.set_state_fn(copy.deepcopy(state)) #set state of simulation
-        sk, act_seq = self._generate_rollouts()
+    def _calc_val(self, cost_seq, act_seq):
+        # self._set_sim_state_fn(copy.deepcopy(state)) #set state of simulation
+        # cost_seq, act_seq = self._generate_rollouts()
         delta = act_seq - self.mean_action[None, :, :]
         
-        traj_costs = cost_to_go(sk,self.gamma_seq)[:,0]
+        traj_costs = cost_to_go(cost_seq,self.gamma_seq)[:,0]
         control_costs = self._control_costs(delta)
         total_costs = traj_costs + self.lam * control_costs
 

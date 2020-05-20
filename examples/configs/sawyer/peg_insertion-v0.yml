@@ -1,5 +1,5 @@
 env_name          : 'sawyer_peg_insertion-v0'
-n_episodes        : 3
+n_episodes        : 20
 max_ep_length     : 75
 seed              : 123 #testing: 0, tuning: 123
 base_action       : 'null'
@@ -134,8 +134,6 @@ exp_notes         : '7-DOF Sawyer arm inserting peg in a hole at different locat
 #   tune_keys         : ['lam'] #Only used during tuning.
 
 
-
-
 # # ##########Re-tuned
 # random_shooting:
 #   horizon           : [16]
@@ -146,8 +144,6 @@ exp_notes         : '7-DOF Sawyer arm inserting peg in a hole at different locat
 #   step_size         : [1.0]
 #   num_cpu           : 10
 #   particles_per_cpu : [4]
-
-
 
 mppi:
   horizon           : [16]
@@ -161,19 +157,19 @@ mppi:
   num_cpu           : 10
   particles_per_cpu : [4]
 
-# dmd:
-#   horizon           : [16]
-#   init_cov          : [0.45]
-#   update_cov        : [True]
-#   cov_type          : ['full']
-#   beta              : [0.85]
-#   filter_coeffs     : [0.25, 0.8, 0.0]
-#   gamma             : [1.0]
-#   n_iters           : 1
-#   step_size         : [0.7]
-#   lam               : [0.1]
-#   num_cpu           : 10
-#   particles_per_cpu : [4]
+dmd:
+  horizon           : [16]
+  init_cov          : [0.45]
+  update_cov        : [True]
+  cov_type          : ['full']
+  beta              : [0.85]
+  filter_coeffs     : [0.25, 0.8, 0.0]
+  gamma             : [1.0]
+  n_iters           : 1
+  step_size         : [0.7]
+  lam               : [0.1]
+  num_cpu           : 10
+  particles_per_cpu : [4]
 
 # pfmpc:
 #   horizon           : [16]

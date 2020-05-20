@@ -176,8 +176,16 @@ class SubprocVecEnv(VecEnv):
         """
         Set the state of all envs given a list of 
         state dicts
+        If only one state is provided, we set state of all envs to that
+        else each env must be provided one state
         """
-        assert len(state_dicts) == len(self.remotes), "Each environment must be provided a state"
+        if isinstance(state_dicts, list):
+            num_states = len(state_dicts)
+            assert num_states == 1 or num_states == len(self.remotes), \
+                "num states should equal 1 (same for all envs) or 1 per env"
+            if num_states == 1:
+                state_dicts = [deepcopy(state_dicts[0]) for j in range(len(self.remotes))]
+        else: state_dicts = [deepcopy(state_dicts) for j in range(len(self.remotes))]
         for i,remote in enumerate(self.remotes):
             remote.send(('set_env_state', state_dicts[i]))
         for remote in self.remotes: remote.recv()

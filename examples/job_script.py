@@ -40,7 +40,7 @@ env = GymEnvWrapper(env)
 # env = make_wrapper(env)
 env.real_env_step(True)
 
-# Create vectorized environments for MPPI simulations
+# Function to create vectorized environments for controller simulations
 def make_env():
     gym_env = gym.make(env_name)
     rollout_env = GymEnvWrapper(gym_env)
@@ -55,12 +55,12 @@ def gather_trajectories(controller_name, policy_params, n_episodes, ep_length, b
     sim_env = SubprocVecEnv([make_env for i in range(num_cpu)])  
 
     #Create functions for controller
-    def set_state_fn(state_dict: dict):
+    def set_sim_state_fn(state_dict: dict):
         """
         Set state of simulation environments for rollouts
         """
-        state_dicts = [deepcopy(state_dict) for j in range(num_cpu)]
-        sim_env.set_env_state(state_dicts)
+        # state_dicts = [deepcopy(state_dict) for j in range(num_cpu)]
+        sim_env.set_env_state(state_dict)
 
     def rollout_fn(u_vec: np.ndarray):
         """
@@ -68,12 +68,9 @@ def gather_trajectories(controller_name, policy_params, n_episodes, ep_length, b
         in sim envs and return rewards and observations 
         received at every timestep
         """
-        obs_vec, rew_vec, done_vec, _ = sim_env.rollout(u_vec.copy())
+        obs_vec, rew_vec, done_vec, _ = sim_env.rollout(u_vec.copy()) #state_vec
         return rew_vec
     
-
-    policy_params['set_state_fn'] = set_state_fn
-    policy_params['rollout_fn'] = rollout_fn
     del policy_params['particles_per_cpu'], policy_params['num_cpu']
 
 
@@ -90,12 +87,14 @@ def gather_trajectories(controller_name, policy_params, n_episodes, ep_length, b
  
         policy = MPCPolicy(controller_type=controller_name,
                            param_dict=policy_params, batch_size=1)
+        policy.controller.set_sim_state_fn = set_sim_state_fn
+        policy.controller.rollout_fn = rollout_fn
         
         observations = []; actions = []; rewards = []; dones  = []
-        infos = []; states = []
+        infos = []; states = []; next_states = []
         for _ in tqdm.tqdm(range(ep_length)):   
             curr_state = deepcopy(env.get_env_state())
-            action = policy.get_action(curr_state)
+            action, value = policy.get_action(curr_state, calc_val=False)
             obs, reward, done, info = env.step(action)
 
             observations.append(obs); actions.append(action)
@@ -336,7 +335,11 @@ def main(controller_name, main_dir):
                                     device_id=1)
             if exp_params['render']:
                 _ = input("Press enter to display optimized trajectory (will be played 10 times) : ")
-                helpers.render_trajs(env, trajectories, n_times=10)
+                try:
+                    helpers.render_trajs(env, trajectories, n_times=10)
+                except KeyboardInterrupt:
+                    print('Closing...')
+                    break
             
 
             

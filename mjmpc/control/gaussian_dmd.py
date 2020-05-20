@@ -26,8 +26,8 @@ class DMDMPC(GaussianMPC):
                  num_actions,
                  action_lows,
                  action_highs,
-                 set_state_fn,
-                 rollout_fn,
+                 set_sim_state_fn=None,
+                 rollout_fn=None,
                  update_cov=False,
                  cov_type='diagonal',
                  batch_size=1,
@@ -35,22 +35,22 @@ class DMDMPC(GaussianMPC):
                  seed=0):
 
         super(DMDMPC, self).__init__(num_actions,
-                                   action_lows, 
-                                   action_highs,
-                                   horizon,
-                                   init_cov,
-                                   np.zeros(shape=(horizon, num_actions)),
-                                   base_action,
-                                   num_particles,
-                                   gamma,
-                                   n_iters,
-                                   step_size, 
-                                   filter_coeffs, 
-                                   set_state_fn, 
-                                   rollout_fn,
-                                   cov_type,
-                                   batch_size,
-                                   seed)
+                                     action_lows, 
+                                     action_highs,
+                                     horizon,
+                                     init_cov,
+                                     np.zeros(shape=(horizon, num_actions)),
+                                     base_action,
+                                     num_particles,
+                                     gamma,
+                                     n_iters,
+                                     step_size, 
+                                     filter_coeffs, 
+                                     set_sim_state_fn, 
+                                     rollout_fn,
+                                     cov_type,
+                                     batch_size,
+                                     seed)
         self.lam = lam
         self.beta = beta
         self.update_cov = update_cov
@@ -111,10 +111,10 @@ class DMDMPC(GaussianMPC):
         #         cov_shifted = (1-self.beta) * self.cov_action + self.beta * self.prior_cov
         #         self.cov_action = update * cov_shifted + (1.0 - update) * self.cov_action
     
-    def _calc_val(self, state):
-        self.set_state_fn(copy.deepcopy(state)) #set state of simulation
-        sk, act_seq = self._generate_rollouts()
-        traj_costs = cost_to_go(sk,self.gamma_seq)[:,0]
+    def _calc_val(self, cost_seq, act_seq):
+        # self._set_sim_state_fn(copy.deepcopy(state)) #set state of simulation
+        # cost_seq, act_seq = self._generate_rollouts()
+        traj_costs = cost_to_go(cost_seq,self.gamma_seq)[:,0]
 
 		# calculate log-sum-exp
         # c = (-1.0/self.lam) * traj_costs.copy()
@@ -125,6 +125,5 @@ class DMDMPC(GaussianMPC):
         # val = -self.lam * val
 
         val = -self.lam * scipy.special.logsumexp((-1.0/self.lam) * traj_costs, b=(1.0/traj_costs.shape[0]))
-        print(val)
         return val
 
