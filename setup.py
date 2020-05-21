@@ -30,5 +30,5 @@ setup(
         'tabulate',
         'pandas',
     ],
-    ext_modules = cythonize(["mjmpc/envs/gym_env_wrapper_cy.pyx"], annotate=True)
+#    ext_modules = cythonize(["mjmpc/envs/gym_env_wrapper_cy.pyx"], annotate=True)
 )
