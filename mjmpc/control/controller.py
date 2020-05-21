@@ -157,8 +157,8 @@ class Controller(ABC):
         
         self._set_sim_state_fn(copy.deepcopy(state)) #set state of simulation
         act_seq = self._sample_actions() #sample actions using current control distribution
-        rew_vec = self._rollout_fn(act_seq)  # rollout function returns the rewards 
-        cost_seq = -1.0 * rew_vec  # rollout_fn returns a REWARD and we need a COST
+        cost_seq = self._rollout_fn(act_seq)  # rollout function returns the costs 
+        # cost_seq = -1.0 * rew_vec  # rollout_fn returns a REWARD and we need a COST
         
         # if self.terminal_cost_fn is not None:
         #     term_states = obs_vec[:, -1, :].reshape(obs_vec.shape[0], obs_vec.shape[-1])

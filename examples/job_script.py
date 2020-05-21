@@ -65,11 +65,10 @@ def gather_trajectories(controller_name, policy_params, n_episodes, ep_length, b
     def rollout_fn(u_vec: np.ndarray):
         """
         Given a batch of sequences of actions, rollout 
-        in sim envs and return rewards and observations 
-        received at every timestep
+        in sim envs and return sequence of costs
         """
         obs_vec, rew_vec, done_vec, _ = sim_env.rollout(u_vec.copy()) #state_vec
-        return rew_vec
+        return -1.0*rew_vec #we assume environment returns rewards
     
     del policy_params['particles_per_cpu'], policy_params['num_cpu']
 
