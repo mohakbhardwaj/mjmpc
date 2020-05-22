@@ -4,7 +4,7 @@ max_ep_length     : 75
 seed              : 123 #testing: 0, tuning: 123
 base_action       : 'null'
 render            : False
-job_mode          : 'sweep'
+job_mode          : 'tune'
 exp_notes         : '7-DOF Sawyer arm inserting peg in a hole at different locations'
 
 ##################For tune###################
