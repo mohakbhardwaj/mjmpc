@@ -37,7 +37,6 @@ with open(args.config) as file:
 env_name  = exp_params['env_name']
 env = gym.make(env_name)
 env = GymEnvWrapper(env)
-# env = make_wrapper(env)
 env.real_env_step(True)
 
 # Function to create vectorized environments for controller simulations

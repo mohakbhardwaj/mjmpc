@@ -90,8 +90,6 @@ class MPPI(GaussianMPC):
         return control_costs
     
     def _calc_val(self, cost_seq, act_seq):
-        # self._set_sim_state_fn(copy.deepcopy(state)) #set state of simulation
-        # cost_seq, act_seq = self._generate_rollouts()
         delta = act_seq - self.mean_action[None, :, :]
         
         traj_costs = cost_to_go(cost_seq,self.gamma_seq)[:,0]
