@@ -207,8 +207,6 @@ class Controller(ABC):
         self.reset() #reset the control distribution
         if n_iters is None:
             n_iters = self.n_iters
-        # _ = self.step(state, n_iters)
-        # value = self._calc_val(state)
         for _ in range(n_iters):
             # generate random simulated trajectories
             cost_seq, act_seq = self._generate_rollouts(copy.deepcopy(state))
@@ -253,6 +251,7 @@ class GaussianMPC(Controller):
                                           batch_size,
                                           seed)
         self.init_cov = np.array([init_cov] * self.num_actions)
+        self.init_mean = init_mean.copy()
         self.mean_action = init_mean
         self.base_action = base_action
         self.cov_type = cov_type

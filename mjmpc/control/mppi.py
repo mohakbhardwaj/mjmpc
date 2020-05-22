@@ -103,8 +103,8 @@ class MPPI(GaussianMPC):
         # cmax = np.max(c)
         # c -= cmax
         # c = np.exp(c)
-        # val = cmax + np.log(np.sum(c)) - np.log(c.shape[0])
-        # val = -self.lam * val
+        # val1 = cmax + np.log(np.sum(c)) - np.log(c.shape[0])
+        # val1 = -self.lam * val1
 
         val = -self.lam * scipy.special.logsumexp((-1.0/self.lam) * total_costs, b=(1.0/total_costs.shape[0]))
         return val
