@@ -36,16 +36,16 @@ cd examples
 
 To run a single instance of a controller by loading parameters from a config file run
 ```
-python example_mpc.py --config_file <config_file> --controller_type  <controller_name>
+python example_mpc.py --config_file <config_file> --controller_type  <controller_name> --save_dir .
 ```
 For example, to run MPPI for a reaching task with Sawyer robot, run the following
 ```
-python example_mpc.py --config_file configs/reacher_7d0f-v0 --controller_type  mppi
+python example_mpc.py --config_file configs/reacher_7d0f-v0 --controller_type  mppi --save_dir .
 ``` 
+After running MPPI the results will be stored in ./reacher_7dof-v0/ <timestamp>/mppi/. 
+Use the flag `--dump_vids` to dump videos of all the trajectories.
 
 We have provided example config files in `examples/configs` folder. The parameters for individual algorithms are explained below. 
-
-
 
 
 ## List of Controllers 

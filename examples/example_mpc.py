@@ -146,6 +146,11 @@ logger.record_tabular("SuccessMetric", success_metric)
 logger.record_tabular("NumEpisodes", exp_params['n_episodes'])
 logger.dump_tabular()
 
+if args.dump_vids:
+    print('Dumping videos')
+    helpers.dump_videos(env=env, trajectories=trajectories, frame_size=(1280, 720), 
+                        folder=log_dir, filename='vid_traj_', camera_name=None,
+                        device_id=1)
 
 if exp_params['render']:
     _ = input("Press enter to display optimized trajectories (will be played 3 times) : ")
