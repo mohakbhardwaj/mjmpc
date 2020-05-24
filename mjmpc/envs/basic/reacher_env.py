@@ -102,15 +102,27 @@ class Reacher7DOFEnv(mujoco_env.MujocoEnv, utils.EzPickle):
     # utility functions
     # --------------------------------
 
-    def get_env_infos(self):
-        return dict(state=self.get_env_state())
-
     def mj_viewer_setup(self):
         self.viewer = MjViewer(self.sim)
         self.viewer.cam.trackbodyid = 1
         self.viewer.cam.type = 1
         self.sim.forward()
         self.viewer.cam.distance = self.model.stat.extent * 2.0
+
+    def get_env_infos(self):
+        l2_dist = np.linalg.norm(self.data.site_xpos[self.hand_sid] - self.data.site_xpos[self.target_sid])
+        goal_achieved = (l2_dist < 0.025)
+        return dict(state=self.get_env_state(), goal_achieved=goal_achieved)
+    
+    def evaluate_success(self, paths):
+        num_success = 0
+        num_paths = len(paths)
+        # success if hand close to target for at least 10 steps
+        for path in paths:
+            if np.sum(path['env_infos']['goal_achieved']) > 10:
+                num_success += 1
+        success_percentage = num_success*100.0/num_paths
+        return success_percentage
 
 
 class ContinualReacher7DOFEnv(Reacher7DOFEnv):

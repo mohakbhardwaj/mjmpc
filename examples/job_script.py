@@ -227,7 +227,7 @@ def main(controller_name, main_dir):
                                         folder=SUB_LOG_DIR, filename='vid_traj_', camera_name=None,
                                         device_id=1)
                 if exp_params['render']:
-                    _ = input("Press enter to display optimized trajectory (will be played 10 times) : ")
+                    _ = input("Press enter to display optimized trajectories (will be played 10 times) : ")
                     helpers.render_trajs(env, trajectories, n_times=10)
 
 
