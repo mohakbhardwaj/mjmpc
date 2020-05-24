@@ -62,8 +62,6 @@ class DMDMPC(GaussianMPC):
         """
         delta = act_seq - self.mean_action[None, :, :]
         w = self._exp_util(costs)
-        # print(self.cov_action) 
-        # input('...')
 
         if self.update_cov:
             if self.cov_type == 'diagonal':

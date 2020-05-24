@@ -27,7 +27,7 @@ def scale_ctrl(ctrl, action_low_limit, action_up_limit):
 
 def generate_noise(cov, filter_coeffs, shape, base_seed):
     """
-        Generate noisy samples using autoregressive process
+        Generate correlated noisy samples using autoregressive process
     """
     np.random.seed(base_seed)
     beta_0, beta_1, beta_2 = filter_coeffs
@@ -84,7 +84,7 @@ class Controller(ABC):
         pass
 
     @abstractmethod
-    def _sample_actions(self):
+    def sample_actions(self):
         """
         Sample actions from current control distribution
         """
@@ -148,7 +148,7 @@ class Controller(ABC):
         self._set_sim_state_fn = fn
 
 
-    def _generate_rollouts(self, state):
+    def generate_rollouts(self, state):
         """
             Samples a batch of actions, rolls out trajectories for each particle
             and returns the resulting observations, states, costs and 
@@ -156,16 +156,8 @@ class Controller(ABC):
          """
         
         self._set_sim_state_fn(copy.deepcopy(state)) #set state of simulation
-        act_seq = self._sample_actions() #sample actions using current control distribution
+        act_seq = self.sample_actions() #sample actions using current control distribution
         cost_seq = self._rollout_fn(act_seq)  # rollout function returns the costs 
-        # cost_seq = -1.0 * rew_vec  # rollout_fn returns a REWARD and we need a COST
-        
-        # if self.terminal_cost_fn is not None:
-        #     term_states = obs_vec[:, -1, :].reshape(obs_vec.shape[0], obs_vec.shape[-1])
-        #     sk[-1, :] = self.terminal_cost_fn(term_states, act_seq[-1].T)
-
-        # if self.rollout_callback is not None: self.rollout_callback(obs_vec, act_seq) #state_vec # for example, visualize rollouts
-
         return cost_seq, act_seq
 
     def step(self, state, calc_val=False):
@@ -181,7 +173,7 @@ class Controller(ABC):
 
         for _ in range(self.n_iters):
             # generate random simulated trajectories
-            cost_seq, act_seq = self._generate_rollouts(copy.deepcopy(state))
+            cost_seq, act_seq = self.generate_rollouts(copy.deepcopy(state))
             # update distribution parameters
             self._update_distribution(cost_seq, act_seq)
             #calculate best action
@@ -189,7 +181,7 @@ class Controller(ABC):
         
         value = 0.0
         if calc_val:
-            cost_seq, act_seq = self._generate_rollouts(copy.deepcopy(state))
+            cost_seq, act_seq = self.generate_rollouts(copy.deepcopy(state))
             value = self._calc_val(cost_seq, act_seq)
 
         self.num_steps += 1
@@ -198,23 +190,18 @@ class Controller(ABC):
 
         return curr_action, value
 
-    def get_optimal_value(self, state, n_iters=None):
+    def get_optimal_value(self, state):
         """
         Calculate optimal value of a state, i.e 
-        value under optimal policy. Hence, it calls step 
-        function first 
+        value under optimal policy. 
+        
+        :param n_iters(int): number of iterations of optimization
+        :param horizon(int): number of actions in rollout
+        :param num_particles(int): number of particles in rollout
+
         """
         self.reset() #reset the control distribution
-        if n_iters is None:
-            n_iters = self.n_iters
-        for _ in range(n_iters):
-            # generate random simulated trajectories
-            cost_seq, act_seq = self._generate_rollouts(copy.deepcopy(state))
-            # update distribution parameters
-            self._update_distribution(cost_seq, act_seq)
-        #generate rollouts from optimal policy to calculate optimal value
-        cost_seq, act_seq = self._generate_rollouts(copy.deepcopy(state))
-        value = self._calc_val(cost_seq, act_seq)
+        _, value = self.step(state, calc_val=True)
         return value
 
 
@@ -263,7 +250,7 @@ class GaussianMPC(Controller):
         next_action = self.mean_action[0].copy()
         return next_action
     
-    def _sample_actions(self):
+    def sample_actions(self):
         delta = generate_noise(self.cov_action, self.filter_coeffs,
                                shape=(self.num_particles, self.horizon), 
                                base_seed = self.seed + self.num_steps)        

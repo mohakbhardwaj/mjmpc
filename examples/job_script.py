@@ -314,7 +314,7 @@ def main(controller_name, main_dir):
             for j in range(len(search_param_tuple)):
                 policy_params[search_param_keys[j]] = search_param_tuple[j]
             policy_params['particles_per_cpu'] = int(policy_params['num_particles']/policy_params['num_cpu'])
-            sub_logger.info('Running parameters')
+            sub_logger.info('Running parameters for {0} episodes'.format(exp_params['n_episodes']))
             sub_logger.info(policy_params)
 
             trajectories, avg_reward, reward_std, success_metric = gather_trajectories(controller_name,
