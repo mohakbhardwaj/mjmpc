@@ -58,6 +58,7 @@ class Controller(ABC):
                  n_iters,
                  set_sim_state_fn=None,
                  rollout_fn=None,
+                 sample_mode='mean',
                  batch_size=1,
                  seed=0):
                  
@@ -71,15 +72,20 @@ class Controller(ABC):
         self.n_iters = n_iters
         self._set_sim_state_fn = set_sim_state_fn
         self._rollout_fn = rollout_fn
+        self.sample_mode = sample_mode
         self.batch_size = batch_size
         self.seed = seed
         self.num_steps = 0
 
     @abstractmethod
-    def _get_next_action(self):
+    def _get_next_action(self, mode='mean'):
         """
             Get action to execute on the system based
             on current control distribution
+
+            :param mode (str): mode for sampling. 
+                              - mean returns mean first action of distribution
+                              - sample returns a sampled action
         """        
         pass
 
@@ -176,9 +182,10 @@ class Controller(ABC):
             cost_seq, act_seq = self.generate_rollouts(copy.deepcopy(state))
             # update distribution parameters
             self._update_distribution(cost_seq, act_seq)
-            #calculate best action
-            curr_action = self._get_next_action()
         
+        #calculate best action
+        curr_action = self._get_next_action(mode=self.sample_mode)
+        #calculate optimal value estimate if required
         value = 0.0
         if calc_val:
             cost_seq, act_seq = self.generate_rollouts(copy.deepcopy(state))
@@ -222,6 +229,7 @@ class GaussianMPC(Controller):
                  set_sim_state_fn=None,
                  rollout_fn=None,
                  cov_type='diagonal',
+                 sample_mode='mean',
                  batch_size=1,
                  seed=0):
 
@@ -235,6 +243,7 @@ class GaussianMPC(Controller):
                                           n_iters,
                                           set_sim_state_fn,
                                           rollout_fn,
+                                          sample_mode,
                                           batch_size,
                                           seed)
         self.init_cov = np.array([init_cov] * self.num_actions)
@@ -246,8 +255,17 @@ class GaussianMPC(Controller):
         self.step_size = step_size
         self.filter_coeffs = filter_coeffs
 
-    def _get_next_action(self):
-        next_action = self.mean_action[0].copy()
+    def _get_next_action(self, mode='mean'):
+        if mode == 'mean':
+            next_action = self.mean_action[0].copy()
+        elif mode == 'sample':
+            delta = generate_noise(self.cov_action, self.filter_coeffs,
+                                   shape=(1, 1), base_seed=self.seed + self.num_steps)
+            # print(self.cov_action)
+            # input('..')
+            next_action = self.mean_action[0].copy() + delta.reshape(self.num_actions).copy()
+        else:
+            raise ValueError('Unidentified sampling mode in get_next_action')
         return next_action
     
     def sample_actions(self):

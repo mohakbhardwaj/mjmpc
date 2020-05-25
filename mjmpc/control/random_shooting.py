@@ -20,6 +20,7 @@ class RandomShooting(GaussianMPC):
                  action_highs,
                  set_sim_state_fn=None,
                  rollout_fn=None,
+                 sample_mode='mean',
                  filter_coeffs = [1.0, 0.0, 0.0],
                  batch_size=1,
                  seed=0):
@@ -39,6 +40,7 @@ class RandomShooting(GaussianMPC):
                                    set_sim_state_fn, 
                                    rollout_fn,
                                    'diagonal',
+                                   sample_mode,
                                    batch_size,
                                    seed)
 

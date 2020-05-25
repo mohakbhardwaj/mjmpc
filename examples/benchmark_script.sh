@@ -2,7 +2,7 @@
 config_files=('sawyer/reacher-v0.yml' 'sawyer/peg_insertion-v0.yml' 'sawyer/pusher-v0.yml' 'sawyer/door-v0.yml' \
 		      'hand/pen-v0.yml' 'hand/door-v0.yml' 'hand/relocate-v0.yml' 'hand/hammer-v0.yml') #list of config files
 controllers=('mppi') #list of controllers
-run_files=(1) #idxs of config files to run
+run_files=(3) #idxs of config files to run
 
 
 for ((j=0;j<${#run_files[@]};++j)); do

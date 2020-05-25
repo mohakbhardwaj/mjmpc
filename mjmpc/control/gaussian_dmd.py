@@ -30,6 +30,7 @@ class DMDMPC(GaussianMPC):
                  rollout_fn=None,
                  update_cov=False,
                  cov_type='diagonal',
+                 sample_mode='mean',
                  batch_size=1,
                  filter_coeffs = [1., 0., 0.],
                  seed=0):
@@ -49,6 +50,7 @@ class DMDMPC(GaussianMPC):
                                      set_sim_state_fn, 
                                      rollout_fn,
                                      cov_type,
+                                     sample_mode,
                                      batch_size,
                                      seed)
         self.lam = lam
@@ -72,6 +74,8 @@ class DMDMPC(GaussianMPC):
                 weighted_delta = weighted_delta.T.reshape((self.horizon * self.num_particles, self.num_actions))
                 cov_update = np.dot(weighted_delta.T, weighted_delta)
                 cov_update = cov_update/self.horizon
+            else:
+                raise ValueError('Unidentified covariance type in update_distribution')
 
             self.cov_action = (1.0 - self.step_size) * self.cov_action +\
                                     self.step_size * cov_update

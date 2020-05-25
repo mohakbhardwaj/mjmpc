@@ -172,30 +172,47 @@ exp_notes         : '7-DOF Sawyer arm inserting peg in a hole at different locat
 #   particles_per_cpu : [4]
 
 mppi:
-  horizon           : [5]
-  init_cov          : [1.0]
+  horizon           : 5
+  init_cov          : 1.0
   filter_coeffs     : [0.25, 0.8, 0.0]
-  gamma             : [0.9]
-  n_iters           : [1]
-  step_size         : [1.0]
-  lam               : [0.1]
-  alpha             : [1]
+  gamma             : 0.9
+  n_iters           : 1
+  step_size         : 1.0
+  lam               : 0.1
+  alpha             : 1
   num_cpu           : 10
-  particles_per_cpu : [4]
+  particles_per_cpu : 4
+  sample_mode       : 'mean'
 
 dmd:
-  horizon           : [16]
-  init_cov          : [0.45]
-  update_cov        : [True]
-  cov_type          : ['full']
-  beta              : [0.85]
+  horizon           : 5
+  init_cov          : 1.0
+  update_cov        : True
+  cov_type          : 'full'
+  beta              : 0.5
   filter_coeffs     : [0.25, 0.8, 0.0]
-  gamma             : [1.0]
+  gamma             : 0.9
   n_iters           : 1
-  step_size         : [0.7]
-  lam               : [0.1]
+  step_size         : 0.8
+  lam               : 0.1
   num_cpu           : 10
-  particles_per_cpu : [4]
+  particles_per_cpu : 4
+  sample_mode       : 'mean'
+
+# dmd:
+#   horizon           : [16]
+#   init_cov          : [0.45]
+#   update_cov        : [True]
+#   cov_type          : ['full']
+#   beta              : [0.85]
+#   filter_coeffs     : [0.25, 0.8, 0.0]
+#   gamma             : [1.0]
+#   n_iters           : 1
+#   step_size         : [0.7]
+#   lam               : [0.1]
+#   num_cpu           : 10
+#   particles_per_cpu : [4]
+#   sample_mode       : 'mean'
 
 # pfmpc:
 #   horizon           : [16]

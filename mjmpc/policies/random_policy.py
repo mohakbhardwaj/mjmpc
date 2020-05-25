@@ -14,7 +14,8 @@ class RandomPolicy(Policy):
         """
             Returns a single randomly sampled action
         """
-        return np.random.uniform(self._action_lows, self._action_highs, size=(self.batch_size, self._num_actions))
+        action = np.random.uniform(self._action_lows, self._action_highs, size=(self.batch_size, self._num_actions))
+        return action.reshape(self._num_actions,)
 
     def get_action_seq(self, obs: np.ndarray = None, horizon: int = 1) -> np.ndarray:
         """

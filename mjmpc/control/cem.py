@@ -30,6 +30,7 @@ class CEM(GaussianMPC):
                  rollout_fn=None,
                  beta=0.0,
                  cov_type='diagonal',
+                 sample_mode='mean',
                  batch_size=1,
                  filter_coeffs = [1., 0., 0.],
                  seed=0):
@@ -50,6 +51,7 @@ class CEM(GaussianMPC):
                                    set_sim_state_fn, 
                                    rollout_fn,
                                    cov_type,
+                                   sample_mode,
                                    batch_size,
                                    seed)
 
