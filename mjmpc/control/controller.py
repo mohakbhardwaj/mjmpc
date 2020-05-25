@@ -261,8 +261,6 @@ class GaussianMPC(Controller):
         elif mode == 'sample':
             delta = generate_noise(self.cov_action, self.filter_coeffs,
                                    shape=(1, 1), base_seed=self.seed + self.num_steps)
-            # print(self.cov_action)
-            # input('..')
             next_action = self.mean_action[0].copy() + delta.reshape(self.num_actions).copy()
         else:
             raise ValueError('Unidentified sampling mode in get_next_action')
