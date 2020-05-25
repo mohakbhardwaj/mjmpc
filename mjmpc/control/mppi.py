@@ -96,7 +96,7 @@ class MPPI(GaussianMPC):
         
         traj_costs = cost_to_go(cost_seq,self.gamma_seq)[:,0]
         control_costs = self._control_costs(delta)
-        total_costs = traj_costs + self.lam * control_costs
+        total_costs = traj_costs.copy() + self.lam * control_costs.copy()
 
 		# calculate log-sum-exp
         # c = (-1.0/self.lam) * total_costs.copy()
