@@ -48,20 +48,65 @@ Use the flag `--dump_vids` to dump videos of all the trajectories.
 We have provided example config files in `examples/configs` folder. The parameters for individual algorithms are explained below. 
 
 
-## List of Controllers 
-We have implemented the following control algorithms
+## Controllers 
+Following parameters are common for all controllers
+| Parameter         |                                                                       | 
+|-------------------|-----------------------------------------------------------------------|
+| ``horizon``       | rollout horizon                                                       |
+| ``num_particles`` | number of particles to rollout                                        |
+| ``n_iters``       | number of iterations of optimization per timestep                     |
+| ``gamma``         | discount factor                                                       |
+| ``filter_coeffs`` | coefficients for autoregressive filtering (generate correlated noise) |
+| ``base_action``   | action to append at the end after shifting distribution for next step | 
 
-[1] `random_shooting`
 
-[2] `mppi`
+Additionally, each controller has it's own specific parameters
 
-[3] `cem`
+### Gaussian Controllers
+These controllers use a Gaussian control distribution and have the following common parameters
 
-[4] `gaussian_dmd`
+| Parameter     |                                                       |
+|---------------|-------------------------------------------------------|
+| ``init_cov``  | initial covariance of Gaussian                        |
+| ``step_size`` | step size for updating distribution at every timestep |
 
-[5] `pfmpc`
 
-<span style="color:red">TODO: Add details of algorithms + parameters.</span>
+#### Random Shooting
+Samples particles from a Gaussian with fixed covariance and selects next mean to be the rollout with minimum cost. Has no additional parameters.
+
+#### Model Predictive Path Integral Control (MPPI)
+Based on [Williams et al.](https://homes.cs.washington.edu/~bboots/files/InformationTheoreticMPC.pdf), it samples particles from a Gaussian with fixed covariance and updates the mean using a softmax of rollouts. Has the followig additional parameters:
+
+| Parameter     |                                                       |
+|---------------|-------------------------------------------------------|
+| ``lam``       | temperature for softmax                               |
+| ``alpha``     | flag to enable control costs in rollouts (0: enable, 1: disable) |
+
+
+#### Cross Entropy Method (CEM)
+Samples particles from a Gaussian control distribution and updates the mean and covariance using sample estimates from a set of elite samples based on cost. 
+
+| Parameter     |                                                       |
+|---------------|-------------------------------------------------------|
+| ``cov_type``       | 'diag' means covariance is forced to be diagonal, and 'full' allows actions to be correlated to each other.               |
+| ``elite_frac``     | fraction of total samples considered elite  |
+| ``beta``           | ``beta * I`` is added to covariance to grow it at each timestep |
+
+#### Gaussian DMD-MPC
+From [Wagener et al.](https://arxiv.org/pdf/1902.08967.pdf). We use the exponentiated utility function and allow it to adapt the covariance as well. Has the same parameters as MPPI with the addition of ``cov_type`` and ``beta``.
+
+## Non-Gaussian Controllers
+
+#### Particle Filter MPC
+
+Uses a non-parametric distribution represented by particles and updates it using a particle filtering approach, where particles weighted using an exponential of running cost with temperature ``lam``
+
+| Parameter     |                                                       |
+|---------------|-------------------------------------------------------|
+| ``cov_shift``       |  noise added to particles when shifting to next step    |
+| ``cov_resample``    | noise for resampling particles  |
+
+
 
 ## Tuning Controllers and Running Parameter Sweeps 
 We have also provided a job_script for tuning and benchmarking various MPC algorithms. 
@@ -82,9 +127,15 @@ As such the control framework is agnostic to the environment definition and only
 
 [2] `set_sim_state_fn`: sets the state of simulation environments.
 
-However, if you wish to use our GymEnvWrapper, it expects the environment to have a few additional functions implemented
 
-<span style="color:red">TODO: Add details. Currently can be seen from reacher_env.py in envs folder</span>
+
+However, if you wish to use our GymEnvWrapper, it expects the environment to have a few additional functions implemented such as
+
+[1] `set_env_state`: Sets the state of the environment
+
+[2] `get_env_state`: Returns the current state of the environment
+
+Please look at hre Currently can be seen from `envs/reacher_env.py` for an example environment.
 
 ## Control Parameters
 
