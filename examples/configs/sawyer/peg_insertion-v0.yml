@@ -161,11 +161,11 @@ exp_notes         : '7-DOF Sawyer arm inserting peg in a hole at different locat
 
 mppi:
   horizon           : 8
-  init_cov          : 0.45
+  init_cov          : 1.0
   filter_coeffs     : [0.25, 0.8, 0.0]
   gamma             : 1.0
   n_iters           : 1
-  step_size         : 1.0
+  step_size         : 0.65
   lam               : 0.1
   alpha             : 0
   num_cpu           : 10

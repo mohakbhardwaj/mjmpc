@@ -101,7 +101,7 @@ for i in tqdm.tqdm(range(n_episodes)):
 
     #create MPC policy and set appropriate functions
     policy = MPCPolicy(controller_type=controller_name,
-                        param_dict=policy_params, batch_size=1) #Note only batch_size=1 is supported for now
+                        param_dict=policy_params, batch_size=1) #Only batch_size=1 is supported for now
     policy.controller.set_sim_state_fn = set_sim_state_fn
     policy.controller.rollout_fn = rollout_fn
     
