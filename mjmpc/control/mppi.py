@@ -62,7 +62,7 @@ class MPPI(GaussianMPC):
         """
         delta = act_seq - self.mean_action[None, :, :]
         w = self._exp_util(costs, delta)
-        
+
         weighted_seq = w * act_seq.T
         # self.mean_action = np.sum(weighted_seq.T, axis=0)
         self.mean_action = (1.0 - self.step_size) * self.mean_action +\
@@ -89,6 +89,7 @@ class MPPI(GaussianMPC):
             control_costs = 0.5 * u_normalized * (self.mean_action[np.newaxis,:,:] + 2.0 * delta)
             control_costs = np.sum(control_costs, axis=-1)
             control_costs = cost_to_go(control_costs, self.gamma_seq)[:,0]
+
         return control_costs
     
     def _calc_val(self, cost_seq, act_seq):
@@ -97,7 +98,7 @@ class MPPI(GaussianMPC):
         traj_costs = cost_to_go(cost_seq,self.gamma_seq)[:,0]
         control_costs = self._control_costs(delta)
         total_costs = traj_costs.copy() + self.lam * control_costs.copy()
-
+        
 		# calculate log-sum-exp
         # c = (-1.0/self.lam) * total_costs.copy()
         # cmax = np.max(c)

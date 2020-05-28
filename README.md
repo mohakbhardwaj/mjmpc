@@ -153,6 +153,6 @@ These parameters are currently manually tuned.
 
 ## TODO
 1. Batch version of controllers
-2. ~~Environment render function must have functionality to save frames/videos and work for batch size > 1~~
+2. Environment render function must have functionality to save frames/videos and work for batch size > 1
 3. <span style="color:red">Implement rollout function for mujoco_env in Cython.</span>
 4. ~~<span style="color:red"> Grid search for tuning controller hyperparameters.</span>~~
