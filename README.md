@@ -10,7 +10,7 @@ conda create --name mjmpc python=3.7
 conda activate mjmpc
 ```
 
-[2] Install OpenAI Gym and `mujoco_py`
+[2] Install [OpenAI Gym](https://gym.openai.com/docs/#installation) and [mujoco_py](https://github.com/openai/mujoco-py)
 
 [2] Clone mjmpc
 ```
