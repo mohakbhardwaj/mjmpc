@@ -10,19 +10,19 @@ conda create --name mjmpc python=3.7
 conda activate mjmpc
 ```
 
-[2] Install [OpenAI Gym](https://gym.openai.com/docs/#installation) and [mujoco_py](https://github.com/openai/mujoco-py)
-
-[2] Clone mjmpc
+[2] Install [mujoco_py](https://github.com/openai/mujoco-py) and [gym](https://gym.openai.com/docs/#installation) 
+ 
+[3] Clone mjmpc
 ```
 git clone git@github.com:mohakbhardwaj/mjmpc.git && cd mjmpc
 conda env update -f setup/environment.yml
 ```
 
-[3] Install [mjrl](https://github.com/aravindr93/mjrl)
+[4] Install [mjrl](https://github.com/aravindr93/mjrl)
 
-[4] (Optional) Install [mj_envs](https://github.com/vikashplus/mj_envs) (only required if you want to run hand_manipulation_suite, sawyer or classic_control environments)
+[5] (Optional) Install [mj_envs](https://github.com/vikashplus/mj_envs) (only required if you want to run hand_manipulation_suite, sawyer or classic_control environments)
 
-[5] Install mjmpc
+[6] Install mjmpc
 ```
 cd mjmpc
 pip install -e .
