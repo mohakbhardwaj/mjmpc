@@ -1,5 +1,5 @@
 from .gym_env_wrapper import GymEnvWrapper
-# from .gym_env_wrapper_cy import make_wrapper#GymEnvWrapper
+# from mjmpc.envs.gym_env_wrapper_cy import GymEnvWrapperCy
 from gym.envs.registration import register
 
 register(

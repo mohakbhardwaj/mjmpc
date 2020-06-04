@@ -1,7 +1,7 @@
 import os
 import sys
 from setuptools import setup, find_packages
-from Cython.Build import cythonize
+# from Cython.Build import cythonize
 
 
 if sys.version_info.major != 3:
