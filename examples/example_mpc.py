@@ -13,6 +13,7 @@ import tqdm
 import yaml
 
 import mjmpc.envs
+import mj_envs
 from mjmpc.envs import GymEnvWrapper
 from mjmpc.envs.vec_env import SubprocVecEnv
 from mjrl.utils import tensor_utils
@@ -21,7 +22,7 @@ from mjmpc.policies import MPCPolicy
 
 gym.logger.set_level(40)
 parser = argparse.ArgumentParser(description='Run MPC algorithm on given environment')
-parser.add_argument('--config', type=str, help='yaml file with experiment parameters')
+parser.add_argument('--config', type=str, help='yaml file with experiment parameters', required=True)
 parser.add_argument('--save_dir', type=str, default='/tmp', help='folder to save data in')
 parser.add_argument('--controller', type=str, default='mppi', help='controller to run')
 parser.add_argument('--dump_vids', action='store_true', help='flag to dump video of episodes' )
