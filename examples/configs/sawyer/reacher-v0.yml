@@ -9,7 +9,7 @@ exp_notes         : '7-DOF Sawyer arm reaching various spatial goals for the end
 
 random_shooting:
   horizon           : 16
-  init_cov          : [0.1, 0.2, 0.3]
+  init_cov          : 0.1
   filter_coeffs     : [0.25, 0.8, 0.0]
   gamma             : 1.0
   n_iters           : 1
@@ -31,7 +31,7 @@ mppi:
 
 cem:
   horizon           : 16
-  init_cov          : [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+  init_cov          : 0.1
   cov_type          : 'full'
   beta              : 0.3
   filter_coeffs     : [0.25, 0.8, 0.0]
@@ -44,7 +44,7 @@ cem:
 
 dmd:
   horizon           : 16
-  init_cov          : [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+  init_cov          : 0.1
   update_cov        : False
   cov_type          : 'full'
   beta              : 0.3

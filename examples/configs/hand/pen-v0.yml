@@ -1,170 +1,75 @@
 env_name          : 'pen-v0'
-n_episodes        : 30
+n_episodes        : 3
 max_ep_length     : 75
 seed              : 123
 base_action       : 'null'
-render            : False
+render            : True
 job_mode          : 'tune'
 exp_notes         : 'In-hand manipulation of a 6-DOF pen with a 24-DOF Shadow Hand (Adroit).'
 
-# random_shooting:
-#   horizon           : [8, 16, 32, 64, 128]
-#   init_cov          : [0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1.0]
-#   filter_coeffs     : [0.25, 0.8, 0.0]
-#   gamma             : 1.0
-#   n_iters           : 1
-#   step_size         : 1.0
-#   num_cpu           : 10
-#   particles_per_cpu : [2, 4, 6, 8, 10, 12]
 
-# mppi:
-#   horizon           : [8, 16, 32, 64, 128]
-#   init_cov          : [0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1.0]
-#   filter_coeffs     : [0.25, 0.8, 0.0]
-#   gamma             : 1.0
-#   n_iters           : 1
-#   step_size         : 1.0
-#   lam               : [0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1.0]
-#   alpha             : 1
-#   num_cpu           : 10
-#   particles_per_cpu : [2, 4, 6, 8, 10, 12]
-#   tune_keys         : ['init_cov', 'lam']
-
-# #re-tuned
-# random_shooting:
-#   horizon           : 32
-#   init_cov          : 0.35
-#   filter_coeffs     : [0.25, 0.8, 0.0]
-#   gamma             : 1.0
-#   n_iters           : 1
-#   step_size         : 1.0
-#   num_cpu           : 10
-#   particles_per_cpu : 10
+random_shooting:
+  horizon           : 32
+  init_cov          : 0.35
+  filter_coeffs     : [0.25, 0.8, 0.0]
+  gamma             : 1.0
+  n_iters           : 1
+  step_size         : 1.0
+  num_cpu           : 10
+  particles_per_cpu : 10
 
 mppi:
- horizon           : 10
- init_cov          : 0.9
+ horizon           : 32
+ init_cov          : 0.3
  filter_coeffs     : [0.25, 0.8, 0.0]
  gamma             : 1.0
  n_iters           : 1
  step_size         : 1.0
- lam               : 0.35
+ lam               : 0.15
  alpha             : 1
  num_cpu           : 10
  particles_per_cpu : 10
 
-
-# mppi:
-#  horizon           : 32
-#  init_cov          : 0.3
-#  filter_coeffs     : [0.25, 0.8, 0.0]
-#  gamma             : 1.0
-#  n_iters           : 1
-#  step_size         : 1.0
-#  lam               : 0.15
-#  alpha             : 1
-#  num_cpu           : 10
-#  particles_per_cpu : 10
-
-# dmd:
-#   horizon           : 32
-#   init_cov          : 0.3
-#   update_cov        : True
-#   cov_type          : 'full'
-#   beta              : 1.0
-#   filter_coeffs     : [0.25, 0.8, 0.0]
-#   gamma             : 1.0
-#   n_iters           : 1
-#   step_size         : 0.65
-#   lam               : 0.15
-#   num_cpu           : 10
-#   particles_per_cpu : 10
-
-# pfmpc:
-#   horizon           : 32
-#   cov_shift         : 0.55
-#   cov_resample      : 1.0
-#   filter_coeffs     : [0.25, 0.8, 0.0]
-#   gamma             : 1.0
-#   n_iters           : 1
-#   lam               : 0.5
-#   num_cpu           : 10
-#   particles_per_cpu : 10
+cem:
+  horizon           : 32
+  init_cov          : 0.25
+  cov_type          : 'full'
+  beta              : 0.9
+  filter_coeffs     : [0.25, 0.8, 0.0]
+  gamma             : 1.0
+  n_iters           : 1
+  step_size         : 1.0
+  elite_frac        : 0.05
+  num_cpu           : 10
+  particles_per_cpu : [2, 4, 6, 8, 10, 12]
 
 
+dmd:
+  horizon           : 32
+  init_cov          : 0.3
+  update_cov        : True
+  cov_type          : 'full'
+  beta              : 1.0
+  filter_coeffs     : [0.25, 0.8, 0.0]
+  gamma             : 1.0
+  n_iters           : 1
+  step_size         : 0.65
+  lam               : 0.15
+  num_cpu           : 10
+  particles_per_cpu : 10
 
-# # Tuned
-# # random_shooting:
-# #   horizon           : 32
-# #   init_cov          : 0.7
-# #   filter_coeffs     : [0.25, 0.8, 0.0]
-# #   gamma             : 1.0
-# #   n_iters           : 1
-# #   step_size         : 1.0
-# #   num_cpu           : 10
-# #   particles_per_cpu : 10
-
-# # mppi:
-# #  horizon           : 32
-# #  init_cov          : 0.55
-# #  filter_coeffs     : [0.25, 0.8, 0.0]
-# #  gamma             : 1.0
-# #  n_iters           : 1
-# #  step_size         : 1.0
-# #  lam               : 0.9
-# #  alpha             : 1
-# #  num_cpu           : 10
-# #  particles_per_cpu : 10
-
-# cem:
-#   horizon           : 32
-#   init_cov          : 0.25
-#   cov_type          : 'full'
-#   beta              : 0.9
-#   filter_coeffs     : [0.25, 0.8, 0.0]
-#   gamma             : 1.0
-#   n_iters           : 1
-#   step_size         : 1.0
-#   elite_frac        : 0.05
-#   num_cpu           : 10
-#   particles_per_cpu : [2, 4, 6, 8, 10, 12]
-
-# # dmd:
-# #   horizon           : 32
-# #   init_cov          : 0.55
-# #   update_cov        : True
-# #   cov_type          : 'full'
-# #   beta              : 0.4
-# #   filter_coeffs     : [0.25, 0.8, 0.0]
-# #   gamma             : 1.0
-# #   n_iters           : 1
-# #   step_size         : 0.95
-# #   lam               : 0.9
-# #   num_cpu           : 10
-# #   particles_per_cpu : 10
+pfmpc:
+  horizon           : 32
+  cov_shift         : 0.55
+  cov_resample      : 1.0
+  filter_coeffs     : [0.25, 0.8, 0.0]
+  gamma             : 1.0
+  n_iters           : 1
+  lam               : 0.5
+  num_cpu           : 10
+  particles_per_cpu : 10
 
 
-# # pfmpc:
-# #   horizon           : 32
-# #   cov_shift         : 0.55
-# #   cov_resample      : 1.0
-# #   filter_coeffs     : [0.25, 0.8, 0.0]
-# #   gamma             : 1.0
-# #   n_iters           : 1
-# #   lam               : 0.5
-# #   num_cpu           : 10
-# #   particles_per_cpu : 10
 
 
-# #Lyceum params
-# #mppi:
-# #   horizon           : 32
-# #   init_cov          : 1.0
-# #   filter_coeffs     : [0.25, 0.8, 0.0]
-# #   gamma             : 1.0
-# #   n_iters           : 1
-# #  step_size         : 1.0
-# #   lam               : 1.0
-# #   alpha             : 1
-# #   num_cpu           : 10
-# #   particles_per_cpu : 16
+

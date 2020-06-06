@@ -31,8 +31,8 @@ mppi:
 
 
 cem:
-  horizon           : 16
-  init_cov          : [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+  horizon           : 32
+  init_cov          : 1.0
   cov_type          : 'full'
   beta              : 0.3
   filter_coeffs     : [0.25, 0.8, 0.0]
@@ -44,8 +44,8 @@ cem:
   particles_per_cpu : 4
 
 dmd:
-  horizon           : 16
-  init_cov          : [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+  horizon           : 32
+  init_cov          : 1.0
   update_cov        : False
   cov_type          : 'full'
   beta              : 0.3

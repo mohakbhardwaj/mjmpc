@@ -7,7 +7,7 @@ exp_notes         : 'Swingup of a simple pendulum'
 
 random_shooting:
   horizon           : 32
-  init_cov          : [3.0]
+  init_cov          : 3.0
   filter_coeffs     : [0.6, 0.5, 0.0]
   gamma             : 1.0
   n_iters           : 1
@@ -17,7 +17,7 @@ random_shooting:
 
 mppi:
   horizon           : 32
-  init_cov          : [3.0]
+  init_cov          : 3.0
   filter_coeffs     : [0.6, 0.5, 0.0]
   gamma             : 1.0
   n_iters           : 1
@@ -29,7 +29,7 @@ mppi:
 
 cem:
   horizon           : 32
-  init_cov          : [3.0]
+  init_cov          : 3.0
   filter_coeffs     : [0.6, 0.5, 0.0]
   gamma             : 1.0
   n_iters           : 1

@@ -12,6 +12,10 @@ import pickle
 import tqdm
 import yaml
 
+try:
+    import mj_envs
+except ImportError:
+    print('mj_envs not found. Will not be able to run its configs')
 import mjmpc.envs
 from mjmpc.envs import GymEnvWrapper
 from mjmpc.envs.vec_env import SubprocVecEnv
@@ -74,7 +78,8 @@ def set_sim_state_fn(state_dict: dict):
 def rollout_fn(u_vec: np.ndarray):
     """
     Given a batch of sequences of actions, rollout 
-    in sim envs and return sequence of costs
+    in sim envs and return sequence of costs. The controller is 
+    agnostic of how the rollouts are generated.
     """
     obs_vec, rew_vec, done_vec, _ = sim_env.rollout(u_vec.copy())
     return -1.0*rew_vec #we assume environment returns rewards, but controller needs consts
