@@ -18,9 +18,9 @@ git clone git@github.com:mohakbhardwaj/mjmpc.git && cd mjmpc
 conda env update -f setup/environment.yml
 ```
 
-[4] Install [mjrl](https://github.com/aravindr93/mjrl)
+[4] Clone and install [mjrl](https://github.com/aravindr93/mjrl)
 
-[5] (Optional) Install [mj_envs](https://github.com/vikashplus/mj_envs) (only required if you want to run hand_manipulation_suite, sawyer or classic_control environments)
+[5] (Optional) Clone and install [mj_envs](https://github.com/vikashplus/mj_envs) (only required if you want to run hand_manipulation_suite, sawyer or classic_control environments)
 
 [6] Install mjmpc
 ```
