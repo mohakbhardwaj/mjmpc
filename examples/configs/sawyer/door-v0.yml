@@ -7,7 +7,6 @@ render            : False
 job_mode          : 'tune'
 exp_notes         : '7-DOF Sawyer arm opening a door at different locations'
 
-
 random_shooting:
   horizon           : 16
   init_cov          : 0.25

@@ -7,12 +7,13 @@ Author - Mohak Bhardwaj
 Date - Jan 19, 2020
  
 """
-from .controller import Controller, GaussianMPC, cost_to_go
+from .control_utils import cost_to_go
+from .olgaussian_mpc import OLGaussianMPC
 import copy
 import numpy as np
 import scipy.special
 
-class DMDMPC(GaussianMPC):
+class DMDMPC(OLGaussianMPC):
     def __init__(self,
                  horizon,
                  init_cov,

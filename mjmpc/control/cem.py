@@ -6,14 +6,13 @@ Date - Jan 12, 2020
 TODO:
  - Make it a work for batch of start states 
 """
-from .controller import GaussianMPC, scale_ctrl, generate_noise, cost_to_go
+from .control_utils import cost_to_go
+from .olgaussian_mpc import OLGaussianMPC
 import copy
 import numpy as np
 
 
-
-
-class CEM(GaussianMPC):
+class CEM(OLGaussianMPC):
     def __init__(self,
                  horizon,
                  init_cov,

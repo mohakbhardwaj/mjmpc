@@ -2,11 +2,12 @@
 """
 MPC using naive random shooting
 """
-from .controller import GaussianMPC, scale_ctrl, cost_to_go, generate_noise
+from .control_utils import cost_to_go
+from .olgaussian_mpc import OLGaussianMPC
 import copy
 import numpy as np
 
-class RandomShooting(GaussianMPC):
+class RandomShooting(OLGaussianMPC):
     def __init__(self,
                  horizon,
                  init_cov,

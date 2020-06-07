@@ -5,13 +5,14 @@ Particle Filter MPC
 Author - Mohak Bhardwaj
 
 """
-from .controller import Controller, scale_ctrl, generate_noise, cost_to_go
+from .olcontroller import OLController
+from .control_utils import generate_noise, cost_to_go
 import copy
 import numpy as np
 import random
 import scipy.special
 
-class PFMPC(Controller):
+class PFMPC(OLController):
     def __init__(self,
                  horizon,
                  cov_shift,
@@ -115,7 +116,6 @@ class PFMPC(Controller):
         self.action_samples = generate_noise(self.cov_resample, self.filter_coeffs,
                                              shape=(self.num_particles, self.horizon),
                                              base_seed=self.seed)
-
 
     def _resampling(self, act_seq, weights, low_variance=True):
         if low_variance:

@@ -6,13 +6,14 @@ Date - Dec 20, 2019
 TODO:
  - Make it a work for batch of start states 
 """
-from .controller import Controller, GaussianMPC, cost_to_go
+from .control_utils import cost_to_go
+from .olgaussian_mpc import OLGaussianMPC
 import copy
 import numpy as np
 # import scipy.stats
 import scipy.special
 
-class MPPI(GaussianMPC):
+class MPPI(OLGaussianMPC):
     def __init__(self,
                  horizon,
                  init_cov,

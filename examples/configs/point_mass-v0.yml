@@ -7,7 +7,6 @@ render            : True
 job_mode          : 'enum'
 exp_notes         : 'Toy experiment with point mass'
 
-
 random_shooting:
   horizon           : 5
   init_cov          : 1.0
