@@ -17,8 +17,10 @@ class MPCPolicy(Policy):
             self.controller = control.DMDMPC(**param_dict)
         elif controller_type == "pfmpc":
             self.controller = control.PFMPC(**param_dict)
+        elif controller_type == "softq":
+            self.controller = control.SoftQMPC(**param_dict)
         else:
-            raise(NotImplementedError, "Controller type does not exist")
+            raise NotImplementedError("Controller type does not exist")
 
     def get_action(self, state, calc_val=False):
         action, value = self.controller.step(state, calc_val)

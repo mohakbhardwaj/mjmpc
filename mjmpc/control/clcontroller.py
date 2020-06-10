@@ -204,7 +204,7 @@ class CLController(ABC):
     
     @property
     def get_sim_state_fn(self):
-        return self._set_sim_state_fn
+        return self._get_sim_state_fn
     
     @get_sim_state_fn.setter
     def get_sim_state_fn(self, fn):
@@ -244,17 +244,18 @@ class CLController(ABC):
 
         for _ in range(self.max_iters):
             #generate new rollout/candidate trajectory
-            state_seq, cost_seq, act_seq = self.forward_pass(copy.deepcopy(state))
+            state_seq, act_seq, cost_seq = self.forward_pass(copy.deepcopy(state))
             # update distribution parameters/value functon etc.
-            self.backward_pass(state_seq, cost_seq, act_seq)
+            self.backward_pass(state_seq, act_seq, cost_seq)
             # check convergence
             # TODO: Make this proper
             if self.converged():
                 break
 
         #calculate best action
+        self.set_sim_state_fn(state) #set simulator to initial state
         curr_action = self._get_next_action(mode=self.sample_mode)
-
+        # print(curr_action)
         #calculate optimal value estimate if required
         value = 0.0
         # if calc_val:

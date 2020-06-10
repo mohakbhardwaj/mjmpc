@@ -1,9 +1,9 @@
 env_name          : 'cartpole-v0'
-n_episodes        : 10
+n_episodes        : 1
 max_ep_length     : 100
 seed              : 123 #testing: 0, tuning: 123
 base_action       : 'null'
-render            : False
+render            : True
 job_mode          : 'sweep'
 exp_notes         : 'Swingup of cartpole'
 
@@ -30,3 +30,14 @@ mppi:
   alpha             : 1
   num_cpu           : 10
   particles_per_cpu : 4
+
+
+softq:
+  horizon           : 32
+  max_iters         : 10
+  gamma             : 1.0
+  init_cov          : 1.0 
+  lam               : 0.1
+  lr                : 0.01
+  tol               : 0.00001
+  num_samples       : 40

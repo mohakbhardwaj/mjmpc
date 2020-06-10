@@ -70,3 +70,12 @@ pfmpc:
   num_cpu           : 10
   particles_per_cpu : 4
 
+softq:
+  horizon           : 32
+  max_iters         : 10
+  gamma             : 1.0
+  init_cov          : 0.15 
+  lam               : 0.1
+  lr                : 0.01
+  tol               : 0.0001
+  num_samples       : 100

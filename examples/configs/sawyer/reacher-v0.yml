@@ -1,5 +1,5 @@
 env_name          : 'sawyer_reacher-v0'
-n_episodes        : 10
+n_episodes        : 3
 max_ep_length     : 75
 seed              : 123
 base_action       : 'null'
@@ -66,3 +66,14 @@ pfmpc:
   lam               : 0.6
   num_cpu           : 8
   particles_per_cpu : 4
+
+
+softq:
+  horizon           : 16
+  max_iters         : 32
+  gamma             : 1.0
+  init_cov          : 1.0 
+  lam               : 0.1
+  lr                : 0.01
+  tol               : 0.0001
+  num_samples       : 100
