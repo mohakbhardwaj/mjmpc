@@ -6,6 +6,7 @@ Date: 7 June, 2020
 """
 from abc import ABC, abstractmethod
 import copy
+from gym.utils import seeding
 import numpy as np
 
 class CLController(ABC):
@@ -73,6 +74,7 @@ class CLController(ABC):
         self.sample_mode = sample_mode
         self.batch_size = batch_size
         self.seed = seed
+        self._seed(seed)
         self.num_steps = 0
 
     @abstractmethod
@@ -235,27 +237,27 @@ class CLController(ABC):
 
         """
 
-
         if ((self.get_sim_state_fn is None)
              or (self.set_sim_state_fn is None)
              or (self.sim_step_fn is None)
             ):
             raise ValueError("rollout_fn and set_sim_state_fn not set!!")
 
-        for _ in range(self.max_iters):
+        for itr in range(self.max_iters):
+            # print(itr)
             #generate new rollout/candidate trajectory
-            state_seq, act_seq, cost_seq = self.forward_pass(copy.deepcopy(state))
+            state_seq, act_seq, cost_seq, kl_seq = self.forward_pass(copy.deepcopy(state))
             # update distribution parameters/value functon etc.
-            self.backward_pass(state_seq, act_seq, cost_seq)
+            delta_theta, delta_loss =self.backward_pass(state_seq, act_seq, cost_seq, kl_seq)
             # check convergence
             # TODO: Make this proper
-            if self.converged():
+            if self.converged(delta_theta, delta_loss):
                 break
 
         #calculate best action
-        self.set_sim_state_fn(state) #set simulator to initial state
-        curr_action = self._get_next_action(mode=self.sample_mode)
-        # print(curr_action)
+        self.set_sim_state_fn(copy.deepcopy(state)) #set simulator to initial state
+        ftrs = self.get_sim_state_fn()
+        curr_action, mean, cov = self._get_next_action(ftrs.copy(), mode=self.sample_mode)
         #calculate optimal value estimate if required
         value = 0.0
         # if calc_val:
@@ -328,3 +330,8 @@ class CLController(ABC):
         return value
 
 
+
+    def _seed(self, seed=None):
+        self.np_random, seed = seeding.np_random(seed)
+        return [seed]
+        

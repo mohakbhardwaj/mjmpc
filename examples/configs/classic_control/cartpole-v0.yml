@@ -32,12 +32,17 @@ mppi:
   particles_per_cpu : 4
 
 
+
 softq:
   horizon           : 32
-  max_iters         : 10
+  max_iters         : 40
   gamma             : 1.0
-  init_cov          : 1.0 
-  lam               : 0.1
-  lr                : 0.01
-  tol               : 0.00001
-  num_samples       : 40
+  init_cov          : 1.5 
+  lam               : 0.5
+  lr                : 0.001
+  reg               : 0.01
+  num_grad_steps    : 50
+  tol               : 0.0001
+  num_samples       : 200
+  beta              : 0.2
+  # num_rollouts      : 1
