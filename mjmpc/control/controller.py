@@ -1,27 +1,26 @@
 #!/usr/bin/env python
 """
-Base class for open-loop controllers
+Base class for controllers
 Author - Mohak Bhardwaj
 Date: 3 Jan, 2020
 """
 from abc import ABC, abstractmethod
 import copy
 import numpy as np
+from mjmpc.utils import helpers
 
-class OLController(ABC):
-    """
-    Base class for open-loop controllers
-
-    """
+class Controller(ABC):
     def __init__(self,
-                 num_actions,
+                 d_state,
+                 d_action,
                  action_lows,
                  action_highs,
                  horizon,
-                 num_particles,
                  gamma,
                  n_iters,
                  set_sim_state_fn=None,
+                 sim_step_fn=None,
+                 sim_reset_fn=None,
                  rollout_fn=None,
                  sample_mode='mean',
                  batch_size=1,
@@ -29,7 +28,9 @@ class OLController(ABC):
         """
         Parameters
         ----------
-        num_actions : int
+        d_state : int
+            size of state/observation space
+        d_action : int
             size of action space
         action_lows : np.ndarray 
             lower limits for each action dim
@@ -37,16 +38,18 @@ class OLController(ABC):
             upper limits for each action dim
         horizon : int  
             horizon of rollouts
-        num_particles : int
-            number of particles/rollouts
         gamma : float
             discount factor
         n_iters : int  
             number of optimization iterations
         set_sim_state_fn : function  
             set state of simulator using input
+        sim_step_fn : function
+            steps the simulator and returns obs, reward, done, info
+        sim_reset_fn : function
+            resets the simulator
         rollout_fn : function  
-            rollout batch of open loop actions in simulator
+            rollout policy (or actions) in simulator and return obs, reward, done, info
         sample_mode : {'mean', 'sample'}  
             how to choose action to be executed
             'mean' plays the first mean action and  
@@ -56,16 +59,17 @@ class OLController(ABC):
         seed : int  
             seed value
         """
-                 
-        self.num_actions = num_actions
+        self.d_state = d_state
+        self.d_action = d_action
         self.action_lows = action_lows
         self.action_highs = action_highs
         self.horizon = horizon
-        self.num_particles = num_particles
         self.gamma = gamma
         self.gamma_seq = np.cumprod([1.0] + [self.gamma] * (horizon - 1)).reshape(1, horizon)
         self.n_iters = n_iters
         self._set_sim_state_fn = set_sim_state_fn
+        self._sim_step_fn = sim_step_fn
+        self._sim_reset_fn = sim_reset_fn
         self._rollout_fn = rollout_fn
         self.sample_mode = sample_mode
         self.batch_size = batch_size
@@ -86,23 +90,30 @@ class OLController(ABC):
         """        
         pass
 
-    @abstractmethod
     def sample_actions(self):
         """
         Sample actions from current control distribution
         """
-        pass
+        raise NotImplementedError('sample_actions funtion not implemented')
     
     @abstractmethod
-    def _update_distribution(self, costs, act_seq):
+    def _update_distribution(self, trajectories):
         """
-        Update current control distribution based on 
-        the results of rollouts
-        params - 
+        Update current control distribution using 
+        rollout trajectories
+        
+        Parameters
+
+        trajectories : dict
+            Rollout trajectories. Contains the following fields
+            observations : np.ndarray ()
+                observations along rollouts
+            actions : np.ndarray 
+                actions sampled from control distribution along rollouts
             costs : np.ndarray 
-                step costs from rollouts
-            act_seq : np.ndarray 
-                action sequence sampled from control distribution
+                step costs along rollouts
+            dones : np.ndarray
+                bool signalling end of episode
         """
         pass
 
@@ -129,7 +140,51 @@ class OLController(ABC):
 
         """
         pass
+
+    def check_convergence(self):
+        """
+        Checks if controller has converged
+        Returns False by default
+        """
+        return False
+        
+    @property
+    def set_sim_state_fn(self):
+        return self._set_sim_state_fn
     
+    
+    @set_sim_state_fn.setter
+    def set_sim_state_fn(self, fn):
+        """
+        Set function that sets the simulation 
+        environment to a particular state
+        """
+        self._set_sim_state_fn = fn
+
+    @property
+    def sim_step_fn(self):
+        return self._sim_step_fn
+    
+    @sim_step_fn.setter
+    def sim_step_fn(self, fn):
+        """
+        Set function that steps the simulation
+        environment given an action
+        """
+        self._sim_step_fn = fn
+
+    @property
+    def sim_reset_fn(self):
+        return self._sim_step_fn
+     
+    @sim_step_fn.setter
+    def sim_reset_fn(self, fn):
+        """
+        Set function that steps the simulation
+        environment given an action
+        """
+        self._sim_step_fn = fn
+
     @property
     def rollout_fn(self):
         return self._rollout_fn
@@ -141,33 +196,33 @@ class OLController(ABC):
         given function pointer
         """
         self._rollout_fn = fn
-    
-    @property
-    def set_sim_state_fn(self):
-        return self._set_sim_state_fn
-    
-    @set_sim_state_fn.setter
-    def set_sim_state_fn(self, fn):
-        """
-        Set function that sets the simulation 
-        environment to a particular state
-        """
-        self._set_sim_state_fn = fn
-
 
     def generate_rollouts(self, state):
         """
             Samples a batch of actions, rolls out trajectories for each particle
-            and returns the resulting observations, states, costs and 
+            and returns the resulting observations, costs,  
             actions
+
+            Parameters
+            ----------
+            state : dict or np.ndarray
+                Initial state to set the simulation env to
          """
         
         self._set_sim_state_fn(copy.deepcopy(state)) #set state of simulation
         act_seq = self.sample_actions() #sample actions using current control distribution
-        cost_seq = self._rollout_fn(act_seq)  # rollout function returns the costs 
-        return cost_seq, act_seq
+        obs_seq, cost_seq, done_seq, info_seq = self._rollout_fn(act_seq)  # rollout function returns the costs 
+        trajectories = dict(
+            observations=obs_seq,
+            actions=act_seq,
+            costs=cost_seq,
+            dones=done_seq,
+            env_infos=helpers.stack_tensor_dict_list(info_seq)
+        )
+        
+        return trajectories
 
-    def step(self, state, calc_val=False):
+    def optimize(self, state, calc_val=False):
         """
         Optimize for best action at current state
 
@@ -179,11 +234,16 @@ class OLController(ABC):
         calc_val : bool
             If true, calculate the optimal value estimate
             of the state along with action
+        
+        Returns
+        -------
+        action : np.ndarray ()
 
         Raises
         ------
         ValueError
-            If self._rollout_fn or self._set_sim_state_fn are None
+            If self._rollout_fn, self._set_sim_state_fn or 
+               self._sim_step_fn are None
 
         """
 
@@ -192,17 +252,20 @@ class OLController(ABC):
 
         for _ in range(self.n_iters):
             # generate random simulated trajectories
-            cost_seq, act_seq = self.generate_rollouts(copy.deepcopy(state))
+            trajectory = self.generate_rollouts(copy.deepcopy(state))
             # update distribution parameters
-            self._update_distribution(cost_seq, act_seq)
+            self._update_distribution(trajectory)
+            # check if converged
+            if self.check_convergence():
+                break
         
         #calculate best action
         curr_action = self._get_next_action(mode=self.sample_mode)
         #calculate optimal value estimate if required
         value = 0.0
         if calc_val:
-            cost_seq, act_seq = self.generate_rollouts(copy.deepcopy(state))
-            value = self._calc_val(cost_seq, act_seq)
+            trajectories = self.generate_rollouts(copy.deepcopy(state))
+            value = self._calc_val(trajectories)
 
         self.num_steps += 1
         # shift distribution to hotstart next timestep
@@ -214,11 +277,15 @@ class OLController(ABC):
         """
         Calculate optimal value of a state, i.e 
         value under optimal policy. 
-        
-        :param n_iters(int): number of iterations of optimization
-        :param horizon(int): number of actions in rollout
-        :param num_particles(int): number of particles in rollout
 
+        Parameters
+        ----------
+        state : dict or np.ndarray
+            state to calculate optimal value estimate for
+        Returns
+        -------
+        value : float
+            optimal value estimate of the state
         """
         self.reset() #reset the control distribution
         _, value = self.step(state, calc_val=True)

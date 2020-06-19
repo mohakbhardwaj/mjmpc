@@ -19,7 +19,7 @@ random_shooting:
 
 mppi:
   horizon           : 16
-  init_cov          : 1.0
+  init_cov          : 0.1
   filter_coeffs     : [0.25, 0.8, 0.0]
   gamma             : 1.0
   n_iters           : 1
@@ -33,7 +33,7 @@ cem:
   horizon           : 16
   init_cov          : 0.1
   cov_type          : 'full'
-  beta              : 0.3
+  beta              : 1.0
   filter_coeffs     : [0.25, 0.8, 0.0]
   gamma             : 1.0
   n_iters           : 1

@@ -4,15 +4,15 @@ Soft Q-learning based MPC
 Author - Mohak Bhardwaj
 Date: 7 June, 2020
 """
-from .clcontroller import CLController
-from .control_utils import generate_noise, cost_to_go
+from .controller import Controller
+from mjmpc.utils.control_utils import generate_noise, cost_to_go
 from copy import deepcopy
 import numpy as np
 import scipy.special
 import scipy.optimize
 
 
-class SoftQMPC(CLController):
+class SoftQMPC(Controller):
     def __init__(self,
                  state_dim,
                  action_dim,

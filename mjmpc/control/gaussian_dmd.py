@@ -7,7 +7,7 @@ Author - Mohak Bhardwaj
 Date - Jan 19, 2020
  
 """
-from .control_utils import cost_to_go
+from mjmpc.utils.control_utils import cost_to_go
 from .olgaussian_mpc import OLGaussianMPC
 import copy
 import numpy as np
@@ -15,6 +15,8 @@ import scipy.special
 
 class DMDMPC(OLGaussianMPC):
     def __init__(self,
+                 d_state,
+                 d_action,
                  horizon,
                  init_cov,
                  beta,
@@ -24,10 +26,11 @@ class DMDMPC(OLGaussianMPC):
                  step_size,
                  gamma,
                  n_iters,
-                 num_actions,
                  action_lows,
                  action_highs,
                  set_sim_state_fn=None,
+                 sim_step_fn=None,
+                 sim_reset_fn=None,
                  rollout_fn=None,
                  update_cov=False,
                  cov_type='diagonal',
@@ -36,19 +39,22 @@ class DMDMPC(OLGaussianMPC):
                  filter_coeffs = [1., 0., 0.],
                  seed=0):
 
-        super(DMDMPC, self).__init__(num_actions,
+        super(DMDMPC, self).__init__(d_state,
+                                     d_action,
                                      action_lows, 
                                      action_highs,
                                      horizon,
                                      init_cov,
-                                     np.zeros(shape=(horizon, num_actions)),
+                                     np.zeros(shape=(horizon, d_action)),
                                      base_action,
                                      num_particles,
                                      gamma,
                                      n_iters,
                                      step_size, 
                                      filter_coeffs, 
-                                     set_sim_state_fn, 
+                                     set_sim_state_fn,
+                                     sim_step_fn,
+                                     sim_reset_fn,
                                      rollout_fn,
                                      cov_type,
                                      sample_mode,
@@ -58,12 +64,14 @@ class DMDMPC(OLGaussianMPC):
         self.beta = beta
         self.update_cov = update_cov
 
-    def _update_distribution(self, costs, act_seq):
+    def _update_distribution(self, trajectories):
         """
            Update moments in the direction of current gradient estimated
            using samples
         """
-        delta = act_seq - self.mean_action[None, :, :]
+        costs = trajectories["costs"].copy()
+        actions = trajectories["actions"].copy()
+        delta = actions - self.mean_action[None, :, :]
         w = self._exp_util(costs)
 
         if self.update_cov:
@@ -81,7 +89,7 @@ class DMDMPC(OLGaussianMPC):
             self.cov_action = (1.0 - self.step_size) * self.cov_action +\
                                     self.step_size * cov_update
 
-        weighted_seq = w * act_seq.T
+        weighted_seq = w * actions.T
         self.mean_action = (1.0 - self.step_size) * self.mean_action +\
                             self.step_size * np.sum(weighted_seq.T, axis=0)
 
@@ -114,10 +122,9 @@ class DMDMPC(OLGaussianMPC):
         #         cov_shifted = (1-self.beta) * self.cov_action + self.beta * self.prior_cov
         #         self.cov_action = update * cov_shifted + (1.0 - update) * self.cov_action
     
-    def _calc_val(self, cost_seq, act_seq):
-        # self._set_sim_state_fn(copy.deepcopy(state)) #set state of simulation
-        # cost_seq, act_seq = self._generate_rollouts()
-        traj_costs = cost_to_go(cost_seq,self.gamma_seq)[:,0]
+    def _calc_val(self, trajectories):
+        costs = trajectories["costs"].copy()
+        traj_costs = cost_to_go(costs,self.gamma_seq)[:,0]
 
 		# calculate log-sum-exp
         # c = (-1.0/self.lam) * traj_costs.copy()

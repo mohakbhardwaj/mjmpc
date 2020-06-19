@@ -3,6 +3,8 @@
 Base class for closed-loop controllers
 Author - Mohak Bhardwaj
 Date: 7 June, 2020
+
+DEPRECATED!!!!!
 """
 from abc import ABC, abstractmethod
 import copy

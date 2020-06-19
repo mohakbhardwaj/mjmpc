@@ -19,7 +19,6 @@ except ImportError:
 import mjmpc.envs
 from mjmpc.envs import GymEnvWrapper
 from mjmpc.envs.vec_env import SubprocVecEnv
-from mjrl.utils import tensor_utils
 from mjmpc.utils import LoggerClass, timeit, helpers
 from mjmpc.policies import MPCPolicy
 
@@ -55,10 +54,13 @@ d_action = env.action_space.high.shape[0]
 controller_name = args.controller
 policy_params = exp_params[controller_name]
 policy_params['base_action'] = exp_params['base_action']
-policy_params['num_actions'] = env.action_space.low.shape[0]
+policy_params['d_state'] = d_obs
+policy_params['d_action'] = d_action
 policy_params['action_lows'] = env.action_space.low
 policy_params['action_highs'] = env.action_space.high
-policy_params['num_particles'] = policy_params['num_cpu'] * policy_params['particles_per_cpu']
+if 'num_cpu' and 'particles_per_cpu' in policy_params:
+    policy_params['num_particles'] = policy_params['num_cpu'] * policy_params['particles_per_cpu']
+
 num_cpu = policy_params['num_cpu']
 n_episodes = exp_params['n_episodes']
 base_seed = exp_params['seed']
@@ -68,12 +70,12 @@ ep_length = exp_params['max_ep_length']
 #Create vectorized environments for MPC simulations
 sim_env = SubprocVecEnv([make_env for i in range(num_cpu)])  
 
-#Create functions for controller
-def set_sim_state_fn(state_dict: dict):
-    """
-    Set state of simulation environments for rollouts
-    """
-    sim_env.set_env_state(state_dict)
+# #Create functions for controller
+# def set_sim_state_fn(state_dict: dict):
+#     """
+#     Set state of simulation environments for rollouts
+#     """
+#     sim_env.set_env_state(state_dict)
 
 def rollout_fn(u_vec: np.ndarray):
     """
@@ -81,10 +83,12 @@ def rollout_fn(u_vec: np.ndarray):
     in sim envs and return sequence of costs. The controller is 
     agnostic of how the rollouts are generated.
     """
-    obs_vec, rew_vec, done_vec, _ = sim_env.rollout(u_vec.copy())
-    return -1.0*rew_vec #we assume environment returns rewards, but controller needs costs
+    obs_vec, rew_vec, done_vec, info_vec = sim_env.rollout(u_vec.copy())
+    #we assume environment returns rewards, but controller needs costs
+    return obs_vec, -1.0*rew_vec, done_vec, info_vec
 
-del policy_params['particles_per_cpu'], policy_params['num_cpu']
+policy_params.pop('particles_per_cpu', None)
+policy_params.pop('num_cpu', None)
 
 #Create logger
 date_time = datetime.now().strftime("%m_%d_%Y_%H_%M_%S")
@@ -107,7 +111,9 @@ for i in tqdm.tqdm(range(n_episodes)):
     #create MPC policy and set appropriate functions
     policy = MPCPolicy(controller_type=controller_name,
                         param_dict=policy_params, batch_size=1) #Only batch_size=1 is supported for now
-    policy.controller.set_sim_state_fn = set_sim_state_fn
+    policy.controller.set_sim_state_fn = sim_env.set_env_state
+    policy.controller.sim_step_fn = sim_env.step
+    policy.controller.sim_reset_fn = sim_env.reset
     policy.controller.rollout_fn = rollout_fn
     
     #Collect data from interactions with environment
@@ -128,7 +134,7 @@ for i in tqdm.tqdm(range(n_episodes)):
         actions=np.array(actions),
         rewards=np.array(rewards),
         dones=np.array(dones),
-        env_infos=tensor_utils.stack_tensor_dict_list(infos),
+        env_infos=helpers.stack_tensor_dict_list(infos),
         states=states
     )
     trajectories.append(traj)
@@ -144,11 +150,13 @@ logger.info('Avg. reward = {0}, Std. Reward = {1}, Success Metric = {2}'.format(
 
 #Can also dump data to csv once done
 logger.record_tabular("Horizon", policy_params['horizon'])
-logger.record_tabular("NumParticles", policy_params['num_particles'])
 logger.record_tabular("AverageReward", average_reward)
 logger.record_tabular("StdReward", reward_std)
 logger.record_tabular("SuccessMetric", success_metric)
 logger.record_tabular("NumEpisodes", exp_params['n_episodes'])
+if 'num_particles' in policy_params:
+    logger.record_tabular("NumParticles", policy_params['num_particles'])
+
 logger.dump_tabular()
 
 if args.dump_vids:

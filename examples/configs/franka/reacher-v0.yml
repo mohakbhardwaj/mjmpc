@@ -1,5 +1,5 @@
 env_name          : 'franka_reacher-v0'
-n_episodes        : 10
+n_episodes        : 5
 max_ep_length     : 150
 seed              : 123
 base_action       : 'null'
@@ -28,7 +28,6 @@ mppi:
   alpha             : 1
   num_cpu           : 8
   particles_per_cpu : 5
-
 
 cem:
   horizon           : 32

@@ -8,6 +8,13 @@ job_mode          : 'sweep'
 exp_notes         : 'Swingup of cartpole'
 
 
+ilqr:
+  horizon           : 32
+  gamma             : 1.0
+  n_iters           : 1
+  num_cpu           : 1
+  sample_mode       : 'mean'
+
 random_shooting:
   horizon           : 32
   init_cov          : 0.15

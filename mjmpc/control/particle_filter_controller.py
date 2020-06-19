@@ -5,15 +5,17 @@ Particle Filter MPC
 Author - Mohak Bhardwaj
 
 """
-from .olcontroller import OLController
-from .control_utils import generate_noise, cost_to_go
+from .controller import Controller
+from mjmpc.utils.control_utils import generate_noise, cost_to_go
 import copy
 import numpy as np
 import random
 import scipy.special
 
-class PFMPC(OLController):
+class PFMPC(Controller):
     def __init__(self,
+                 d_state,
+                 d_action,
                  horizon,
                  cov_shift,
                  cov_resample,
@@ -22,29 +24,44 @@ class PFMPC(OLController):
                  num_particles,
                  gamma,
                  n_iters,
-                 num_actions,
                  action_lows,
                  action_highs,
                  set_sim_state_fn=None,
+                 sim_step_fn=None,
+                 sim_reset_fn=None,
                  rollout_fn=None,
                  batch_size=1,
                  filter_coeffs=[1., 0., 0.],
                  seed=0):
+        """
+        Parameters
+        __________
+        base_action : str
+            Action to append at the end when shifting solution to next timestep
+            'random' : appends random action
+            'null' : appends zero action
+            'repeat' : repeats second to last action
+        num_particles : int
+            Number of particles sampled at every iteration
+        """
 
-        super(PFMPC, self).__init__(num_actions,
+        super(PFMPC, self).__init__(d_state,
+                                    d_action,
                                     action_lows,
                                     action_highs,
                                     horizon,
-                                    num_particles,
                                     gamma,
                                     n_iters,
                                     set_sim_state_fn,
+                                    sim_step_fn,
+                                    sim_reset_fn,
                                     rollout_fn,
                                     batch_size,
                                     seed)
         self.lam = lam
-        self.cov_shift = np.diag(np.array([cov_shift] * self.num_actions))
-        self.cov_resample = np.diag(np.array([cov_resample] * self.num_actions))
+        self.num_particles = num_particles
+        self.cov_shift = np.diag(np.array([cov_shift] * self.d_action))
+        self.cov_resample = np.diag(np.array([cov_resample] * self.d_action))
         self.base_action = base_action
         self.filter_coeffs = filter_coeffs
         random.seed(self.seed)
@@ -53,11 +70,12 @@ class PFMPC(OLController):
                                              base_seed=self.seed)
 
 
-    def _update_distribution(self, costs, act_seq):
+    def _update_distribution(self, trajectories):
         """
             Calculate weights for particles and resample
 
         """
+        costs = trajectories["costs"].copy()
         w = self._exp_util(costs)
         random.seed(self.seed + self.num_steps)
         np.random.seed(self.seed + self.num_steps)
@@ -75,13 +93,14 @@ class PFMPC(OLController):
         w = scipy.special.softmax((-1.0/self.lam) * traj_costs)
         return w
     
-    def _sample_actions(self):
+    def sample_actions(self):
         return self.action_samples
 
-    def _get_next_action(self):
+    def _get_next_action(self, mode='mean'):
         """
             Return the average of current action samples
-            TODO: Add other sampling strategies
+            TODO: Add other modes like
+                  sample, best
         """
         action = np.mean(self.action_samples, axis=0)[0].copy()
         return action
@@ -102,9 +121,9 @@ class PFMPC(OLController):
         #append base action to the end
         if self.base_action == 'random':
             self.action_samples[:, -1] = np.random.normal(
-                0, self.cov_resample, self.num_actions)
+                0, self.cov_resample, self.d_action)
         elif self.base_action == 'null':
-            self.action_samples[:, -1] = np.zeros((self.num_particles, self.num_actions))
+            self.action_samples[:, -1] = np.zeros((self.num_particles, self.d_action))
         elif self.base_action == 'repeat':
             self.action_samples[:, -1] = self.action_samples[:, -2]
         else:
@@ -134,5 +153,5 @@ class PFMPC(OLController):
         
         return act_seq2
 
-    def _calc_val(self, cost_seq, act_seq):
+    def _calc_val(self, trajectories):
         raise NotImplementedError("_calc val not implemented yet")

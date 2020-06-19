@@ -19,6 +19,9 @@ dependencies:
     - mujoco-py<2.1,>=2.0
     - pyyaml
     - scipy
+    - tensorboard
+    - torch
+    - torchvision
     - tqdm==4.32.1
     - wheel
     
