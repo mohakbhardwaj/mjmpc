@@ -20,9 +20,6 @@ class Controller(ABC):
                  gamma,
                  n_iters,
                  set_sim_state_fn=None,
-                 get_sim_state_fn=None,
-                 sim_step_fn=None,
-                 sim_reset_fn=None,
                  rollout_fn=None,
                  sample_mode='mean',
                  batch_size=1,
@@ -73,9 +70,6 @@ class Controller(ABC):
         self.gamma_seq = np.cumprod([1.0] + [self.gamma] * (horizon - 1)).reshape(1, horizon)
         self.n_iters = n_iters
         self._set_sim_state_fn = set_sim_state_fn
-        self._get_sim_state_fn = get_sim_state_fn
-        self._sim_step_fn = sim_step_fn
-        self._sim_reset_fn = sim_reset_fn
         self._rollout_fn = rollout_fn
         self.sample_mode = sample_mode
         self.batch_size = batch_size
@@ -166,43 +160,6 @@ class Controller(ABC):
         environment to a particular state
         """
         self._set_sim_state_fn = fn
-
-    @property
-    def get_sim_state_fn(self):
-        return self._get_sim_state_fn
-    
-    
-    @get_sim_state_fn.setter
-    def get_sim_state_fn(self, fn):
-        """
-        Set function that gets the simulation 
-        environment to a particular state
-        """
-        self._get_sim_state_fn = fn
-
-    @property
-    def sim_step_fn(self):
-        return self._sim_step_fn
-    
-    @sim_step_fn.setter
-    def sim_step_fn(self, fn):
-        """
-        Set function that steps the simulation
-        environment given an action
-        """
-        self._sim_step_fn = fn
-
-    @property
-    def sim_reset_fn(self):
-        return self._sim_reset_fn
-     
-    @sim_step_fn.setter
-    def sim_reset_fn(self, fn):
-        """
-        Set function that steps the simulation
-        environment given an action
-        """
-        self._sim_reset_fn = fn
 
     @property
     def rollout_fn(self):

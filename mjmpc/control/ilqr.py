@@ -45,16 +45,54 @@ class ILQR(Controller):
                                    gamma,  
                                    n_iters,
                                    set_sim_state_fn,
-                                   get_sim_state_fn,
-                                   sim_step_fn,
-                                   sim_reset_fn,
                                    rollout_fn,
                                    sample_mode,
                                    batch_size,
                                    seed)
+                                   
+        self._get_sim_state_fn = get_sim_state_fn
+        self._sim_step_fn = sim_step_fn
+        self._sim_reset_fn = sim_reset_fn
         self._get_sim_obs_fn = get_sim_obs_fn
         self.base_action = base_action
         self.mean_action = np.zeros((self.horizon, self.d_action))
+    
+    @property
+    def sim_step_fn(self):
+        return self._sim_step_fn
+    
+    @sim_step_fn.setter
+    def sim_step_fn(self, fn):
+        """
+        Set function that steps the simulation
+        environment given an action
+        """
+        self._sim_step_fn = fn
+
+    @property
+    def sim_reset_fn(self):
+        return self._sim_reset_fn
+     
+    @sim_step_fn.setter
+    def sim_reset_fn(self, fn):
+        """
+        Set function that steps the simulation
+        environment given an action
+        """
+        self._sim_reset_fn = fn
+
+    @property
+    def get_sim_state_fn(self):
+        return self._get_sim_state_fn
+    
+    
+    @get_sim_state_fn.setter
+    def get_sim_state_fn(self, fn):
+        """
+        Set function that gets the simulation 
+        environment to a particular state
+        """
+        self._get_sim_state_fn = fn
 
     @property
     def get_sim_obs_fn(self):
@@ -63,7 +101,7 @@ class ILQR(Controller):
     @get_sim_obs_fn.setter
     def get_sim_obs_fn(self, fn):
         self._get_sim_obs_fn = fn
-
+        
     def _get_next_action(self, mode='mean'):
         """
         Get action to execute on the system based

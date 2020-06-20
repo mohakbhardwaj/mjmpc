@@ -103,11 +103,11 @@ for i in tqdm.tqdm(range(n_episodes)):
     policy = MPCPolicy(controller_type=controller_name,
                         param_dict=policy_params, batch_size=1) #Only batch_size=1 is supported for now
     policy.controller.set_sim_state_fn = sim_env.set_env_state
-    policy.controller.get_sim_state_fn = sim_env.get_env_state
-    policy.controller.sim_step_fn = sim_env.step
-    policy.controller.sim_reset_fn = sim_env.reset
     policy.controller.rollout_fn = rollout_fn
     if controller_name in ['ilqr', 'softqmpc']:
+        policy.controller.get_sim_state_fn = sim_env.get_env_state
+        policy.controller.sim_step_fn = sim_env.step
+        policy.controller.sim_reset_fn = sim_env.reset
         policy.controller.get_sim_obs_fn = sim_env.get_obs
     
     #Collect data from interactions with environment
