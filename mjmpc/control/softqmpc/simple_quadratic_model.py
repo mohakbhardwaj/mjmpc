@@ -110,7 +110,7 @@ if __name__ == "__main__":
     targets = get_targets(states, actions)
     #Fit a quadratic Q function
     Q = SimpleQuadraticQFunc(d_state, d_action)
-    optimizer = optim.SGD(Q.parameters(), lr=0.001, momentum=0.9, weight_decay=0.001)
+    optimizer = optim.SGD(Q.parameters(), lr=0.001, weight_decay=0.001)
     for i in range(1000): 
         optimizer.zero_grad()
         loss = Q.loss(states, actions, targets)
