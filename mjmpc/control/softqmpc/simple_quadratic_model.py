@@ -65,8 +65,8 @@ class SimpleQuadraticQFunc(nn.Module):
 
 if __name__ == "__main__":
     import torch.optim as optim
-    from mpl_toolkits.mplot3d import axes3d
-    import matplotlib.pyplot as plt
+    #from mpl_toolkits.mplot3d import axes3d
+    #import matplotlib.pyplot as plt
     import numpy as np
     import os
 
@@ -78,10 +78,6 @@ if __name__ == "__main__":
     Ptrue = torch.eye(d_state + d_action)
     Rtrue = torch.ones(d_state + d_action)
     ctrue = 0.0
-    print('True parameters')
-    print("P = ", Ptrue)
-    print("R = ", Rtrue)
-    print("c = ", ctrue)
     
     def get_targets(states, actions):
         inps = torch.cat((states, actions))
@@ -108,17 +104,30 @@ if __name__ == "__main__":
     states = torch.rand(1, num_pts)
     actions = torch.rand(1, num_pts)
     targets = get_targets(states, actions)
+
     #Fit a quadratic Q function
     Q = SimpleQuadraticQFunc(d_state, d_action)
-    optimizer = optim.SGD(Q.parameters(), lr=0.001, weight_decay=0.001)
+    optimizer = optim.SGD(Q.parameters(), lr=1.0, weight_decay=0.0)
     for i in range(1000): 
         optimizer.zero_grad()
         loss = Q.loss(states, actions, targets)
         loss.backward()
         optimizer.step()
-        # print('loss = {0}'.format(loss.item()))
+        #print('loss = {0}'.format(loss.item()))
     P, R, c = Q.get_matrix_repr()
+
+
+    print('True parameters')
+    print("P = ", Ptrue)
+    print("R = ", Rtrue)
+    print("c = ", ctrue)
+
     print('Optimized parameters')
     print("P = ", P)
     print("R = ", R)
     print("c = ", c)
+
+    print("Eval")
+    #print(Q(torch.ones(1,1)*0.4963, torch.ones(1,1)*0.2387))
+    print(targets)
+    print(Q(states, actions))
