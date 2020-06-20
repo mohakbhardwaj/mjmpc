@@ -6,8 +6,8 @@ from .ilqr import ILQR
 from .mppi import MPPI
 from .particle_filter_controller import PFMPC
 from .random_shooting import RandomShooting
-from .softq import SoftQMPC
-
+from softqmpc.softq_controller import SoftQMPC
+import softqmpc
 
 
 __all__ = ["Controller", "OLGaussianMPC", "CEM", "DMDMPC", "ILQR", "MPPI", "PFMPC", 

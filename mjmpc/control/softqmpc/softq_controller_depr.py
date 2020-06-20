@@ -4,7 +4,7 @@ Soft Q-learning based MPC
 Author - Mohak Bhardwaj
 Date: 7 June, 2020
 """
-from .controller import Controller
+from mjmpc.control.controller import Controller
 from mjmpc.utils.control_utils import generate_noise, cost_to_go
 from copy import deepcopy
 import numpy as np
