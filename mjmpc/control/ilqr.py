@@ -1,7 +1,7 @@
 """
 Iterative Linear Quadratic Regulator
 """
-import copy
+from copy import deepcopy
 import numpy as np
 from .controller import Controller
 from mjmpc.utils import helpers
@@ -9,6 +9,7 @@ from mjmpc.utils import helpers
 class ILQR(Controller):
     def __init__(self, 
                  d_state,
+                 d_obs,
                  d_action,                
                  action_lows,
                  action_highs,
@@ -17,6 +18,8 @@ class ILQR(Controller):
                  gamma,
                  n_iters,
                  set_sim_state_fn=None,
+                 get_sim_state_fn=None,
+                 get_sim_obs_fn=None,
                  sim_step_fn=None,
                  sim_reset_fn=None,
                  rollout_fn=None,
@@ -34,21 +37,32 @@ class ILQR(Controller):
         """
 
         super(ILQR, self).__init__(d_state,
-                                    d_action,
-                                    action_lows, 
-                                    action_highs,
-                                    horizon,
-                                    gamma,  
-                                    n_iters,
-                                    set_sim_state_fn,
-                                    sim_step_fn,
-                                    sim_reset_fn,
-                                    rollout_fn,
-                                    sample_mode,
-                                    batch_size,
-                                    seed)
+                                   d_obs,
+                                   d_action,
+                                   action_lows, 
+                                   action_highs,
+                                   horizon,
+                                   gamma,  
+                                   n_iters,
+                                   set_sim_state_fn,
+                                   get_sim_state_fn,
+                                   sim_step_fn,
+                                   sim_reset_fn,
+                                   rollout_fn,
+                                   sample_mode,
+                                   batch_size,
+                                   seed)
+        self._get_sim_obs_fn = get_sim_obs_fn
         self.base_action = base_action
         self.mean_action = np.zeros((self.horizon, self.d_action))
+
+    @property
+    def get_sim_obs_fn(self):
+        return self._get_sim_obs_fn
+    
+    @get_sim_obs_fn.setter
+    def get_sim_obs_fn(self, fn):
+        self._get_sim_obs_fn = fn
 
     def _get_next_action(self, mode='mean'):
         """
@@ -78,27 +92,42 @@ class ILQR(Controller):
             ----------
             state : dict or np.ndarray
                 Initial state to rollout from
+                
          """
         
-        self._set_sim_state_fn(copy.deepcopy(state)) #set state of simulation
-        obs_seq = np.zeros((self.horizon, self.d_state))
+        self._set_sim_state_fn(deepcopy(state)) #set state of simulation
+        obs_seq = np.zeros((self.horizon, self.d_obs))
         act_seq = np.zeros((self.horizon, self.d_action))
+        state_seq = []
         cost_seq = np.zeros((self.horizon, 1))
         done_seq = np.zeros((self.horizon, 1), dtype=bool)
-        info_seq = [{}]
-        for i in range(self.horizon):
+
+        curr_state = self._get_sim_state_fn()[0]
+        curr_obs = self._get_sim_obs_fn()
+        for t in range(self.horizon):
             #use control matrix + sim_step_fn
-            pass
+            curr_act = np.zeros(self.d_action) #TODO: You choose an action
+            next_obs, rew, done, _ = self._sim_step_fn(curr_act) #step current action
+            next_state = self._get_sim_state_fn()[0]
 
+            #Append data to sequence
+            obs_seq[t, :] = curr_obs.copy()
+            act_seq[t, :] = curr_act.copy()
+            cost_seq[t, :] = -1.0 * rew
+            state_seq.append(deepcopy(curr_state))
+            done_seq[t, :] = done
 
+            curr_obs = next_obs.copy()
+            curr_state = deepcopy(next_state)
+                
         trajectories = dict(
             observations=obs_seq,
             actions=act_seq,
             costs=cost_seq,
             dones=done_seq,
-            env_infos=helpers.stack_tensor_dict_list(info_seq)
+            states=state_seq
         )
-        
+
         return trajectories
 
     def _update_distribution(self, trajectories):

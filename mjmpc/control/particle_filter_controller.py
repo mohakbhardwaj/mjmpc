@@ -15,6 +15,7 @@ import scipy.special
 class PFMPC(Controller):
     def __init__(self,
                  d_state,
+                 d_obs,
                  d_action,
                  horizon,
                  cov_shift,
@@ -27,6 +28,7 @@ class PFMPC(Controller):
                  action_lows,
                  action_highs,
                  set_sim_state_fn=None,
+                 get_sim_state_fn=None,
                  sim_step_fn=None,
                  sim_reset_fn=None,
                  rollout_fn=None,
@@ -46,6 +48,7 @@ class PFMPC(Controller):
         """
 
         super(PFMPC, self).__init__(d_state,
+                                    d_obs,
                                     d_action,
                                     action_lows,
                                     action_highs,
@@ -53,6 +56,7 @@ class PFMPC(Controller):
                                     gamma,
                                     n_iters,
                                     set_sim_state_fn,
+                                    get_sim_state_fn,
                                     sim_step_fn,
                                     sim_reset_fn,
                                     rollout_fn,

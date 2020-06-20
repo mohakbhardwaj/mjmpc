@@ -23,7 +23,15 @@ class GymEnvWrapper():
             for k in observation.keys():
                 self.d_obs += observation[k].size
         else: self.d_obs = observation.size
-        # self.d_obs = np.sum([o.size for o in observation]) if type(observation) is tuple else observation.size
+        state = self.get_env_state()
+        if type(state) is tuple:
+            self.d_state = np.sum([o.size for o in state])
+        elif type(state) is dict:
+            self.d_state = 0
+            for k in state.keys():
+                self.d_state += state[k].size
+        else: self.d_state = state.size
+        self.d_action = self.env.action_space.low.shape[0]
 
         self.observation_space = self.env.observation_space
         self.action_space = self.env.action_space
@@ -53,7 +61,7 @@ class GymEnvWrapper():
             return self.env.get_env_state()
         except:
             return self.env.env.get_env_state()
-    
+
     def get_obs(self) -> dict:
         """
         Return dictionary of the full environment state
@@ -112,40 +120,40 @@ class GymEnvWrapper():
         # self.rollout_test(u_vec)
         return obs_vec, rew_vec, done_vec, {} #state_vec
     
-    def rollout_test(self, u_vec: np.ndarray):
-        start_t = time.time()
-        batch_size, n_steps, d_action = u_vec.shape
-        if type(self.observation_space) is spaces.Dict:
-            obs_vec = []
-        else: obs_vec = np.zeros((batch_size, n_steps, self.d_obs))
-        # state_vec = [] #np.zeros((self.batch_size, n_steps, self.d_state))
-        # rew_vec = np.zeros((batch_size, n_steps))
-        # done_vec = np.zeros((batch_size, n_steps))
-        curr_state = deepcopy(self.get_env_state())
+    # def rollout_test(self, u_vec: np.ndarray):
+    #     start_t = time.time()
+    #     batch_size, n_steps, d_action = u_vec.shape
+    #     if type(self.observation_space) is spaces.Dict:
+    #         obs_vec = []
+    #     else: obs_vec = np.zeros((batch_size, n_steps, self.d_obs))
+    #     # state_vec = [] #np.zeros((self.batch_size, n_steps, self.d_state))
+    #     # rew_vec = np.zeros((batch_size, n_steps))
+    #     # done_vec = np.zeros((batch_size, n_steps))
+    #     curr_state = deepcopy(self.get_env_state())
 
-        for b in range(batch_size):
-            #Set the state to the current state
-            self.set_env_state(curr_state)
-            #Rollout for t steps and store results
-            for t in range(n_steps):
-                u_curr = u_vec[b, t, :]
+    #     for b in range(batch_size):
+    #         #Set the state to the current state
+    #         self.set_env_state(curr_state)
+    #         #Rollout for t steps and store results
+    #         for t in range(n_steps):
+    #             u_curr = u_vec[b, t, :]
             
-                for i in range(self.env.env.model.nu):
-                    self.env.env.sim.data.ctrl[i] = u_curr[i]
-                for _ in range(self.env.env.frame_skip):
-                    self.env.env.sim.step()
-                # obs, rew, done, _ = self.step(u_curr)
-                # if type(self.observation_space) is spaces.Dict:
-                #     obs_vec.append(obs.copy())
-                # else:
-                #     obs_vec[b, t, :] = obs.copy().reshape(self.d_obs,)
-                # state = self.get_env_state()
-                # state_vec.append(state.copy())
-                # rew_vec[b, t] = rew
-                # done_vec[b, t] = done
-        print('Test rollout time = {0}'.format(time.time()-start_t))
+    #             for i in range(self.env.env.model.nu):
+    #                 self.env.env.sim.data.ctrl[i] = u_curr[i]
+    #             for _ in range(self.env.env.frame_skip):
+    #                 self.env.env.sim.step()
+    #             # obs, rew, done, _ = self.step(u_curr)
+    #             # if type(self.observation_space) is spaces.Dict:
+    #             #     obs_vec.append(obs.copy())
+    #             # else:
+    #             #     obs_vec[b, t, :] = obs.copy().reshape(self.d_obs,)
+    #             # state = self.get_env_state()
+    #             # state_vec.append(state.copy())
+    #             # rew_vec[b, t] = rew
+    #             # done_vec[b, t] = done
+    #     print('Test rollout time = {0}'.format(time.time()-start_t))
 
-        return None, None, None, None #obs_vec, rew_vec, done_vec, {} #state_vec 
+    #     return None, None, None, None #obs_vec, rew_vec, done_vec, {} #state_vec 
     
 
     # cpdef rollout(self, double[:,:,:] u_vec):

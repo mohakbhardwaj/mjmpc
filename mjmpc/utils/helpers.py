@@ -85,7 +85,7 @@ def stack_tensor_list(tensor_list):
     # if tensor_shape is tuple():
     #     return np.array(tensor_list)
     # return np.vstack(tensor_list)
-    
+
 def stack_tensor_dict_list(tensor_dict_list):
     """
     Stack a list of dictionaries of {tensors or dictionary of tensors}.
@@ -102,3 +102,24 @@ def stack_tensor_dict_list(tensor_dict_list):
             v = stack_tensor_list([x[k] for x in tensor_dict_list])
         ret[k] = v
     return ret
+
+def tensor_dict_list_to_array(tensor_dict_list):
+    """
+    Stack a list of dictionaries into a numpy array 
+    :param tensor_dict_list: a list of dictionaries of tensors
+    :return numpy array
+    """
+    ret = []
+    for d in tensor_dict_list:
+        # curr_vals = []
+        # for k in d.keys():
+            # curr_vals.append(d[k])
+        # curr_vals = np.array(curr_vals)
+        curr_vals = np.concatenate([d[k] for k in d.keys()])
+        
+        ret.append(curr_vals.copy())
+    return np.array(ret)
+
+def tensor_dict_to_array(tensor_dict):
+    vals = np.concatenate([tensor_dict[k] for k in tensor_dict.keys()])
+    return np.array(vals)

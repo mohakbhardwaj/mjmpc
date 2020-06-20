@@ -37,6 +37,8 @@ def _worker(remote, parent_remote, env_fn_wrapper):
                 remote.send(getattr(env, data))
             elif cmd == 'set_attr':
                 remote.send(setattr(env, data[0], data[1]))
+            elif cmd == 'get_obs':
+                remote.send(env.get_obs())
             elif cmd == 'set_env_state':
                 remote.send(env.set_env_state(data))
             elif cmd == 'get_env_state':
@@ -103,8 +105,12 @@ class SubprocVecEnv(VecEnv):
         VecEnv.__init__(self, len(env_fns), observation_space, action_space)
 
     def step_async(self, actions):
-        for remote, action in zip(self.remotes, actions):
-            remote.send(('step', action))
+        if np.size(actions.shape) > 1:
+            for remote, action in zip(self.remotes, actions):
+                remote.send(('step', action))
+        else:
+            for remote in self.remotes:
+                remote.send(('step', actions))
         self.waiting = True
 
     def step_wait(self):
@@ -171,6 +177,18 @@ class SubprocVecEnv(VecEnv):
             return bigimg
         else:
             raise NotImplementedError
+    
+    def get_obs(self):
+        for remote in self.remotes:
+            remote.send(('get_obs', None))
+        observations = [remote.recv() for remote in self.remotes]
+        stacked_obs = np.concatenate(observations)
+        return stacked_obs
+
+
+    # --------------------------------
+    # get and set states
+    # --------------------------------
 
     def set_env_state(self, state_dicts):
         """

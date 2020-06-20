@@ -12,6 +12,7 @@ from mjmpc.utils import helpers
 class Controller(ABC):
     def __init__(self,
                  d_state,
+                 d_obs,
                  d_action,
                  action_lows,
                  action_highs,
@@ -19,6 +20,7 @@ class Controller(ABC):
                  gamma,
                  n_iters,
                  set_sim_state_fn=None,
+                 get_sim_state_fn=None,
                  sim_step_fn=None,
                  sim_reset_fn=None,
                  rollout_fn=None,
@@ -44,6 +46,8 @@ class Controller(ABC):
             number of optimization iterations
         set_sim_state_fn : function  
             set state of simulator using input
+        get_sim_state_fn : function
+            get state from the simulator
         sim_step_fn : function
             steps the simulator and returns obs, reward, done, info
         sim_reset_fn : function
@@ -60,6 +64,7 @@ class Controller(ABC):
             seed value
         """
         self.d_state = d_state
+        self.d_obs = d_obs
         self.d_action = d_action
         self.action_lows = action_lows
         self.action_highs = action_highs
@@ -68,6 +73,7 @@ class Controller(ABC):
         self.gamma_seq = np.cumprod([1.0] + [self.gamma] * (horizon - 1)).reshape(1, horizon)
         self.n_iters = n_iters
         self._set_sim_state_fn = set_sim_state_fn
+        self._get_sim_state_fn = get_sim_state_fn
         self._sim_step_fn = sim_step_fn
         self._sim_reset_fn = sim_reset_fn
         self._rollout_fn = rollout_fn
@@ -162,6 +168,19 @@ class Controller(ABC):
         self._set_sim_state_fn = fn
 
     @property
+    def get_sim_state_fn(self):
+        return self._get_sim_state_fn
+    
+    
+    @get_sim_state_fn.setter
+    def get_sim_state_fn(self, fn):
+        """
+        Set function that gets the simulation 
+        environment to a particular state
+        """
+        self._get_sim_state_fn = fn
+
+    @property
     def sim_step_fn(self):
         return self._sim_step_fn
     
@@ -175,7 +194,7 @@ class Controller(ABC):
 
     @property
     def sim_reset_fn(self):
-        return self._sim_step_fn
+        return self._sim_reset_fn
      
     @sim_step_fn.setter
     def sim_reset_fn(self, fn):
@@ -183,7 +202,7 @@ class Controller(ABC):
         Set function that steps the simulation
         environment given an action
         """
-        self._sim_step_fn = fn
+        self._sim_reset_fn = fn
 
     @property
     def rollout_fn(self):

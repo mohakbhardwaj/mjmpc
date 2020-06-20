@@ -80,3 +80,10 @@ softq:
   tol               : 0.0001
   num_samples       : 500
   # num_rollouts      : 1
+
+ilqr:
+  horizon           : 32
+  gamma             : 1.0
+  n_iters           : 1
+  num_cpu           : 1
+  sample_mode       : 'mean'

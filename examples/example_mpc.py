@@ -47,15 +47,13 @@ def make_env():
     rollout_env.real_env_step(False)
     return rollout_env
 
-d_obs = env.observation_space.high.shape[0]
-d_action = env.action_space.high.shape[0]
-
 #unpack params and create policy params
 controller_name = args.controller
 policy_params = exp_params[controller_name]
 policy_params['base_action'] = exp_params['base_action']
-policy_params['d_state'] = d_obs
-policy_params['d_action'] = d_action
+policy_params['d_obs'] = env.d_obs
+policy_params['d_state'] = env.d_state
+policy_params['d_action'] = env.d_action
 policy_params['action_lows'] = env.action_space.low
 policy_params['action_highs'] = env.action_space.high
 if 'num_cpu' and 'particles_per_cpu' in policy_params:
@@ -69,13 +67,6 @@ ep_length = exp_params['max_ep_length']
 
 #Create vectorized environments for MPC simulations
 sim_env = SubprocVecEnv([make_env for i in range(num_cpu)])  
-
-# #Create functions for controller
-# def set_sim_state_fn(state_dict: dict):
-#     """
-#     Set state of simulation environments for rollouts
-#     """
-#     sim_env.set_env_state(state_dict)
 
 def rollout_fn(u_vec: np.ndarray):
     """
@@ -112,9 +103,12 @@ for i in tqdm.tqdm(range(n_episodes)):
     policy = MPCPolicy(controller_type=controller_name,
                         param_dict=policy_params, batch_size=1) #Only batch_size=1 is supported for now
     policy.controller.set_sim_state_fn = sim_env.set_env_state
+    policy.controller.get_sim_state_fn = sim_env.get_env_state
     policy.controller.sim_step_fn = sim_env.step
     policy.controller.sim_reset_fn = sim_env.reset
     policy.controller.rollout_fn = rollout_fn
+    if controller_name in ['ilqr', 'softqmpc']:
+        policy.controller.get_sim_obs_fn = sim_env.get_obs
     
     #Collect data from interactions with environment
     observations = []; actions = []; rewards = []; dones  = []

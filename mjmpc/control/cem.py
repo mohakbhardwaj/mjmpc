@@ -15,6 +15,7 @@ import numpy as np
 class CEM(OLGaussianMPC):
     def __init__(self,
                  d_state,
+                 d_obs,
                  d_action,
                  horizon,
                  init_cov,
@@ -27,6 +28,7 @@ class CEM(OLGaussianMPC):
                  action_lows,
                  action_highs,
                  set_sim_state_fn=None,
+                 get_sim_state_fn=None,
                  sim_step_fn=None,
                  sim_reset_fn=None,
                  rollout_fn=None,
@@ -39,6 +41,7 @@ class CEM(OLGaussianMPC):
 
 
         super(CEM, self).__init__(d_state,
+                                  d_obs,
                                   d_action,
                                   action_lows, 
                                   action_highs,
@@ -52,6 +55,7 @@ class CEM(OLGaussianMPC):
                                   step_size,
                                   filter_coeffs, 
                                   set_sim_state_fn,
+                                  get_sim_state_fn,
                                   sim_step_fn,
                                   sim_reset_fn,
                                   rollout_fn,
