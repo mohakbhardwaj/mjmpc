@@ -11,7 +11,7 @@ import numpy as np
 import pickle
 import tqdm
 import yaml
-
+os.environ['KMP_DUPLICATE_LIB_OK']='True'
 try:
     import mj_envs
 except ImportError:
@@ -50,7 +50,7 @@ def make_env():
 #unpack params and create policy params
 controller_name = args.controller
 policy_params = exp_params[controller_name]
-policy_params['base_action'] = exp_params['base_action']
+# policy_params['base_action'] = exp_params['base_action']
 policy_params['d_obs'] = env.d_obs
 policy_params['d_state'] = env.d_state
 policy_params['d_action'] = env.d_action
@@ -104,7 +104,7 @@ for i in tqdm.tqdm(range(n_episodes)):
                         param_dict=policy_params, batch_size=1) #Only batch_size=1 is supported for now
     policy.controller.set_sim_state_fn = sim_env.set_env_state
     policy.controller.rollout_fn = rollout_fn
-    if controller_name in ['ilqr', 'softqmpc']:
+    if controller_name in ['ilqr', 'softq']:
         policy.controller.get_sim_state_fn = sim_env.get_env_state
         policy.controller.sim_step_fn = sim_env.step
         policy.controller.sim_reset_fn = sim_env.reset

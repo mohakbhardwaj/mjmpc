@@ -39,3 +39,13 @@ def cost_to_go(cost_seq, gamma_seq):
     cost_seq = np.cumsum(cost_seq[:, ::-1], axis=-1)[:, ::-1]  # cost to go (but scaled by [1 , gamma, gamma*2 and so on])
     cost_seq /= gamma_seq  # un-scale it to get true discounted cost to go
     return cost_seq
+
+def gaussian_entropy(cov):
+    """
+    Calculate entropy of multivariate gaussian given covariance
+    """
+    N = cov.shape[0]
+    det_cov = np.linalg.det(cov)
+    term1 = 0.5 * np.log(det_cov)
+    term2 = 0.5 * N * (1.0 + np.log(2.0 * np.pi))
+    return term1 + term2

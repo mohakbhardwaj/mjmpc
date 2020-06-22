@@ -2,7 +2,6 @@ env_name          : 'cartpole-v0'
 n_episodes        : 1
 max_ep_length     : 100
 seed              : 123 #testing: 0, tuning: 123
-base_action       : 'null'
 render            : True
 job_mode          : 'sweep'
 exp_notes         : 'Swingup of cartpole'
@@ -14,6 +13,8 @@ ilqr:
   n_iters           : 1
   num_cpu           : 1
   sample_mode       : 'mean'
+  base_action       : 'null'
+
 
 random_shooting:
   horizon           : 32
@@ -24,6 +25,7 @@ random_shooting:
   step_size         : 1.0
   num_cpu           : 10
   particles_per_cpu : 6
+  base_action       : 'null'
 
 
 mppi:
@@ -37,19 +39,31 @@ mppi:
   alpha             : 1
   num_cpu           : 10
   particles_per_cpu : 4
+  base_action       : 'null'
 
+
+
+
+# softq:
+#   horizon           : 32
+#   max_iters         : 40
+#   gamma             : 1.0
+#   init_cov          : 1.5 
+#   lam               : 0.5
+#   lr                : 0.001
+#   reg               : 0.01
+#   num_grad_steps    : 50
+#   tol               : 0.0001
+#   num_samples       : 200
+#   beta              : 0.2
+#   # num_rollouts      : 1
 
 
 softq:
   horizon           : 32
-  max_iters         : 40
-  gamma             : 1.0
-  init_cov          : 1.5 
-  lam               : 0.5
-  lr                : 0.001
-  reg               : 0.01
-  num_grad_steps    : 50
-  tol               : 0.0001
-  num_samples       : 200
-  beta              : 0.2
-  # num_rollouts      : 1
+  gamma             : 0.9
+  n_iters           : 1
+  n_rollouts        : 20
+  lam               : 1.0
+  num_cpu           : 1
+  sample_mode       : 'mean'
