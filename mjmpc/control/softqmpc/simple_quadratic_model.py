@@ -288,10 +288,6 @@ if __name__ == "__main__":
             final_loss = Q.loss(states, actions, targets, reg)
             print("Initial Loss", init_loss)
             print("Final Loss", final_loss)
-            input('....')
-
-
-
             print('Optimized parameters')
             print(Q)
 
