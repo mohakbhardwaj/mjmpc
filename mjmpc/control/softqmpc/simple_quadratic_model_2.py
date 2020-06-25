@@ -7,26 +7,41 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-class SimpleQuadraticQFunc(nn.Module):
+class SimpleQuadraticQFunc2(nn.Module):
     def __init__(self, d_state, d_act):
         super().__init__()
 
         self.d_state = d_state
         self.d_act = d_act
         self.d_total = d_state + d_act
-        self.d_L = int(self.d_total * (self.d_total + 1) / 2)
+        # self.d_L = int(self.d_total * (self.d_total + 1) / 2)
+        self.d_L = int(self.d_act * (self.d_act + 1) / 2)
         self.d_J = self.d_total
         self.d_out = self.d_L + self.d_J + 1
 
-        L = torch.zeros(self.d_L)
-        J = torch.zeros(self.d_J)
+        Pss = torch.ones((self.d_state, self.d_state))
+        Psa = torch.zeros((self.d_state, self.d_act))
+        Pas = torch.zeros((self.d_act, self.d_state))
+        L = torch.ones(self.d_L)
+        Js = torch.zeros(self.d_state)
+        Ja = torch.zeros(self.d_act)
         c = torch.zeros(1,1)
-        torch.nn.init.normal_(L)
-        torch.nn.init.normal_(J)
+
+        torch.nn.init.normal_(Pss)
+        torch.nn.init.normal_(Psa)
+        torch.nn.init.normal_(Pas)
+        # torch.nn.init.normal_(L)
+        torch.nn.init.normal_(Js)
+        torch.nn.init.normal_(Ja)
+        
+        self.Pss = nn.Parameter(Pss)
+        self.Psa = nn.Parameter(Psa)
+        self.Pas = nn.Parameter(Pas)
         self.L = nn.Parameter(L)
-        self.J = nn.Parameter(J)
+        self.Js = nn.Parameter(Js)
+        self.Ja = nn.Parameter(Ja)
         self.c = nn.Parameter(c)
-        self.eye = torch.eye(self.d_total)
+        # self.eye = torch.eye(self.d_total)
 
     def forward(self, states, actions):
         """
@@ -40,12 +55,17 @@ class SimpleQuadraticQFunc(nn.Module):
         out: Tensor (batch_size x 1)
             Q estimates
         """
-        P = self.P
-        inps = torch.cat((states, actions), axis=-1)
-        inps = inps.unsqueeze(1)
-        
-        quad_term = 0.5 * F.bilinear(inps, inps, P.unsqueeze(0)).squeeze(-1)
-        lin_term = F.linear(inps, self.J)
+        # Paa = self.Paa
+        # inps = torch.cat((states, actions), axis=-1)
+        # inps = inps.unsqueeze(1)
+        states = states.unsqueeze(1)
+        actions = actions.unsqueeze(1)
+        # quad_term = -0.5 * F.bilinear(inps, inps, P.unsqueeze(0)).squeeze(-1)
+        quad_term = 0.5 * F.bilinear(states, states, self.Pss.unsqueeze(0)).squeeze(-1)
+        quad_term += 0.5 * F.bilinear(states, actions, self.Psa.unsqueeze(0)).squeeze(-1)
+        quad_term += 0.5 * F.bilinear(actions, states, self.Pas.unsqueeze(0)).squeeze(-1)
+        quad_term += 0.5 * F.bilinear(actions, actions, self.Paa.unsqueeze(0)).squeeze(-1)
+        lin_term = -F.linear(states, self.Js) - F.linear(actions, self.Ja)
         out = quad_term + lin_term  + self.c
         return out
 
@@ -69,9 +89,9 @@ class SimpleQuadraticQFunc(nn.Module):
         return loss
 
     @property
-    def P(self):
-        Lmat = torch.zeros(self.d_total, self.d_total)
-        tril_indices = torch.tril_indices(row=self.d_total, col=self.d_total, offset=0)
+    def Paa(self):
+        Lmat = torch.zeros(self.d_act, self.d_act)
+        tril_indices = torch.tril_indices(row=self.d_act, col=self.d_act, offset=0)
         Lmat[tril_indices[0], tril_indices[1]] = self.L
         P = torch.mm(Lmat, Lmat.t())
         return P
@@ -90,6 +110,8 @@ class SimpleQuadraticQFunc(nn.Module):
         Parameters
         ----------
         state: Tensor (1 x self.d_state)
+        lam: float 
+            Temperature
 
         Returns
         -------
@@ -100,35 +122,34 @@ class SimpleQuadraticQFunc(nn.Module):
         Sigma: Tensor (self.d_act x self.d_act)
             Covariance
         """
-        P = self.P.data
-        J = self.J.data
-        
-        Pas = P[-self.d_act:, 0:self.d_state]
-        Paa = P[-self.d_act:, -self.d_act:]
+        Paa = self.Paa.data
+        Ja = self.Ja.data
         Paa_inv = torch.cholesky_inverse(Paa)
         Sigma = lam * Paa_inv
-
-        Ja = J[-self.d_act:]
-        Jout = (-Ja - torch.mv(Pas, state))
+        print(self.Psa, self.Pas)
+        Jout = (Ja - 0.5 * torch.mv(self.Psa.t(), state) - 0.5 * torch.mv(self.Pas, state))
         mu = torch.mv(Paa_inv, Jout)
         return mu, Sigma
 
     def grow_cov(self, beta, lam):
-        P = self.P
-        Sigma = lam * torch.cholesky_inverse(P)
+        Paa = self.Paa
+        Sigma = lam * torch.cholesky_inverse(Paa)
         Sigma += beta * torch.eye(Sigma.shape[0])
         Pnew = (1./lam) * torch.cholesky_inverse(Sigma)
         Lmat = torch.cholesky(Pnew)
-        tril_indices = torch.tril_indices(row=self.d_total, col=self.d_total, offset=0)
+        tril_indices = torch.tril_indices(row=self.d_act, col=self.d_act, offset=0)
         self.L.data = Lmat[tril_indices[0], tril_indices[1]]
 
     def __str__(self):
-        P = self.P
-        string = "L = {0}\nP = {1}\nJ = {2}\n c={3}".format(
-                                                    self.L.data,
-                                                    P.data,
-                                                    self.J.data,
-                                                    self.c.data)
+        string = "Pss={0}\n Psa={1}\n Pas={2}\n Paa={3}\n Js={4}\n Ja={5}\n c={6}\n L={7}".format(
+                                                    self.Pss.data,
+                                                    self.Psa.data,
+                                                    self.Pas.data,
+                                                    self.Paa.data,
+                                                    self.Js.data,
+                                                    self.Ja.data,
+                                                    self.c.data,
+                                                    self.L.data)
         return string
 
     def print_gradients(self):
@@ -164,7 +185,7 @@ if __name__ == "__main__":
     if test_mean_sigma:
         d_state = 3
         d_action = 3
-        Q = SimpleQuadraticQFunc(d_state, d_action)
+        Q = SimpleQuadraticQFunc2(d_state, d_action)
         state = torch.ones(d_state)
 
     if test_regression:
@@ -184,7 +205,7 @@ if __name__ == "__main__":
             inps = inps.unsqueeze(1)
 
             targets = 0.5 * F.bilinear(inps, inps, Ptrue.unsqueeze(0)).squeeze(-1) \
-                      + F.linear(inps, Jtrue) + ctrue
+                      - F.linear(inps, Jtrue) + ctrue
             return targets
 
         # fig = plt.figure(figsize=(6,6))
@@ -206,8 +227,8 @@ if __name__ == "__main__":
         targets = get_targets(states, actions)
 
         #Fit a quadratic Q function
-        Q = SimpleQuadraticQFunc(d_state, d_action)
-        optimizer = optim.SGD(Q.parameters(), lr=1.0, weight_decay=0.00001)
+        Q = SimpleQuadraticQFunc2(d_state, d_action)
+        optimizer = optim.SGD(Q.parameters(), lr=1.0, weight_decay=0.)
         reg = 0.00001
         init_loss = Q.loss(states, actions, targets, reg)
         for i in range(10000): 

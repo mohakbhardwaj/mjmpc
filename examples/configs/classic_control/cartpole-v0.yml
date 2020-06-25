@@ -41,6 +41,20 @@ mppi:
   particles_per_cpu : 4
   base_action       : 'null'
 
+dmd:
+  horizon           : 32
+  init_cov          : 0.45
+  update_cov        : True
+  cov_type          : 'full'
+  beta              : 0.0
+  filter_coeffs     : [0.25, 0.8, 0.0]
+  gamma             : 1.0
+  n_iters           : 1
+  step_size         : 1.0
+  lam               : 0.1
+  num_cpu           : 10
+  particles_per_cpu : 4
+  base_action       : 'null'
 
 
 
@@ -63,7 +77,9 @@ softq:
   horizon           : 32
   gamma             : 0.9
   n_iters           : 1
-  n_rollouts        : 20
+  n_rollouts        : 40
   lam               : 1.0
+  lr                : 1.0
+  reg               : 1.0
   num_cpu           : 1
   sample_mode       : 'mean'

@@ -53,9 +53,6 @@ class DMDMPC(OLGaussianMPC):
                                      step_size, 
                                      filter_coeffs, 
                                      set_sim_state_fn,
-                                     get_sim_state_fn,
-                                     sim_step_fn,
-                                     sim_reset_fn,
                                      rollout_fn,
                                      cov_type,
                                      sample_mode,
@@ -81,7 +78,7 @@ class DMDMPC(OLGaussianMPC):
                 cov_update = np.diag(np.mean(np.sum(weighted_delta.T, axis=0), axis=0))
             elif self.cov_type == 'full':
                 weighted_delta = np.sqrt(w) * (delta).T
-                weighted_delta = weighted_delta.T.reshape((self.horizon * self.num_particles, self.num_actions))
+                weighted_delta = weighted_delta.T.reshape((self.horizon * self.num_particles, self.d_action))
                 cov_update = np.dot(weighted_delta.T, weighted_delta)
                 cov_update = cov_update/self.horizon
             else:
@@ -89,7 +86,6 @@ class DMDMPC(OLGaussianMPC):
 
             self.cov_action = (1.0 - self.step_size) * self.cov_action +\
                                     self.step_size * cov_update
-
         weighted_seq = w * actions.T
         self.mean_action = (1.0 - self.step_size) * self.mean_action +\
                             self.step_size * np.sum(weighted_seq.T, axis=0)
@@ -114,7 +110,7 @@ class DMDMPC(OLGaussianMPC):
         """
         super()._shift()
         if self.update_cov:
-            # self.cov_action += self.beta * np.eye(self.num_actions)
+            # self.cov_action += self.beta * np.eye(self.d_action)
             self.cov_action += self.beta * np.diag(self.init_cov)
         # if self.update_cov:
         #     self.cov_action = np.clip(self.cov_action, self.min_cov, None)

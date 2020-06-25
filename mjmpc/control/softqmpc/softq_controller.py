@@ -6,6 +6,7 @@ import numpy as np
 from mjmpc.control.controller import Controller
 from mjmpc.utils import control_utils, helpers
 from .simple_quadratic_model import SimpleQuadraticQFunc
+from .simple_quadratic_model_2 import SimpleQuadraticQFunc2
 import torch
 
 class SoftQMPC(Controller):
@@ -20,6 +21,8 @@ class SoftQMPC(Controller):
                  n_iters,
                  n_rollouts,
                  lam,
+                 lr,
+                 reg,
                  set_sim_state_fn=None,
                  get_sim_state_fn=None,
                  get_sim_obs_fn=None,
@@ -55,8 +58,10 @@ class SoftQMPC(Controller):
         self._get_sim_obs_fn = get_sim_obs_fn
         self.n_rollouts = n_rollouts
         self.lam = lam
-        self.model = SimpleQuadraticQFunc(self.d_obs, self.d_action)
-        self.optimizer = torch.optim.SGD(self.model.parameters(), lr=0.5, weight_decay=0.0001)
+        self.lr = lr
+        self.reg = reg
+        self.model = SimpleQuadraticQFunc2(self.d_obs, self.d_action)
+        self.optimizer = torch.optim.SGD(self.model.parameters(), lr=self.lr, weight_decay=0.)
     
     @property
     def sim_step_fn(self):
@@ -115,7 +120,7 @@ class SoftQMPC(Controller):
         """  
         with torch.no_grad():
             obs_torch = torch.from_numpy(np.float32(self.start_obs))
-            mean, cov = self.model.get_act_mean_sigma(obs_torch)
+            mean, cov = self.model.get_act_mean_sigma(obs_torch, self.lam)
             mean = mean.numpy(); cov = cov.numpy()
             print(mean, cov)
 
@@ -160,7 +165,7 @@ class SoftQMPC(Controller):
                 for t in range(self.horizon):
                     #choose an action using mean + covariance
                     obs_torch = torch.from_numpy(np.float32(curr_obs))
-                    mean, cov = self.model.get_act_mean_sigma(obs_torch)
+                    mean, cov = self.model.get_act_mean_sigma(obs_torch, self.lam)
                     mean = mean.numpy(); cov = cov.numpy()
                     delta = control_utils.generate_noise(cov, [1.0, 0., 0.], (1,), self.seed + 111*self.num_steps + 123*i + 999*t) #TODO: Different seed when doing multiple iterations
                     curr_act = mean.copy() + delta.copy()
@@ -168,12 +173,11 @@ class SoftQMPC(Controller):
                     next_obs, rew, done, _ = self._sim_step_fn(curr_act) #step current action
                     next_state = self._get_sim_state_fn()[0]
 
-
                     #Append data to sequence
                     obs_seq[i, t, :] = curr_obs.copy()
                     act_seq[i, t, :] = curr_act.copy()
                     entropy_seq[i, t] = control_utils.gaussian_entropy(cov)
-                    cost_seq[i, t] = 1.0 * rew
+                    cost_seq[i, t] = -1.0 * rew
                     curr_state_seq.append(deepcopy(curr_state))
                     done_seq[i, t] = done
 
@@ -215,7 +219,7 @@ class SoftQMPC(Controller):
         actions = trajectories["actions"]
         costs = trajectories["costs"]
         entropies = trajectories["entropies"]
-        # #Get terminal costs
+        # # #Get terminal costs
         obs_input = torch.from_numpy(np.float32(obs[:,-1]))
         act_input = torch.from_numpy(np.float32(actions[:,-1]))
         with torch.no_grad():
@@ -226,25 +230,22 @@ class SoftQMPC(Controller):
         #Q(s,a) = c(s,a) + \Sum_l=1^{N} \gamma^l(c(s_l, a_l) + H(a_l|s_l))
         # We first calculate normal cost+entropy-to-go then subtract 
         # entropy of first state
-        total_costs = costs + self.lam * entropies
+        total_costs = costs - self.lam * entropies
         targets = control_utils.cost_to_go(total_costs, self.gamma_seq)
-        targets -= self.lam * entropies 
+        targets += self.lam * entropies 
 
         #Training
         #Ignore the final state and action in sequence
         obs_input = np.concatenate(obs[:,:-1], axis=0)
         act_input = np.concatenate(actions[:,:-1], axis=0)
         targets_input = np.concatenate(targets[:,:-1], axis=0)
-        # obs_input = np.concatenate(obs, axis=0)
-        # act_input = np.concatenate(actions, axis=0)
-        # targets_input = np.concatenate(targets, axis=0)
 
-        #Randomly shuffle dataset (not needed necessarily)
-        num = obs_input.shape[0]
-        indices = np.random.permutation(range(num)) #random permutation
-        obs_input = obs_input[indices]
-        act_input = act_input[indices]
-        targets_input = targets_input[indices]
+        # #Randomly shuffle dataset (not needed necessarily)
+        # num = obs_input.shape[0]
+        # indices = np.random.permutation(range(num)) #random permutation
+        # obs_input = obs_input[indices]
+        # act_input = act_input[indices]
+        # targets_input = targets_input[indices]
 
         obs_input = torch.from_numpy(np.float32(obs_input))
         act_input = torch.from_numpy(np.float32(act_input))
@@ -253,12 +254,14 @@ class SoftQMPC(Controller):
         #Do a few gradient steps
         for i in range(1):
             self.optimizer.zero_grad()
-            loss = self.model.loss(obs_input, act_input, targets_input)
+            print(torch.max(targets_input))
+            loss = self.model.loss(obs_input, act_input, targets_input, self.reg)
             loss.backward()
             # print("Loss = {0}".format(loss.item()))
             # self.model.print_gradients()
             self.optimizer.step()
-            self.model.grow_cov(0.1)
+            with torch.no_grad():
+                self.model.grow_cov(0.1, self.lam)
 
     def _shift(self):
         """
@@ -275,6 +278,7 @@ class SoftQMPC(Controller):
         # else:
         #     raise NotImplementedError("invalid option for base action during shift")
         # self.model.grow_cov(10)
+        pass
 
 
     def reset(self):
