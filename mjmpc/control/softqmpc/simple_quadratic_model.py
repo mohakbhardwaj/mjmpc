@@ -18,13 +18,13 @@ class SimpleQuadraticQFunc(nn.Module):
         self.d_J = self.d_total
         self.d_out = self.d_L + self.d_J + 1
 
-        L = torch.ones(self.d_L)
+        L = torch.zeros(self.d_L)
         J = torch.zeros(self.d_J)
         c = torch.zeros(1,1)
         torch.nn.init.normal_(L)
         torch.nn.init.normal_(J)
-        # self.L = nn.Parameter(L)
-        self.L = L
+        self.L = nn.Parameter(L)
+        # self.L = L
         self.J = nn.Parameter(J)
         self.c = nn.Parameter(c)
         self.eye = torch.eye(self.d_total)
@@ -259,8 +259,7 @@ if __name__ == "__main__":
             Paa = P[-d_action:, -d_action:]
             Paa_inv = torch.cholesky_inverse(Paa)
             Sigma = lam * Paa_inv    
-            
-            targets += gaussian_entropy(Sigma)           
+            targets -= gaussian_entropy(Sigma)           
             return targets
 
         #Create some data
@@ -272,6 +271,7 @@ if __name__ == "__main__":
         print("J = ", Jtrue)
         print("c = ", ctrue)
         optimizer = optim.SGD(Q.parameters(), lr=1.0, weight_decay=0.00001)
+        
         for n in range(10):
             states = torch.rand(num_pts, d_state)
             actions = torch.rand(num_pts, d_action)
