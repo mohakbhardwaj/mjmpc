@@ -18,12 +18,13 @@ class SimpleQuadraticQFunc(nn.Module):
         self.d_J = self.d_total
         self.d_out = self.d_L + self.d_J + 1
 
-        L = torch.zeros(self.d_L)
+        L = torch.ones(self.d_L)
         J = torch.zeros(self.d_J)
         c = torch.zeros(1,1)
         torch.nn.init.normal_(L)
         torch.nn.init.normal_(J)
-        self.L = nn.Parameter(L)
+        # self.L = nn.Parameter(L)
+        self.L = L
         self.J = nn.Parameter(J)
         self.c = nn.Parameter(c)
         self.eye = torch.eye(self.d_total)
@@ -155,11 +156,13 @@ if __name__ == "__main__":
     #import matplotlib.pyplot as plt
     import numpy as np
     import os
+    from mjmpc.utils.control_utils import gaussian_entropy
 
     os.environ['KMP_DUPLICATE_LIB_OK']='True'
     
-    test_regression = True
+    test_regression = False
     test_mean_sigma = False
+    test_entropy = True
 
     if test_mean_sigma:
         d_state = 3
@@ -232,4 +235,66 @@ if __name__ == "__main__":
         print(targets)
         print(Q(states, actions))
 
-        # print(Q.get_act_mean_sigma(states[0]))
+
+    if test_entropy:
+        test_case = 0
+        torch.manual_seed(0)
+        d_state = 1
+        d_action = 1
+
+        Ptrue = torch.eye(d_state + d_action, d_state + d_action)
+        Jtrue = torch.ones(d_state + d_action)
+        ctrue = 0.0
+        lam = 1.0
+        Q = SimpleQuadraticQFunc(d_state, d_action)
+
+        def get_targets(states, actions):
+            inps = torch.cat((states, actions), axis=-1)
+            inps = inps.unsqueeze(1)
+
+            targets = 0.5 * F.bilinear(inps, inps, Ptrue.unsqueeze(0)).squeeze(-1) \
+                      + F.linear(inps, Jtrue) + ctrue
+            
+            P = Q.P.data
+            Paa = P[-d_action:, -d_action:]
+            Paa_inv = torch.cholesky_inverse(Paa)
+            Sigma = lam * Paa_inv    
+            
+            targets += gaussian_entropy(Sigma)           
+            return targets
+
+        #Create some data
+        num_pts = 2048
+        torch.manual_seed(0)
+
+        print('True parameters')
+        print("P = ", Ptrue)
+        print("J = ", Jtrue)
+        print("c = ", ctrue)
+        optimizer = optim.SGD(Q.parameters(), lr=1.0, weight_decay=0.00001)
+        for n in range(10):
+            states = torch.rand(num_pts, d_state)
+            actions = torch.rand(num_pts, d_action)
+            targets = get_targets(states, actions)
+            #Fit a quadratic Q function
+            reg = 0.00001
+            init_loss = Q.loss(states, actions, targets, reg)
+            for i in range(100): 
+                optimizer.zero_grad()
+                loss = Q.loss(states, actions, targets, reg)
+                loss.backward()
+                optimizer.step()
+            # print('loss = {0}'.format(loss.item()))
+            final_loss = Q.loss(states, actions, targets, reg)
+            print("Initial Loss", init_loss)
+            print("Final Loss", final_loss)
+            input('....')
+
+
+
+            print('Optimized parameters')
+            print(Q)
+
+        print("Eval")
+        print(targets)
+            # print(Q(states, actions))

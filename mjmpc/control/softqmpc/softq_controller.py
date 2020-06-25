@@ -60,7 +60,7 @@ class SoftQMPC(Controller):
         self.lam = lam
         self.lr = lr
         self.reg = reg
-        self.model = SimpleQuadraticQFunc2(self.d_obs, self.d_action)
+        self.model = SimpleQuadraticQFunc(self.d_obs, self.d_action)
         self.optimizer = torch.optim.SGD(self.model.parameters(), lr=self.lr, weight_decay=0.)
     
     @property
@@ -260,8 +260,9 @@ class SoftQMPC(Controller):
             # print("Loss = {0}".format(loss.item()))
             # self.model.print_gradients()
             self.optimizer.step()
-            with torch.no_grad():
-                self.model.grow_cov(0.1, self.lam)
+            print(self.model)
+            # with torch.no_grad():
+                # self.model.grow_cov(0.1, self.lam)
 
     def _shift(self):
         """
