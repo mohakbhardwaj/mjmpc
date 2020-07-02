@@ -9,11 +9,13 @@ from gym import spaces
 import numpy as np
 from copy import deepcopy
 import time
+import torch
 
 class GymEnvWrapper():
     def __init__(self, env):
         self.env = env
         self.env.reset()
+        self.metadata = self.env.metadata
         observation, _reward, done, _info = self.env.step(np.zeros(self.env.action_space.low.shape))
         assert not done, ""
         if type(observation) is tuple:
@@ -81,29 +83,29 @@ class GymEnvWrapper():
         """
         Given batch of action sequences, we perform rollouts 
         and return resulting observations, rewards etc.
-        :param u_vec: np.ndarray of shape [batch_size, n_steps, d_action]
+        :param u_vec: np.ndarray of shape [batch_size, horizon, d_action]
         :return:
-            obs_vec: np.ndarray [batch_size, n_steps, d_obs]
-            state_vec: np.ndarray [batch_size, n_steps, d_state]
-            rew_vec: np.ndarray [batch_size, n_steps, 1]
-            done_vec: np.ndarray [batch_size, n_steps, 1]
+            obs_vec: np.ndarray [batch_size, horizon, d_obs]
+            state_vec: np.ndarray [batch_size, horizon, d_state]
+            rew_vec: np.ndarray [batch_size, horizon, 1]
+            done_vec: np.ndarray [batch_size, horizon, 1]
             info: dict
         """
-        # start_t = time.time()
-        batch_size, n_steps, d_action = u_vec.shape
+        start_t = time.time()
+        batch_size, horizon, d_action = u_vec.shape
         if type(self.observation_space) is spaces.Dict:
             obs_vec = []
-        else: obs_vec = np.zeros((batch_size, n_steps, self.d_obs))
-        state_vec = [] #np.zeros((self.batch_size, n_steps, self.d_state))
-        rew_vec = np.zeros((batch_size, n_steps))
-        done_vec = np.zeros((batch_size, n_steps))
+        else: obs_vec = np.zeros((batch_size, horizon, self.d_obs))
+        state_vec = [] #np.zeros((self.batch_size, horizon, self.d_state))
+        rew_vec = np.zeros((batch_size, horizon))
+        done_vec = np.zeros((batch_size, horizon))
         curr_state = deepcopy(self.get_env_state())
 
         for b in range(batch_size):
             #Set the state to the current state
             self.set_env_state(curr_state)
             #Rollout for t steps and store results
-            for t in range(n_steps):
+            for t in range(horizon):
                 u_curr = u_vec[b, t, :]
                 obs, rew, done, _ = self.step(u_curr)
                 if type(self.observation_space) is spaces.Dict:
@@ -114,103 +116,68 @@ class GymEnvWrapper():
                 # state_vec.append(state.copy())
                 rew_vec[b, t] = rew
                 done_vec[b, t] = done
-        
-        # print('Normal rollout time = {0}'.format(time.time()-start_t))
-
-        # self.rollout_test(u_vec)
-        return obs_vec, rew_vec, done_vec, {} #state_vec
+        info = {'total_time' : time.time() - start_t}
+        return obs_vec, rew_vec, done_vec, info
     
-    # def rollout_test(self, u_vec: np.ndarray):
-    #     start_t = time.time()
-    #     batch_size, n_steps, d_action = u_vec.shape
-    #     if type(self.observation_space) is spaces.Dict:
-    #         obs_vec = []
-    #     else: obs_vec = np.zeros((batch_size, n_steps, self.d_obs))
-    #     # state_vec = [] #np.zeros((self.batch_size, n_steps, self.d_state))
-    #     # rew_vec = np.zeros((batch_size, n_steps))
-    #     # done_vec = np.zeros((batch_size, n_steps))
-    #     curr_state = deepcopy(self.get_env_state())
+    def rollout_cl(self, policy, batch_size, horizon, mode='mean', noise=None):
+        """
+        Given a policy object, we perform rollouts 
+        and return resulting trajectroy.
+        Parameters
+        ----------
+        policy: 
+        batch_size: number of rollouts
+        horizon: rollout horizon
 
-    #     for b in range(batch_size):
-    #         #Set the state to the current state
-    #         self.set_env_state(curr_state)
-    #         #Rollout for t steps and store results
-    #         for t in range(n_steps):
-    #             u_curr = u_vec[b, t, :]
-            
-    #             for i in range(self.env.env.model.nu):
-    #                 self.env.env.sim.data.ctrl[i] = u_curr[i]
-    #             for _ in range(self.env.env.frame_skip):
-    #                 self.env.env.sim.step()
-    #             # obs, rew, done, _ = self.step(u_curr)
-    #             # if type(self.observation_space) is spaces.Dict:
-    #             #     obs_vec.append(obs.copy())
-    #             # else:
-    #             #     obs_vec[b, t, :] = obs.copy().reshape(self.d_obs,)
-    #             # state = self.get_env_state()
-    #             # state_vec.append(state.copy())
-    #             # rew_vec[b, t] = rew
-    #             # done_vec[b, t] = done
-    #     print('Test rollout time = {0}'.format(time.time()-start_t))
-
-    #     return None, None, None, None #obs_vec, rew_vec, done_vec, {} #state_vec 
-    
-
-    # cpdef rollout(self, double[:,:,:] u_vec):
-    #     cdef size_t batch_size, n_steps, d_action
-    #     batch_size = u_vec.shape[0]
-    #     n_steps = u_vec.shape[1]
-    #     d_action = u_vec.shape[2]
-    #     obs_vec = np.zeros((batch_size, n_steps, self.d_obs))
-    #     # state_vec = np.zeros((self.batch_size, n_steps, self.d_state))
-    #     rew_vec = np.zeros((batch_size, n_steps))
-    #     done_vec = np.zeros((batch_size, n_steps))
-
-    #     self.rollout_cy(u_vec, obs_vec, rew_vec, done_vec)
-    #     return obs_vec, rew_vec, done_vec, {}
-
-
-    # cdef rollout_cy(self, double[:,:,:] u_vec,
-    #                       double[:,:,:] obs_vec,
-    #                       double[:,:] rew_vec,
-    #                       double[:,:] done_vec):
-    #     """
-    #     Given batch of action sequences, we perform rollouts 
-    #     and return resulting observations, rewards etc.
-    #     :param u_vec: np.ndarray of shape [batch_size, n_steps, d_action]
-    #     :return:
-    #         obs_vec: np.ndarray [batch_size, n_steps, d_obs]
-    #         state_vec: np.ndarray [batch_size, n_steps, d_state]
-    #         rew_vec: np.ndarray [batch_size, n_steps, 1]
-    #         done_vec: np.ndarray [batch_size, n_steps, 1]
-    #         info: dict
-    #     """
-    #     cdef size_t batch_size, n_steps, d_action
-    #     # batch_size, n_steps, d_action = u_vec.shape
-    #     batch_size = u_vec.shape[0]
-    #     n_steps = u_vec.shape[1]
-    #     d_action = u_vec.shape[2]
-    #     # obs_vec = np.zeros((batch_size, n_steps, self.d_obs))
-    #     # # state_vec = np.zeros((self.batch_size, n_steps, self.d_state))
-    #     # rew_vec = np.zeros((batch_size, n_steps))
-    #     # done_vec = np.zeros((batch_size, n_steps))
-    #     curr_state = deepcopy(self.get_env_state())
-    #     cdef double rew, done
-    #     cdef double[:] obs_view
-    #     for b in range(batch_size):
-    #         #Set the state to the current state
-    #         self.set_env_state(curr_state)
-    #         #Rollout for t steps and store results
-    #         for t in range(n_steps):
-    #             # u_curr = u_vec[b, t, :]
-    #             # obs, rew, done, _ = self.step(u_curr)
-                
-    #             obs_view, rew, done, _ = self.step(u_vec[b,t,:].copy())
-    #             obs_vec[b, t, :] = obs_view.copy() #obs.copy().reshape(self.d_obs,)
-    #             # state_vec[:, t, :] = self.state.copy()
-    #             rew_vec[b, t] = rew
-    #             done_vec[b, t] = done
- 
+        Returns
+        -------
+        obs_vec: np.ndarray [batch_size, horizon, d_obs]
+        state_vec: np.ndarray [batch_size, horizon, d_state]
+        rew_vec: np.ndarray [batch_size, horizon, 1]
+        done_vec: np.ndarray [batch_size, horizon, 1]
+        info: dict
+        """
+        start_t = time.time()
+        total_inf_time = 0.0
+        if (noise is not None) and mode =='sample':
+            raise ValueError('Added noise must be None when using sample mode from policy')
+        if type(self.observation_space) is spaces.Dict:
+            obs_vec = []
+        else: obs_vec = np.zeros((batch_size, horizon, self.d_obs))
+        act_vec = np.zeros((batch_size, horizon, self.d_action))
+        log_prob_vec = np.zeros((batch_size, horizon))
+        rew_vec = np.zeros((batch_size, horizon))
+        done_vec = np.zeros((batch_size, horizon))
+        curr_state = deepcopy(self.get_env_state())
+        with torch.no_grad():
+            for b in range(batch_size):
+                #Set the state to the current state
+                self.set_env_state(curr_state)
+                curr_obs = self.get_obs()
+                #Rollout for t steps and store results
+                for t in range(horizon):
+                    #Get action prediction from model
+                    before_inf = time.time()
+                    obs_torch = state = torch.FloatTensor(curr_obs).unsqueeze(0)
+                    u_curr, log_prob = policy.get_action(obs_torch, mode)
+                    u_curr = u_curr.numpy(); log_prob = log_prob.numpy().item()
+                    inf_time = time.time() - before_inf
+                    total_inf_time += inf_time
+                    #Add noise if provided
+                    if noise is not None:
+                        u_curr = u_curr + noise[b,t]
+                    next_obs, rew, done, _ = self.step(u_curr)
+                    if type(self.observation_space) is spaces.Dict:
+                        obs_vec.append(curr_obs.copy())
+                    else:
+                        obs_vec[b, t, :] = curr_obs.copy().reshape(self.d_obs,)
+                    act_vec[b, t, :] = u_curr.copy().reshape(self.d_action,)
+                    log_prob_vec[b, t] = log_prob
+                    rew_vec[b, t] = rew
+                    done_vec[b, t] = done
+                    curr_obs = next_obs
+        info = {'total_time' : time.time() - start_t, 'inference_time': total_inf_time}
+        return obs_vec, act_vec, log_prob_vec, rew_vec, done_vec, info
     
     def seed(self, seed=None):
         return self.env.seed(seed)

@@ -1,5 +1,5 @@
 env_name          : 'sawyer_peg_insertion-v0'
-n_episodes        : 10
+n_episodes        : 2
 max_ep_length     : 75
 seed              : 123 #testing: 0, tuning: 123
 base_action       : 'null'
@@ -16,6 +16,8 @@ random_shooting:
   step_size         : 1.0
   num_cpu           : 10
   particles_per_cpu : 4
+  base_action       : 'null'
+
 
 mppi:
   horizon           : 16
@@ -28,6 +30,7 @@ mppi:
   alpha             : 1
   num_cpu           : 10
   particles_per_cpu : 4
+  base_action       : 'null'
 
 cem:
   horizon           : 16
@@ -41,6 +44,7 @@ cem:
   elite_frac        : 0.1
   num_cpu           : 10
   particles_per_cpu : 4
+  base_action       : 'null'
 
 
 dmd:
@@ -57,6 +61,7 @@ dmd:
   num_cpu           : 10
   particles_per_cpu : 4
   sample_mode       : 'mean'
+  base_action       : 'null'
 
 
 pfmpc:
@@ -69,6 +74,8 @@ pfmpc:
   lam               : 0.2
   num_cpu           : 10
   particles_per_cpu : 4
+  base_action       : 'null'
+
 
 softq:
   horizon           : 32
@@ -79,3 +86,4 @@ softq:
   lr                : 0.01
   tol               : 0.0001
   num_samples       : 100
+  base_action       : 'null'

@@ -1,18 +1,17 @@
 from copy import deepcopy
-import multiprocessing
+import torch.multiprocessing as multiprocessing
 from collections import OrderedDict
 
 import gym
 import numpy as np
 import time
 
-
 from .base_vec_env import VecEnv, CloudpickleWrapper
 from .tile_images import tile_images
 from .util import flatten_obs
 
 
-def _worker(remote, parent_remote, env_fn_wrapper):
+def _worker(remote, parent_remote, env_fn_wrapper, model):
     parent_remote.close()
     env = env_fn_wrapper.var()
     while True:
@@ -46,8 +45,8 @@ def _worker(remote, parent_remote, env_fn_wrapper):
                 state = env.get_env_state()
                 remote.send(state)
             elif cmd == 'rollout':
-                obs_vec, rew_vec, done_vec, info = env.rollout(data) #state_vec
-                remote.send((obs_vec, rew_vec, done_vec, info)) #state_vec
+                obs_vec, act_vec, log_prob_vec, rew_vec, done_vec, info = env.rollout_cl(model, **data)
+                remote.send((obs_vec, act_vec, log_prob_vec, rew_vec, done_vec, info))
             elif cmd == 'seed':
                 remote.send(env.seed(data))
             elif cmd == 'get_seed':
@@ -58,9 +57,10 @@ def _worker(remote, parent_remote, env_fn_wrapper):
             break
 
 
-class SubprocVecEnv(VecEnv):
+class TorchModelVecEnv(VecEnv):
     """
     Creates a multiprocess vectorized wrapper for multiple environments
+    with a torch model as policy for rollouts
 
     .. warning::
 
@@ -73,15 +73,19 @@ class SubprocVecEnv(VecEnv):
         For more information, see the multiprocessing documentation.
 
     :param env_fns: ([Gym Environment]) Environments to run in subprocesses
+    :param model: ([torch.nn model]) Model used for parallel rollouts
     :param start_method: (str) method used to start the subprocesses.
            Must be one of the methods returned by multiprocessing.get_all_start_methods().
            Defaults to 'fork' on available platforms, and 'spawn' otherwise.
     """
 
-    def __init__(self, env_fns, start_method=None):
+    def __init__(self, env_fns, model, start_method=None):
         self.waiting = False
         self.closed = False
         n_envs = len(env_fns)
+        # NOTE: this is required for the ``fork`` method to work
+        self.model = model
+        self.model.share_memory()
 
         if start_method is None:
             # Fork is not a thread safe method (see issue #217)
@@ -94,7 +98,7 @@ class SubprocVecEnv(VecEnv):
         self.remotes, self.work_remotes = zip(*[ctx.Pipe() for _ in range(n_envs)])
         self.processes = []
         for work_remote, remote, env_fn in zip(self.work_remotes, self.remotes, env_fns):
-            args = (work_remote, remote, CloudpickleWrapper(env_fn))
+            args = (work_remote, remote, CloudpickleWrapper(env_fn), self.model)
             # daemon=True: if the main process crashes, we should not cause things to hang
             process = ctx.Process(target=_worker, args=args, daemon=True)
             process.start()
@@ -104,6 +108,11 @@ class SubprocVecEnv(VecEnv):
         self.remotes[0].send(('get_spaces', None))
         observation_space, action_space = self.remotes[0].recv()
         VecEnv.__init__(self, len(env_fns), observation_space, action_space)
+
+    def update_model_params(self, state_dict):
+        self.model.print_parameters()
+        self.model.load_state_dict(state_dict)
+        self.model.print_parameters()
 
     def step_async(self, actions):
         if np.size(actions.shape) > 1:
@@ -120,36 +129,42 @@ class SubprocVecEnv(VecEnv):
         obs, rews, dones, infos = zip(*results)
         return flatten_obs(obs, self.observation_space), np.stack(rews), np.stack(dones), infos
 
-    def rollout(self, u_vec): 
+    def rollout(self, num_rollouts, horizon, mode='mean', noise=None): 
         """
         Rollout the environments to a horizon given open loop action sequence
 
-        :param u_vec 
+        :param 
         """
-        self.rollout_async(u_vec)
+        self.rollout_async(num_rollouts, horizon, mode, noise)
         return self.rollout_wait()
 
-    def rollout_async(self, u_vec):
-        assert u_vec.shape[0] % len(self.remotes) == 0, "Number of particles must be divisible by number of cpus"
-        batch_size = int(u_vec.shape[0]/len(self.remotes))
+    def rollout_async(self, num_rollouts, horizon, mode='mean', noise=None):
+        assert num_rollouts % len(self.remotes) == 0, "Number of particles must be divisible by number of cpus"
+        batch_size = int(num_rollouts/len(self.remotes))
         for i,remote in enumerate(self.remotes):
-            u_vec_i = u_vec[i*batch_size: (i+1)*batch_size, :, :].copy()
-            remote.send(('rollout', u_vec_i))
+            if noise is not None:
+                noise_vec_i = noise[i*batch_size: (i+1)*batch_size, :, :].copy() 
+            else:
+                noise_vec_i = None
+            data = {'batch_size': batch_size, 'horizon': horizon, 'mode': mode, 'noise': noise_vec_i}
+            remote.send(('rollout', data))
         self.waiting = True
 
     def rollout_wait(self):
         results = [remote.recv() for remote in self.remotes]
         self.waiting=False
         obs_vec = [res[0] for res in results]
-        # state_vec = [res[1] for res in results]
-        rew_vec = [res[1] for res in results]
-        done_vec = [res[2] for res in results]
-        info = [res[3] for res in results]
+        act_vec = [res[1] for res in results]
+        log_prob_vec = [res[2] for res in results]
+        rew_vec = [res[3] for res in results]
+        done_vec = [res[4] for res in results]
+        info = [res[5] for res in results]
         stacked_obs  = np.concatenate(obs_vec, axis=0)
-        # stacked_state = np.concatenate(state_vec, axis=0)
+        stacked_act = np.concatenate(act_vec, axis=0)
+        stacked_log_prob = np.concatenate(log_prob_vec, axis=0)
         stacked_rews = np.concatenate(rew_vec, axis=0)
         stacked_done = np.concatenate(done_vec, axis=0)
-        return stacked_obs, stacked_rews, stacked_done, info # stacked_state
+        return stacked_obs, stacked_act, stacked_log_prob, stacked_rews, stacked_done, info
 
     def reset(self):
         for remote in self.remotes:

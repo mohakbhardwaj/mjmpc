@@ -40,4 +40,5 @@ register(
 # ^^^^^ so that user gets the correct error
 # message if mujoco is not installed correctly
 from mjmpc.envs.basic.reacher_env import Reacher7DOFEnv, ContinualReacher7DOFEnv
+from mjmpc.envs.basic.lqr import LQREnv
 # import mj_envs

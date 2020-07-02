@@ -131,15 +131,6 @@ class VecEnv(ABC):
         """
         self.step_async(actions)
         return self.step_wait()
-
-    def rollout(self, u_vec): 
-        """
-        Rollout the environments to a horizon given open loop action sequence
-
-        :param u_vec 
-        """
-        self.rollout_async(u_vec)
-        return self.rollout_wait()
     
     @abstractmethod
     def get_env_state(self):

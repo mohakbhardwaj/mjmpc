@@ -1,5 +1,5 @@
 env_name          : 'cartpole-v0'
-n_episodes        : 1
+n_episodes        : 30
 max_ep_length     : 100
 seed              : 123 #testing: 0, tuning: 123
 render            : True
@@ -18,15 +18,14 @@ ilqr:
 
 random_shooting:
   horizon           : 32
-  init_cov          : 0.15
+  init_cov          : 1.0
   filter_coeffs     : [0.25, 0.8, 0.0]
   gamma             : 1.0
   n_iters           : 1
   step_size         : 1.0
   num_cpu           : 10
-  particles_per_cpu : 6
+  particles_per_cpu : 2
   base_action       : 'null'
-
 
 mppi:
   horizon           : 32
@@ -38,12 +37,12 @@ mppi:
   lam               : 0.1
   alpha             : 1
   num_cpu           : 10
-  particles_per_cpu : 4
+  particles_per_cpu : 6
   base_action       : 'null'
 
 dmd:
   horizon           : 32
-  init_cov          : 0.45
+  init_cov          : 1.0
   update_cov        : True
   cov_type          : 'full'
   beta              : 0.0
@@ -53,9 +52,8 @@ dmd:
   step_size         : 1.0
   lam               : 0.1
   num_cpu           : 10
-  particles_per_cpu : 4
+  particles_per_cpu : 6
   base_action       : 'null'
-
 
 
 # softq:
@@ -79,7 +77,7 @@ softq:
   n_iters           : 1
   n_rollouts        : 40
   lam               : 1.0
-  lr                : 1.0
-  reg               : 1.0
+  lr                : 0.1
+  reg               : 0.0
   num_cpu           : 1
   sample_mode       : 'mean'

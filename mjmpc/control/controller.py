@@ -193,9 +193,8 @@ class Controller(ABC):
             actions=act_seq,
             costs=cost_seq,
             dones=done_seq,
-            env_infos=helpers.stack_tensor_dict_list(info_seq)
+            infos=helpers.stack_tensor_dict_list(info_seq)
         )
-        
         return trajectories
 
     def optimize(self, state, calc_val=False):
@@ -223,8 +222,8 @@ class Controller(ABC):
 
         """
 
-        if (self.rollout_fn is None) or (self.set_sim_state_fn is None):
-            raise ValueError("rollout_fn and set_sim_state_fn not set!!")
+        # if (self.rollout_fn is None) or (self.set_sim_state_fn is None):
+        #     raise ValueError("rollout_fn and set_sim_state_fn not set!!")
 
         for _ in range(self.n_iters):
             # generate random simulated trajectories

@@ -19,6 +19,8 @@ class MPCPolicy(Policy):
             self.controller = control.PFMPC(**param_dict)
         elif controller_type == "random_shooting":
             self.controller = control.RandomShooting(**param_dict)
+        elif controller_type == "random_shooting_nn":
+            self.controller = control.RandomShootingNN(**param_dict)
         elif controller_type == "softq":
             self.controller = control.SoftQMPC(**param_dict)
         else:

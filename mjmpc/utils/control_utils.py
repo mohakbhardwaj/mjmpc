@@ -1,12 +1,15 @@
 import numpy as np
 
-def scale_ctrl(ctrl, action_low_limit, action_up_limit):
+def scale_ctrl(ctrl, action_low_limit, action_up_limit, squash_fn='clip'):
     if len(ctrl.shape) == 1:
         ctrl = ctrl[np.newaxis, :, np.newaxis]
     act_half_range = (action_up_limit - action_low_limit) / 2.0
     act_mid_range = (action_up_limit + action_low_limit) / 2.0
-    ctrl = np.clip(ctrl, -1.0, 1.0)
-    return act_mid_range[np.newaxis, :, np.newaxis] + ctrl * act_half_range[np.newaxis, :, np.newaxis]
+    if squash_fn == 'clip':
+        ctrl = np.clip(ctrl, -1.0, 1.0)
+    elif squash_fn == 'tanh':
+        ctrl = np.tanh(ctrl)
+    return act_mid_range[np.newaxis, :] + ctrl * act_half_range[np.newaxis, :]
 
 # def generate_noise(std_dev, filter_coeffs, base_act):
 #     """

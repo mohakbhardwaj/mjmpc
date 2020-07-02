@@ -5,8 +5,7 @@ from copy import deepcopy
 import numpy as np
 from mjmpc.control.controller import Controller
 from mjmpc.utils import control_utils, helpers
-from .simple_quadratic_model import SimpleQuadraticQFunc
-from .simple_quadratic_model_2 import SimpleQuadraticQFunc2
+from mjmpc.control.softqmpc.models import *
 import torch
 
 class SoftQMPC(Controller):
@@ -60,8 +59,9 @@ class SoftQMPC(Controller):
         self.lam = lam
         self.lr = lr
         self.reg = reg
+        # self.model = SingleLayerQuadraticQFunc(self.d_obs, self.d_action)
         self.model = SimpleQuadraticQFunc(self.d_obs, self.d_action)
-        self.optimizer = torch.optim.SGD(self.model.parameters(), lr=self.lr, weight_decay=0.)
+        self.optimizer = torch.optim.SGD(self.model.parameters(), lr=self.lr, weight_decay=self.reg)
     
     @property
     def sim_step_fn(self):
@@ -132,7 +132,6 @@ class SoftQMPC(Controller):
         else:
             raise ValueError('Unidentified sampling mode in get_next_action')
         return next_action
-
 
     def generate_rollouts(self, state):
         """
@@ -219,6 +218,8 @@ class SoftQMPC(Controller):
         actions = trajectories["actions"]
         costs = trajectories["costs"]
         entropies = trajectories["entropies"]
+        # print(costs)
+        # input('...')
         # # #Get terminal costs
         obs_input = torch.from_numpy(np.float32(obs[:,-1]))
         act_input = torch.from_numpy(np.float32(actions[:,-1]))
@@ -227,10 +228,16 @@ class SoftQMPC(Controller):
             costs[:,-1] = terminal_costs.squeeze(-1)
         
         # #Get Q-targets
-        #Q(s,a) = c(s,a) + \Sum_l=1^{N} \gamma^l(c(s_l, a_l) + H(a_l|s_l))
+        #Q(s,a) = c(s,a) + \Sum_l=1^{N} \gamma^l(c(s_l, a_l) + \lam * H(a_l|s_l))
         # We first calculate normal cost+entropy-to-go then subtract 
         # entropy of first state
         total_costs = costs - self.lam * entropies
+        # obs_input = torch.from_numpy(np.float32(obs))
+        # act_input = torch.from_numpy(np.float32(actions))
+        # with torch.no_grad():
+            # bellman_costs = self.model(obs_input, act_input).squeeze(1).numpy()
+        # targets = costs
+        # targets[:-1] += self.gamma * bellman_costs[1:]
         targets = control_utils.cost_to_go(total_costs, self.gamma_seq)
         targets += self.lam * entropies 
 
@@ -254,13 +261,12 @@ class SoftQMPC(Controller):
         #Do a few gradient steps
         for i in range(1):
             self.optimizer.zero_grad()
-            print(torch.max(targets_input))
             loss = self.model.loss(obs_input, act_input, targets_input, self.reg)
             loss.backward()
             # print("Loss = {0}".format(loss.item()))
-            # self.model.print_gradients()
+            self.model.print_gradients()
             self.optimizer.step()
-            print(self.model)
+            # self.model.print_parameters()
             # with torch.no_grad():
                 # self.model.grow_cov(0.1, self.lam)
 
