@@ -160,7 +160,8 @@ class GymEnvWrapper():
                     before_inf = time.time()
                     obs_torch = state = torch.FloatTensor(curr_obs).unsqueeze(0)
                     u_curr, log_prob = policy.get_action(obs_torch, mode)
-                    u_curr = u_curr.numpy(); log_prob = log_prob.numpy().item()
+                    u_curr = u_curr.numpy().copy().reshape(self.d_action,) 
+                    log_prob = log_prob.numpy().item()
                     inf_time = time.time() - before_inf
                     total_inf_time += inf_time
                     #Add noise if provided
@@ -171,7 +172,7 @@ class GymEnvWrapper():
                         obs_vec.append(curr_obs.copy())
                     else:
                         obs_vec[b, t, :] = curr_obs.copy().reshape(self.d_obs,)
-                    act_vec[b, t, :] = u_curr.copy().reshape(self.d_action,)
+                    act_vec[b, t, :] = u_curr.copy()
                     log_prob_vec[b, t] = log_prob
                     rew_vec[b, t] = rew
                     done_vec[b, t] = done
