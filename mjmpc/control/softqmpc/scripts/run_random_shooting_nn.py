@@ -48,7 +48,7 @@ def make_env():
 date_time = datetime.now().strftime("%m_%d_%Y_%H_%M_%S")
 log_dir = args.save_dir + "/" + exp_params['env_name'] + "/" + date_time + "/random_shooting_nn/test/" 
 if not os.path.exists(log_dir): os.makedirs(log_dir)
-logger = helpers.get_logger("sac" + "_" + exp_params['env_name'], log_dir, 'debug')
+logger = helpers.get_logger("random_shooting" + "_" + exp_params['env_name'], log_dir, 'debug')
 logger.info(exp_params)
 
 # Agent
