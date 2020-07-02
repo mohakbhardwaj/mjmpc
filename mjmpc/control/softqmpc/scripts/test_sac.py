@@ -5,6 +5,8 @@ import gym
 import numpy as np
 import itertools
 import os
+import sys
+sys.path.insert(0, '../../../../')
 import torch
 import tqdm
 from torch.utils.tensorboard import SummaryWriter
