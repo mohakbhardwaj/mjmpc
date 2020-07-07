@@ -34,7 +34,7 @@ with open(args.config) as file:
 # env = gym.make(exp_params['env_name'])
 torch.manual_seed(exp_params['seed'])
 np.random.seed(exp_params['seed'])
-random.seed(exp_params['seed'])
+# random.seed(exp_params['seed'])
 
 #Create the main environment
 env_name  = exp_params['env_name']
@@ -81,7 +81,7 @@ for i_episode in itertools.count(1):
     infos = []; states = []; next_states = []
 
     while not done:
-        curr_state = deepcopy(env.get_env_state())
+        # curr_state = deepcopy(env.get_env_state())
         if exp_params["start_steps"] > total_numsteps:
             action = env.action_space.sample()  # Sample random action
         else:
@@ -107,7 +107,8 @@ for i_episode in itertools.count(1):
 
         observations.append(curr_obs); actions.append(action)
         rewards.append(reward); dones.append(done)
-        states.append(curr_state); infos.append(info)
+        # states.append(curr_state); 
+        infos.append(info)
 
         # Ignore the "done" signal if it comes from hitting the time horizon.
         # (https://github.com/openai/spinningup/blob/master/spinup/algos/sac/sac.py)
@@ -122,11 +123,11 @@ for i_episode in itertools.count(1):
         actions=np.array(actions),
         rewards=np.array(rewards),
         dones=np.array(dones),
-        states=states,
+        # states=states,
         env_infos = helpers.stack_tensor_dict_list(infos)
     )
     train_trajectories.append(traj)
-    ep_success = env.env.unwrapped.evaluate_success([traj])
+    ep_success = 0.0 #env.env.unwrapped.evaluate_success([traj])
 
     if total_numsteps > exp_params["num_steps"]:
         break

@@ -5,8 +5,8 @@ as input and implements necessary functions for MPC rollouts
 Author: Mohak Bhardwaj
 Date: January 9, 2020
 """
+from collections import defaultdict
 from gym import spaces
-# from numba import njit, jit, jitclass
 import numpy as np
 from copy import deepcopy
 import time
@@ -26,19 +26,25 @@ class GymEnvWrapper():
             for k in observation.keys():
                 self.d_obs += observation[k].size
         else: self.d_obs = observation.size
-        state = self.get_env_state()
-        if type(state) is tuple:
-            self.d_state = np.sum([o.size for o in state])
-        elif type(state) is dict:
-            self.d_state = 0
-            for k in state.keys():
-                self.d_state += state[k].size
-        else: self.d_state = state.size
+        # state = self.get_env_state()
+        # if type(state) is tuple:
+        #     self.d_state = np.sum([o.size for o in state])
+        # elif type(state) is dict:
+        #     self.d_state = 0
+        #     for k in state.keys():
+        #         self.d_state += state[k].size
+        # else: self.d_state = state.size
         self.d_action = self.env.action_space.low.shape[0]
 
         self.observation_space = self.env.observation_space
         self.action_space = self.env.action_space
         self._max_episode_steps = self.env._max_episode_steps
+
+        self.default_dyn_params = defaultdict(dict)
+        self.randomized_dyn_params = defaultdict(dict)
+        
+
+        self.seed()
         super(GymEnvWrapper, self).__init__()
 
     def step(self, u):
@@ -194,30 +200,6 @@ class GymEnvWrapper():
                 self.env._seed(seed)
         return self.env.reset()
 
-    def render(self):
-        try:
-            self.env.env.mj_render()
-        except:
-            try:
-                self.env.render()
-            except:
-                print('Rendering not available')
-                pass 
-
-    def get_curr_frame(self, frame_size=(640,480), 
-                       camera_name=None, device_id=0):
-        try:
-            curr_frame = self.env.env.sim.render(width=frame_size[0], height=frame_size[1], 
-                                                mode="offscreen", camera_name=camera_name, device_id=device_id)
-            return curr_frame[::-1,:,:]
-        except:
-            try:
-                curr_frame = self.env.env.sim.render(width=frame_size[0], height=frame_size[1], 
-                                                    mode="offscreen", camera_name=camera_name, device_id=device_id)
-            except:
-                raise NotImplementedError('Getting frame not implemented')
-
-
     def real_env_step(self, bool_val):
         try:
             self.env.env.real_step = bool_val
@@ -244,12 +226,67 @@ class GymEnvWrapper():
             print('No close')
             pass
     
+    ########################
+    # Domain Randomization #
+    ########################
+    def randomize_dynamics(self, param_dict={}):
+        """
+            Randomizes dynamics parameters based on provided
+            values
+        """
+
+        for param_id in param_dict.keys(): 
+            #param_id - type of dynamics parameter eg. body_mass, frictionloss etc.
+            for name, dist_params in param_dict[param_id].items():
+                #name = name of body or joint etc. in mujoco xml
+                #dist_params = [noise_scale, bias_scale] for randomization distribution
+                noise_scale, bias_scale = dist_params
+                if param_id == "body_mass":
+                    idx_to_update = self.env.env.sim.model.body_name2id(name)
+                    field_to_update = self.env.env.sim.model.body_mass
+                
+                if name not in self.default_dyn_params[param_id].keys():
+                    curr_val = field_to_update[idx_to_update]
+                    self.default_dyn_params[param_id][name] = curr_val #update default params only first time
+                else:
+                    curr_val = self.default_dyn_params[param_id][name]
+
+                biased_mean = (1.0 + bias_scale) * curr_val
+                rand_val = self.env.np_random.uniform(biased_mean - biased_mean * noise_scale, 
+                                                      biased_mean + biased_mean * noise_scale)
+                # rand_val = biased_mean + noise_sample
+                #update the relevant field and idx
+                field_to_update[idx_to_update] = rand_val
+                self.randomized_dyn_params[param_id][name] = rand_val
+
+        return self.default_dyn_params, self.randomized_dyn_params
 
 
-# def make_wrapper(env):
-#     # cdef GymEnvWrapper env_wrap = GymEnvWrapper(env)
-#     env_wrap = GymEnvWrapper(env)
-#     return env_wrap
+    def render(self):
+        try:
+            self.env.env.mj_render()
+        except:
+            try:
+                self.env.render()
+            except:
+                print('Rendering not available')
+                pass 
+
+    def get_curr_frame(self, frame_size=(640,480), 
+                       camera_name=None, device_id=0):
+        try:
+            curr_frame = self.env.env.sim.render(width=frame_size[0], height=frame_size[1], 
+                                                mode="offscreen", camera_name=camera_name, device_id=device_id)
+            return curr_frame[::-1,:,:]
+        except:
+            try:
+                curr_frame = self.env.env.sim.render(width=frame_size[0], height=frame_size[1], 
+                                                    mode="offscreen", camera_name=camera_name, device_id=device_id)
+            except:
+                raise NotImplementedError('Getting frame not implemented')    
+
+
+
 
 if __name__ == "__main__":
     import mj_envs

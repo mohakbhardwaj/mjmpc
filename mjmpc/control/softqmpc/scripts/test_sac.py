@@ -86,7 +86,7 @@ for i in tqdm.tqdm(range(n_episodes)):
     )
     trajectories.append(traj)
 
-success_metric = env.env.unwrapped.evaluate_success(trajectories)
+success_metric = 0.0
 average_reward = np.average(ep_rewards)
 reward_std = np.std(ep_rewards)
 
