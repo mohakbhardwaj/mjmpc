@@ -144,7 +144,7 @@ for i_episode in itertools.count(1):
             curr_obs = env.reset(seed=test_episode_seed)
             episode_reward = 0
             done = False
-            for t in range(exp_params['max_ep_length']):
+            for t in range(env._max_episode_steps):
                 action = agent.get_action(curr_obs, evaluate=True)
 
                 next_obs, reward, done, info = env.step(action)
