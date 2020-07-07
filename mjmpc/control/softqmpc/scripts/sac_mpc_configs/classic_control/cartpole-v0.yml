@@ -1,0 +1,24 @@
+env_name          : 'cartpole-v0'
+max_ep_length     : 100
+seed              : 0
+render            : True
+num_test_episodes : 2
+test_seed         : 123
+horizon           : 32
+init_cov          : 1.0
+filter_coeffs     : [0.25, 0.8, 0.0]
+gamma             : 0.99
+n_iters           : 1
+step_size         : 1.0
+base_action       : 'null'
+lr                : 0.0003
+alpha             : 0.2
+tau               : 0.0005
+automatic_entropy_tuning: True
+train_batch_size  : 256
+updates_per_step  : 1
+start_steps       : 1000
+target_update_interval : 1
+replay_size       : 1000000
+num_cpu           : 10
+particles_per_cpu : 1

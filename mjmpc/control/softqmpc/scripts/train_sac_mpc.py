@@ -7,12 +7,13 @@ import os
 import sys
 import torch
 import tqdm
+from torch.utils.tensorboard import SummaryWriter
 import yaml 
 
 from mjmpc.control.softqmpc.algs.sac import SAC
+from mjmpc.control.softqmpc.algs import SACMPC
 from mjmpc.control.softqmpc.models import GaussianPolicy
 from mjmpc.envs.vec_env import TorchModelVecEnv
-from mjmpc.policies import MPCPolicy
 from mjmpc.envs import GymEnvWrapper
 from mjmpc.utils import helpers
 import mj_envs
@@ -38,6 +39,26 @@ env = gym.make(env_name)
 env = GymEnvWrapper(env)
 env.real_env_step(True)
 
+#Create logger
+date_time = datetime.now().strftime("%m_%d_%Y_%H_%M_%S")
+log_dir = args.save_dir + "/" + exp_params['env_name'] + "/" + date_time + "/sac_mpc/test/" 
+if not os.path.exists(log_dir): os.makedirs(log_dir)
+logger = helpers.get_logger("sac" + "_" + exp_params['env_name'], log_dir, 'debug')
+logger.info(exp_params)
+with open(log_dir+"/exp_params.yml", "w") as f:
+    yaml.dump(exp_params, f)
+
+#Create Tensorboard
+writer = SummaryWriter(log_dir)
+
+# policy = GaussianPolicy(env.d_obs, env.d_action, 256, env.action_space.high, env.action_space.low)
+# Agent
+exp_params["cuda"] = args.cuda
+agent = SAC(env.observation_space.shape[0], env.action_space, exp_params)
+agent.load_model(args.load_dir+"/actor", args.load_dir+"/critic")
+policy = agent.policy
+critic = agent.critic
+
 # Function to create vectorized environments for controller simulations
 def make_env():
     gym_env = gym.make(env_name)
@@ -45,87 +66,67 @@ def make_env():
     rollout_env.real_env_step(False)
     return rollout_env
 
-#Create logger
-date_time = datetime.now().strftime("%m_%d_%Y_%H_%M_%S")
-log_dir = args.save_dir + "/" + exp_params['env_name'] + "/" + date_time + "/sac_mpc/test/" 
-if not os.path.exists(log_dir): os.makedirs(log_dir)
-logger = helpers.get_logger("sac" + "_" + exp_params['env_name'], log_dir, 'debug')
-logger.info(exp_params)
-
-test_seed = exp_params['test_seed']
-policy_params = exp_params['sac_mpc']
-policy_params['d_obs'] = env.d_obs
-policy_params['d_state'] = env.d_state
-policy_params['d_action'] = env.d_action
-policy_params['action_lows'] = env.action_space.low
-policy_params['action_highs'] = env.action_space.high
-
-policy_params['num_particles'] = policy_params['num_cpu'] * policy_params['particles_per_cpu']
-num_particles = policy_params['num_particles']
-horizon = policy_params['horizon']
-num_cpu = policy_params['num_cpu']
-policy_params.pop('particles_per_cpu', None)
-policy_params.pop('num_cpu', None)
-
-#Create vectorized environments for MPC simulations
-policy = GaussianPolicy(env.d_obs, env.d_action, 256, env.action_space.low, env.action_space.high)
 sim_env = TorchModelVecEnv([make_env for i in range(num_cpu)], policy)
-
-
-# Agent
-exp_params["cuda"] = args.cuda
-agent = SAC(env.observation_space.shape[0], env.action_space, exp_params)
-agent.load_model(args.load_dir+"/actor", args.load_dir+"/critic")
-policy = agent.policy
-qfunc = agent.critic
-
-sim_env.update_model_params(policy.state_dict())
-input('....')
-
-
 def rollout_fn(mode='mean', noise=None):
     """
     Given a batch of sequences of actions, rollout 
     in sim envs and return sequence of costs. The controller is 
     agnostic of how the rollouts are generated.
     """
-    obs_vec, act_vec, log_prob_vec, rew_vec, done_vec, infos = sim_env.rollout(num_particles, horizon, mode, noise)
+    obs_vec, act_vec, log_prob_vec, rew_vec, done_vec, next_obs_vec, infos = sim_env.rollout(num_particles, horizon, mode, noise)
     #we assume environment returns rewards, but controller needs costs
-    return obs_vec, act_vec, log_prob_vec, -1.0*rew_vec, done_vec, infos
+    return obs_vec, act_vec, log_prob_vec, -1.0*rew_vec, done_vec, next_obs_vec, infos
 
-#Commence testing
-#Main data collection loop
-num_test_episodes = exp_params['num_test_episodes']
-ep_rewards = np.array([0.] * num_test_episodes)
+#MPC Agent
+exp_params['policy'] = policy
+exp_params['critic'] = critic
+exp_params['rollout_fn'] = rollout_fn
+exp_params['set_sim_state_fn'] = sim_env.set_env_state
+exp_params['get_sim_obs_fn'] = sim_env.get_sim_obs
+mpc_agent = SACMPC(exp_params)
+
+# Training Loop
+total_numsteps = 0
 trajectories = []
-for i in tqdm.tqdm(range(num_test_episodes)):
-    #seeding to enforce consistent episodes
-    episode_seed = test_seed + i*12345
-    obs = env.reset(seed=episode_seed)
-    
-    #create MPC policy and set appropriate functions
-    policy = MPCPolicy(controller_type='random_shooting_nn',
-                        param_dict=policy_params, batch_size=1)
-    policy.controller.set_sim_state_fn = sim_env.set_env_state
-    # policy.controller.get_sim_state_fn = sim_env.get_env_state
-    # policy.controller.sim_step_fn = sim_env.step
-    # policy.controller.sim_reset_fn = sim_env.reset
-    # policy.controller.get_sim_obs_fn = sim_env.get_obs
-    policy.controller.rollout_fn = rollout_fn
 
-    #Collect data from interactions with environment
+for i_episode in itertools.count(1):
+    #seeding to enforce consistent episodes
+    episode_reward = 0
+    episode_steps = 0
+    done = False
+    episode_seed = test_seed + i*12345
+    exp_params['seed'] = episode_seed
+    curr_obs = env.reset(seed=episode_seed)
     observations = []; actions = []; rewards = []; dones  = []
     infos = []; states = []; next_states = []
-    for t in tqdm.tqdm(range(exp_params['max_ep_length'])): 
+    
+    while not done:
         curr_state = deepcopy(env.get_env_state())
-        action, value = policy.get_action(curr_state, calc_val=False)
-        
-        obs, reward, done, info = env.step(action)
-        
-        observations.append(obs); actions.append(action)
+        action, value = mpc_agent.get_action(curr_state, calc_val=False)
+        agent_infos = mpc_agent.get_agent_infos()
+
+        writer.add_scalar('loss/critic_1', agent_infos["critic_1_loss"], updates)
+        writer.add_scalar('loss/critic_2', agent_infos["critic_2_loss"], updates)
+        writer.add_scalar('loss/policy', agent_infos["policy_loss"], updates)
+        writer.add_scalar('loss/entropy_loss', agent_infos["ent_loss"], updates)
+        writer.add_scalar('entropy_temperature/alpha', agent_infos["alpha"], updates)
+
+        next_obs, reward, done, info = env.step(action)
+        episode_steps += 1
+        total_numstesp += 1
+        episode_reward += reward
+
+        observations.append(curr_obs); actions.append(action)
         rewards.append(reward); dones.append(done)
         infos.append(info); states.append(curr_state)
-        ep_rewards[i] += reward
+
+        # Ignore the "done" signal if it comes from hitting the time horizon.
+        # (https://github.com/openai/spinningup/blob/master/spinup/algos/sac/sac.py)
+        mask = 1 if episode_steps == exp_params["max_ep_length"] else float(not done)
+        #Done = true if max_ep_length reached
+        done = done or (episode_steps % exp_params["max_ep_length"] == 0)
+
+        curr_obs = next_obs
     
     traj = dict(
         observations=np.array(observations),
@@ -136,6 +137,12 @@ for i in tqdm.tqdm(range(num_test_episodes)):
         states=states
     )
     trajectories.append(traj)
+    
+    if total_numsteps > exp_params["num_steps"]:
+        break
+
+    writer.add_scalar('train/episode_reward', episode_reward, i_episode)
+    logger.info("Episode: {}, total numsteps: {}, episode steps: {}, reward: {}".format(i_episode, total_numsteps, episode_steps, np.round(episode_reward, 2)))
 
 success_metric = env.env.unwrapped.evaluate_success(trajectories)
 average_reward = np.average(ep_rewards)

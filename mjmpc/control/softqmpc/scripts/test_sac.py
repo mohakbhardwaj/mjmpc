@@ -75,7 +75,7 @@ for i in tqdm.tqdm(range(n_episodes)):
         infos.append(info); states.append(curr_state)
         ep_rewards[i] += reward
         curr_obs = next_obs
-    
+
     traj = dict(
         observations=np.array(observations),
         actions=np.array(actions),

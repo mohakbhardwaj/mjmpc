@@ -93,6 +93,9 @@ class PendulumEnv(gym.Env):
     
     def set_env_state(self, state_dict):
         self.state = state_dict['state']
+    
+    def evaluate_success(self, trajectories):
+        return 0.0
         
 
 def angle_normalize(x):

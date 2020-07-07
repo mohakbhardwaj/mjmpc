@@ -8,7 +8,8 @@ from .particle_filter_controller import PFMPC
 from .random_shooting import RandomShooting
 from .random_shooting_nn import RandomShootingNN
 from .softqmpc.algs.softq_controller import SoftQMPC
+# from .softqmpc.algs.sac_mpc import SACMPC
 
 
 __all__ = ["Controller", "OLGaussianMPC", "CEM", "DMDMPC", "ILQR", "MPPI", "PFMPC", 
-           "RandomShooting", "RandomShootingNN", "SoftQMPC"]
+           "RandomShooting", "RandomShootingNN", "SoftQMPC"] #, "SACMPC"]

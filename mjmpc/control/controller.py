@@ -6,6 +6,7 @@ Date: 3 Jan, 2020
 """
 from abc import ABC, abstractmethod
 import copy
+from gym.utils import seeding
 import numpy as np
 from mjmpc.utils import helpers
 
@@ -73,8 +74,8 @@ class Controller(ABC):
         self._rollout_fn = rollout_fn
         self.sample_mode = sample_mode
         self.batch_size = batch_size
-        self.seed = seed
         self.num_steps = 0
+        self.seed_val = self.seed(seed)
 
     @abstractmethod
     def _get_next_action(self, mode='mean'):
@@ -265,5 +266,11 @@ class Controller(ABC):
         self.reset() #reset the control distribution
         _, value = self.step(state, calc_val=True)
         return value
+    
+    def seed(self, seed=None):
+        self.np_random, seed = seeding.np_random(seed)
+        return seed
+
+
 
 

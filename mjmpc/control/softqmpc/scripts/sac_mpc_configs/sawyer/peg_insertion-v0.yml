@@ -1,27 +1,27 @@
 env_name          : 'sawyer_peg_insertion-v0'
 max_ep_length     : 75
-seed              : 123456
+seed              : 0
 render            : True
 policy            : 'Gaussian'
 eval              : True
-gamma             : 0.99
-tau               : 0.005
 lr                : 0.0003
 alpha             : 0.2
+tau               : 0.005
+gamma             : 0.99
 automatic_entropy_tuning : True
-batch_size        : 256
 num_steps         : 300000
+batch_size        : 256
 hidden_size       : 256
 updates_per_step  : 1
-start_steps       : 10000
+start_steps       : 1000
 target_update_interval : 1
-replay_size       : 100000
-num_test_episodes : 10
+replay_size       : 1000000
+num_test_episodes : 30
 test_seed         : 123
 
 random_shooting_nn:
-  horizon           : 32
-  init_cov          : 3.0
+  horizon           : 16
+  init_cov          : 0.2
   filter_coeffs     : [0.25, 0.8, 0.0]
   gamma             : 1.0
   n_iters           : 1
@@ -29,3 +29,15 @@ random_shooting_nn:
   base_action       : 'null'
   num_cpu           : 10
   particles_per_cpu : 3
+
+
+sac_mpc:
+  horizon           : 32
+  init_cov          : 1.0
+  filter_coeffs     : [0.25, 0.8, 0.0]
+  gamma             : 1.0
+  n_iters           : 1
+  step_size         : 1.0
+  base_action       : 'null'
+  num_cpu           : 10
+  particles_per_cpu : 1

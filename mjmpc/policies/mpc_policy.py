@@ -23,6 +23,8 @@ class MPCPolicy(Policy):
             self.controller = control.RandomShootingNN(**param_dict)
         elif controller_type == "softq":
             self.controller = control.SoftQMPC(**param_dict)
+        # elif controller_type == "sac_mpc":
+            # self.controller = control.SACMPC(**param_dict)
         else:
             raise NotImplementedError("Controller type does not exist")
 

@@ -6,6 +6,7 @@ Author: Mohak Bhardwaj
 Date: January 9, 2020
 """
 from gym import spaces
+# from numba import njit, jit, jitclass
 import numpy as np
 from copy import deepcopy
 import time
@@ -37,14 +38,12 @@ class GymEnvWrapper():
 
         self.observation_space = self.env.observation_space
         self.action_space = self.env.action_space
+        self._max_episode_steps = self.env._max_episode_steps
         super(GymEnvWrapper, self).__init__()
 
     def step(self, u):
-        # cdef rew, done
-        # cdef double[:] obs_view
-        obs_view, rew, done, info = self.env.step(u)
-        return obs_view, rew, done, info
-        # return self.env.step(u)
+        obs, rew, done, info = self.env.step(u)
+        return deepcopy(obs), deepcopy(rew), deepcopy(done), deepcopy(info)
  
     def set_env_state(self, state_dict: dict):
         """
@@ -69,9 +68,9 @@ class GymEnvWrapper():
         Return dictionary of the full environment state
         """
         try:
-            return self.env.get_obs()
+            return self.env.get_obs().copy()
         except:
-            return self.env.env.get_obs()
+            return self.env.env.get_obs().copy()
  
     def get_reward(self, state, action, next_state):
         '''
@@ -142,8 +141,10 @@ class GymEnvWrapper():
         if (noise is not None) and mode =='sample':
             raise ValueError('Added noise must be None when using sample mode from policy')
         if type(self.observation_space) is spaces.Dict:
-            obs_vec = []
-        else: obs_vec = np.zeros((batch_size, horizon, self.d_obs))
+            obs_vec = []; next_obs_vec = []
+        else: 
+            obs_vec = np.zeros((batch_size, horizon, self.d_obs))
+            next_obs_vec = np.zeros((batch_size, horizon, self.d_obs))
         act_vec = np.zeros((batch_size, horizon, self.d_action))
         log_prob_vec = np.zeros((batch_size, horizon))
         rew_vec = np.zeros((batch_size, horizon))
@@ -158,7 +159,7 @@ class GymEnvWrapper():
                 for t in range(horizon):
                     #Get action prediction from model
                     before_inf = time.time()
-                    obs_torch = state = torch.FloatTensor(curr_obs).unsqueeze(0)
+                    obs_torch = torch.FloatTensor(curr_obs).unsqueeze(0)
                     u_curr, log_prob = policy.get_action(obs_torch, mode)
                     u_curr = u_curr.numpy().copy().reshape(self.d_action,) 
                     log_prob = log_prob.numpy().item()
@@ -170,15 +171,17 @@ class GymEnvWrapper():
                     next_obs, rew, done, _ = self.step(u_curr)
                     if type(self.observation_space) is spaces.Dict:
                         obs_vec.append(curr_obs.copy())
+                        next_obs_vec.append(next_obs.copy())
                     else:
                         obs_vec[b, t, :] = curr_obs.copy().reshape(self.d_obs,)
+                        next_obs_vec[b, t, :] = next_obs.copy().reshape(self.d_obs,)
                     act_vec[b, t, :] = u_curr.copy()
                     log_prob_vec[b, t] = log_prob
                     rew_vec[b, t] = rew
                     done_vec[b, t] = done
                     curr_obs = next_obs
         info = {'total_time' : time.time() - start_t, 'inference_time': total_inf_time}
-        return obs_vec, act_vec, log_prob_vec, rew_vec, done_vec, info
+        return obs_vec, act_vec, log_prob_vec, rew_vec, done_vec, next_obs_vec, info
     
     def seed(self, seed=None):
         return self.env.seed(seed)

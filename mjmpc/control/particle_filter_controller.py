@@ -62,10 +62,10 @@ class PFMPC(Controller):
         self.cov_resample = np.diag(np.array([cov_resample] * self.d_action))
         self.base_action = base_action
         self.filter_coeffs = filter_coeffs
-        random.seed(self.seed)
+        random.seed(self.seed_val)
         self.action_samples = generate_noise(self.cov_resample, self.filter_coeffs,
                                              shape=(self.num_particles, self.horizon),
-                                             base_seed=self.seed)
+                                             base_seed=self.seed_val)
 
 
     def _update_distribution(self, trajectories):
@@ -75,8 +75,8 @@ class PFMPC(Controller):
         """
         costs = trajectories["costs"].copy()
         w = self._exp_util(costs)
-        random.seed(self.seed + self.num_steps)
-        np.random.seed(self.seed + self.num_steps)
+        random.seed(self.seed_val + self.num_steps)
+        np.random.seed(self.seed_val + self.num_steps)
         self.action_samples = self._resampling(self.action_samples, w, low_variance=True)
 
         
@@ -114,7 +114,7 @@ class PFMPC(Controller):
         #add noise
         delta = generate_noise(self.cov_shift, self.filter_coeffs,
                                shape=(self.num_particles, self.horizon),
-                               base_seed=self.seed + self.num_steps)
+                               base_seed=self.seed_val + self.num_steps)
         self.action_samples = self.action_samples + delta
         #append base action to the end
         if self.base_action == 'random':
@@ -132,7 +132,7 @@ class PFMPC(Controller):
         self.num_steps = 0
         self.action_samples = generate_noise(self.cov_resample, self.filter_coeffs,
                                              shape=(self.num_particles, self.horizon),
-                                             base_seed=self.seed)
+                                             base_seed=self.seed_val)
 
     def _resampling(self, act_seq, weights, low_variance=True):
         if low_variance:

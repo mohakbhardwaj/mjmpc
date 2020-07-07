@@ -5,6 +5,7 @@ from gym.envs.registration import register
 register(
   id='SimplePendulum-v0',
   entry_point='mjmpc.envs.basic.pendulum:PendulumEnv',
+  max_episode_steps=200
 )
 
 register(

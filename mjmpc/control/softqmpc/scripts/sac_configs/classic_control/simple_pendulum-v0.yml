@@ -1,5 +1,5 @@
-env_name          : 'sawyer_peg_insertion-v0'
-max_ep_length     : 75
+env_name          : 'SimplePendulum-v0'
+max_ep_length     : 200
 seed              : 123456
 render            : True
 policy            : 'Gaussian'
@@ -10,7 +10,7 @@ lr                : 0.0003
 alpha             : 0.2
 automatic_entropy_tuning : True
 batch_size        : 256
-num_steps         : 300000
+num_steps         : 50000
 hidden_size       : 256
 updates_per_step  : 1
 start_steps       : 10000

@@ -78,7 +78,7 @@ class OLGaussianMPC(Controller):
     def sample_actions(self):
         delta = generate_noise(self.cov_action, self.filter_coeffs,
                                shape=(self.num_particles, self.horizon), 
-                               base_seed = self.seed + self.num_steps)        
+                               base_seed = self.seed_val + self.num_steps)        
         act_seq = self.mean_action[None, :, :] + delta
         # act_seq = scale_ctrl(act_seq, self.action_lows, self.action_highs)
         return np.array(act_seq)

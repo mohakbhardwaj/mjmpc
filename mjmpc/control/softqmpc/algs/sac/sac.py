@@ -2,9 +2,10 @@ import os
 import torch
 import torch.nn.functional as F
 from torch.optim import Adam
-from .utils import soft_update, hard_update
+from mjmpc.control.softqmpc.algs.sac.utils import soft_update, hard_update
 from mjmpc.control.softqmpc.models.policy_network import GaussianPolicy, DeterministicPolicy
 from mjmpc.control.softqmpc.models.q_network import QNetwork
+
 
 class SAC(object):
     def __init__(self, num_inputs, action_space, args):
@@ -32,23 +33,29 @@ class SAC(object):
                 self.log_alpha = torch.zeros(1, requires_grad=True, device=self.device)
                 self.alpha_optim = Adam([self.log_alpha], lr=args["lr"])
 
-            self.policy = GaussianPolicy(num_inputs, action_space.shape[0], args["hidden_size"], action_space.high, action_space.low).to(self.device)
+            self.policy = GaussianPolicy(num_inputs, action_space.shape[0], args["hidden_size"], action_space).to(self.device)
             self.policy_optim = Adam(self.policy.parameters(), lr=args["lr"])
 
         else:
             self.alpha = 0
             self.automatic_entropy_tuning = False
-            self.policy = DeterministicPolicy(num_inputs, action_space.shape[0], args["hidden_size"], action_space.high, action_space.low).to(self.device)
+            self.policy = DeterministicPolicy(num_inputs, action_space.shape[0], args["hidden_size"], action_space).to(self.device)
             self.policy_optim = Adam(self.policy.parameters(), lr=args["lr"])
+
+    # def get_action(self, state, evaluate=False):
+    #     state = torch.FloatTensor(state).to(self.device).unsqueeze(0)
+    #     if evaluate is False:
+    #         action, _, _ = self.policy.sample(state)
+    #     else:
+    #         _, _, action = self.policy.sample(state)
+    #     return action.detach().cpu().numpy()[0]
 
     def get_action(self, state, evaluate=False):
         state = torch.FloatTensor(state).to(self.device).unsqueeze(0)
         if evaluate is False:
-            # action, _, _ = self.policy.sample(state)
-            action, _ = self.policy.get_action(state, mode='sample')
+            action, _, _ = self.policy.sample(state)
         else:
-            # _, _, action = self.policy.sample(state)
-            action, _ = self.policy.get_action(state, mode='mean')
+            _, _, action = self.policy.sample(state)
         return action.detach().cpu().numpy()[0]
 
     def update_parameters(self, memory, batch_size, updates):
@@ -114,7 +121,6 @@ class SAC(object):
             actor_path = "models/sac_actor_{}_{}".format(env_name, suffix)
         if critic_path is None:
             critic_path = "models/sac_critic_{}_{}".format(env_name, suffix)
-            
         print('Saving models to {} and {}'.format(actor_path, critic_path))
         torch.save(self.policy.state_dict(), actor_path)
         torch.save(self.critic.state_dict(), critic_path)

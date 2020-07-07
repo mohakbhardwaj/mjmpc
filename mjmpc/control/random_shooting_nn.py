@@ -75,7 +75,7 @@ class RandomShootingNN(Controller):
     def _sample_noise(self):
         delta = generate_noise(self.cov_action, self.filter_coeffs,
                                shape=(self.num_particles, self.horizon), 
-                               base_seed = self.seed + self.num_steps)
+                               base_seed = self.seed_val + self.num_steps)
         return delta.copy()
         
     def generate_rollouts(self, state):
@@ -91,7 +91,7 @@ class RandomShootingNN(Controller):
          """
         self._set_sim_state_fn(deepcopy(state)) #set state of simulation
         delta = self._sample_noise() #sample noise sequence
-        obs_seq, act_seq, logprob_seq, cost_seq, done_seq, info_seq = self._rollout_fn(mode='mean',
+        obs_seq, act_seq, logprob_seq, cost_seq, done_seq, next_obs_seq, info_seq = self._rollout_fn(mode='mean',
                                                                                        noise=delta)
         trajectories = dict(
             observations=obs_seq,
@@ -128,7 +128,6 @@ class RandomShootingNN(Controller):
         self.mean_action = (1.0 - self.step_size) * self.mean_action +\
                             self.step_size * actions[best_id]
         
-
     def _shift(self):
         """
             Predict good parameters for the next time step by

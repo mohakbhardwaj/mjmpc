@@ -11,6 +11,7 @@ import tqdm
 import yaml 
 
 from mjmpc.control.softqmpc.algs.sac import SAC
+from mjmpc.control.softqmpc.models.policy_network import GaussianPolicy
 from mjmpc.envs.vec_env import TorchModelVecEnv
 from mjmpc.policies import MPCPolicy
 from mjmpc.envs import GymEnvWrapper
@@ -54,9 +55,11 @@ logger.info(exp_params)
 
 # Agent
 exp_params["cuda"] = args.cuda
-agent = SAC(env.observation_space.shape[0], env.action_space, exp_params)
-agent.load_model(args.load_dir+"/actor", args.load_dir+"/critic")
-model = agent.policy
+# agent = SAC(env.observation_space.shape[0], env.action_space, exp_params)
+# agent.load_model(args.load_dir+"/actor", args.load_dir+"/critic")
+# model = agent.policy
+model = GaussianPolicy(env.d_obs, env.d_action, 256, env.action_space)
+model.load_state_dict(torch.load(os.path.join(args.load_dir, 'actor')))
 
 test_seed = exp_params['test_seed']
 policy_params = exp_params['random_shooting_nn']
@@ -84,9 +87,9 @@ def rollout_fn(mode='mean', noise=None):
     in sim envs and return sequence of costs. The controller is 
     agnostic of how the rollouts are generated.
     """
-    obs_vec, act_vec, log_prob_vec, rew_vec, done_vec, infos = sim_env.rollout(num_particles, horizon, mode, noise)
+    obs_vec, act_vec, log_prob_vec, rew_vec, done_vec, next_obs_vec, infos = sim_env.rollout(num_particles, horizon, mode, noise)
     #we assume environment returns rewards, but controller needs costs
-    return obs_vec, act_vec, log_prob_vec, -1.0*rew_vec, done_vec, infos
+    return obs_vec, act_vec, log_prob_vec, -1.0*rew_vec, done_vec, next_obs_vec, infos
 
 #Commence testing
 #Main data collection loop
