@@ -26,14 +26,14 @@ class GymEnvWrapper():
             for k in observation.keys():
                 self.d_obs += observation[k].size
         else: self.d_obs = observation.size
-        # state = self.get_env_state()
-        # if type(state) is tuple:
-        #     self.d_state = np.sum([o.size for o in state])
-        # elif type(state) is dict:
-        #     self.d_state = 0
-        #     for k in state.keys():
-        #         self.d_state += state[k].size
-        # else: self.d_state = state.size
+        state = self.get_env_state()
+        if type(state) is tuple:
+            self.d_state = np.sum([o.size for o in state])
+        elif type(state) is dict:
+            self.d_state = 0
+            for k in state.keys():
+                self.d_state += state[k].size
+        else: self.d_state = state.size
         self.d_action = self.env.action_space.low.shape[0]
 
         self.observation_space = self.env.observation_space
@@ -234,7 +234,6 @@ class GymEnvWrapper():
             Randomizes dynamics parameters based on provided
             values
         """
-
         for param_id in param_dict.keys(): 
             #param_id - type of dynamics parameter eg. body_mass, frictionloss etc.
             for name, dist_params in param_dict[param_id].items():

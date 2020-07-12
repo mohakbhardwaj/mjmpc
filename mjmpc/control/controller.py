@@ -264,7 +264,7 @@ class Controller(ABC):
             optimal value estimate of the state
         """
         self.reset() #reset the control distribution
-        _, value = self.step(state, calc_val=True)
+        _, value = self.optimize(state, calc_val=True)
         return value
     
     def seed(self, seed=None):

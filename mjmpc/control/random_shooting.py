@@ -49,7 +49,6 @@ class RandomShooting(OLGaussianMPC):
                                              batch_size,
                                              seed)
 
-
     def _update_distribution(self, trajectories):
         """
            Update mean in direction of best sampled action

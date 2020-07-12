@@ -25,6 +25,7 @@ from mjmpc.policies import MPCPolicy
 gym.logger.set_level(40)
 parser = argparse.ArgumentParser(description='Run MPC algorithm on given environment')
 parser.add_argument('--config', type=str, help='yaml file with experiment parameters')
+parser.add_argument('--dyn_randomize_config', type=str, help='yaml file with dynamics randomization parameters')
 parser.add_argument('--save_dir', type=str, default='/tmp', help='folder to save data in')
 parser.add_argument('--controller', type=str, default='mppi', help='controller to run')
 parser.add_argument('--dump_vids', action='store_true', help='flag to dump video of episodes' )
@@ -33,6 +34,11 @@ args = parser.parse_args()
 #Load experiment parameters from config file
 with open(args.config) as file:
     exp_params = yaml.load(file, Loader=yaml.FullLoader)
+if args.dyn_randomize_config is not None:
+    with open(args.dyn_randomize_config) as file:
+        dynamics_rand_params = yaml.load(file, Loader=yaml.FullLoader)    
+else:
+    dynamics_rand_params=None
 
 #Create the main environment
 env_name  = exp_params['env_name']
@@ -45,7 +51,13 @@ def make_env():
     gym_env = gym.make(env_name)
     rollout_env = GymEnvWrapper(gym_env)
     rollout_env.real_env_step(False)
+    if dynamics_rand_params is not None:
+        default_params, randomized_params = rollout_env.randomize_dynamics(dynamics_rand_params)
+        print('Default params = {}'.format(default_params))
+        print('Randomized params = {}'.format(randomized_params))
+        
     return rollout_env
+
 
 #unpack params and create policy params
 controller_name = args.controller
@@ -91,6 +103,7 @@ logger.info(exp_params[controller_name])
 
 #Main data collection loop
 timeit.start('start_'+controller_name)
+input('....')
 for i in tqdm.tqdm(range(n_episodes)):
     #seeding to enforce consistent episodes
     episode_seed = base_seed + i*12345
