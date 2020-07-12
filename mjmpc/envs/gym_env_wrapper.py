@@ -26,14 +26,14 @@ class GymEnvWrapper():
             for k in observation.keys():
                 self.d_obs += observation[k].size
         else: self.d_obs = observation.size
-        # state = self.get_env_state()
-        # if type(state) is tuple:
-        #     self.d_state = np.sum([o.size for o in state])
-        # elif type(state) is dict:
-        #     self.d_state = 0
-        #     for k in state.keys():
-        #         self.d_state += state[k].size
-        # else: self.d_state = state.size
+        state = self.get_env_state()
+        if type(state) is tuple:
+            self.d_state = np.sum([o.size for o in state])
+        elif type(state) is dict:
+            self.d_state = 0
+            for k in state.keys():
+                self.d_state += state[k].size
+        else: self.d_state = state.size
         self.d_action = self.env.action_space.low.shape[0]
 
         self.observation_space = self.env.observation_space
@@ -242,11 +242,27 @@ class GymEnvWrapper():
                 #dist_params = [noise_scale, bias_scale] for randomization distribution
                 noise_scale, bias_scale = dist_params
                 if param_id == "body_mass":
-                    idx_to_update = self.env.env.sim.model.body_name2id(name)
-                    field_to_update = self.env.env.sim.model.body_mass
-                
+                    idx = self.env.env.sim.model.body_name2id(name)
+                    field = self.env.env.sim.model.body_mass
+                elif param_id == "body_inertia":
+                    idx = self.env.env.sim.model.body_name2id(name)
+                    field = self.env.env.sim.model.body_mass
+                elif param_id == "dof_damping":
+                    idx = self.env.env.sim.model.joint_name2id(name)
+                    field = self.env.env.sim.model.dof_damping
+                elif param_id == "dof_frictionloss":
+                    idx = self.env.env.sim.model.joint_name2id(name)
+                    field = self.env.env.sim.model.dof_frictionloss
+                elif param_id == "geom_size":
+                    idx = self.env.env.sim.model.geom_name_2id(name)
+                    field = self.env.env.sim.model.geom_size           
+                elif param_id == "geom_friction":
+                    idx = self.env.env.sim.model.geom_name_2id(name)
+                    field = self.env.env.sim.model.geom_friction
+                else:
+                    raise ValueError("Unknown dynamics field")
                 if name not in self.default_dyn_params[param_id].keys():
-                    curr_val = field_to_update[idx_to_update]
+                    curr_val = field[idx]
                     self.default_dyn_params[param_id][name] = curr_val #update default params only first time
                 else:
                     curr_val = self.default_dyn_params[param_id][name]
@@ -256,7 +272,7 @@ class GymEnvWrapper():
                                                       biased_mean + biased_mean * noise_scale)
                 # rand_val = biased_mean + noise_sample
                 #update the relevant field and idx
-                field_to_update[idx_to_update] = rand_val
+                field[idx] = rand_val
                 self.randomized_dyn_params[param_id][name] = rand_val
 
         return self.default_dyn_params, self.randomized_dyn_params

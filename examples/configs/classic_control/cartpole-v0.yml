@@ -1,5 +1,5 @@
 env_name          : 'cartpole-v0'
-n_episodes        : 30
+n_episodes        : 10
 max_ep_length     : 100
 seed              : 123 #testing: 0, tuning: 123
 render            : True
