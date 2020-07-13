@@ -45,8 +45,8 @@ def _worker(remote, parent_remote, env_fn_wrapper, model):
                 state = env.get_env_state()
                 remote.send(state)
             elif cmd == 'rollout':
-                obs_vec, act_vec, log_prob_vec, rew_vec, done_vec, next_obs_vec, info = env.rollout_cl(model, **data)
-                remote.send((obs_vec, act_vec, log_prob_vec, rew_vec, done_vec, next_obs_vec, info))
+                obs_vec, act_vec, act_infos, rew_vec, done_vec, next_obs_vec, info = env.rollout_cl(model, **data)
+                remote.send((obs_vec, act_vec, act_infos, rew_vec, done_vec, next_obs_vec, info))
             elif cmd == 'seed':
                 remote.send(env.seed(data))
             elif cmd == 'get_seed':
@@ -153,18 +153,18 @@ class TorchModelVecEnv(VecEnv):
         self.waiting=False
         obs_vec = [res[0] for res in results]
         act_vec = [res[1] for res in results]
-        log_prob_vec = [res[2] for res in results]
+        act_info = [res[2] for res in results]
         rew_vec = [res[3] for res in results]
         done_vec = [res[4] for res in results]
         next_obs_vec = [res[5] for res in results] 
         info = [res[6] for res in results]
         stacked_obs  = np.concatenate(obs_vec, axis=0)
         stacked_act = np.concatenate(act_vec, axis=0)
-        stacked_log_prob = np.concatenate(log_prob_vec, axis=0)
+        # stacked_log_prob = np.concatenate(log_prob_vec, axis=0)
         stacked_rews = np.concatenate(rew_vec, axis=0)
         stacked_done = np.concatenate(done_vec, axis=0)
         stacked_next_obs = np.concatenate(next_obs_vec, axis=0)
-        return stacked_obs, stacked_act, stacked_log_prob, stacked_rews, stacked_done, stacked_next_obs, info
+        return stacked_obs, stacked_act, act_info, stacked_rews, stacked_done, stacked_next_obs, info
 
     def reset(self):
         for remote in self.remotes:

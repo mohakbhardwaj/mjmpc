@@ -145,7 +145,8 @@ class SACMPC(Controller):
         # delta = self._sample_noise() #sample noise sequence
         delta = None
         obs_seq, act_seq, logprob_seq, cost_seq, done_seq, next_obs_seq, info_seq = self._rollout_fn(mode='sample',
-                                                                                                     noise=delta)
+                                                                                             noise=delta)
+
         trajectories = dict(
             observations=obs_seq,
             next_observations=next_obs_seq,

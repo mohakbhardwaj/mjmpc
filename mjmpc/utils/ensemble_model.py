@@ -107,6 +107,8 @@ class EnsembleModel(nn.Module):
     ### Get/Set Parameters ###
     ##########################
 
+    # def get_parameters(self):
+        # params = 
 
 
     #################

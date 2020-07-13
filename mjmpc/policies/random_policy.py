@@ -3,7 +3,7 @@
 import  numpy as np
 from .policy import Policy
 
-class RandomPolicy(Policy):
+class RandomPolicy():
     def __init__(self, action_lows: np.ndarray, action_highs: np.ndarray, batch_size: int):
         super(RandomPolicy, self).__init__(batch_size)
         self._action_lows = action_lows

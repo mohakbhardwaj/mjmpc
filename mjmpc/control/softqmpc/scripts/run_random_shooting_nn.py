@@ -87,9 +87,9 @@ def rollout_fn(mode='mean', noise=None):
     in sim envs and return sequence of costs. The controller is 
     agnostic of how the rollouts are generated.
     """
-    obs_vec, act_vec, log_prob_vec, rew_vec, done_vec, next_obs_vec, infos = sim_env.rollout(num_particles, horizon, mode, noise)
+    obs_vec, act_vec, act_infos, rew_vec, done_vec, next_obs_vec, infos = sim_env.rollout(num_particles, horizon, mode, noise)
     #we assume environment returns rewards, but controller needs costs
-    return obs_vec, act_vec, log_prob_vec, -1.0*rew_vec, done_vec, next_obs_vec, infos
+    return obs_vec, act_vec, act_infos, -1.0*rew_vec, done_vec, next_obs_vec, infos
 
 #Commence testing
 #Main data collection loop

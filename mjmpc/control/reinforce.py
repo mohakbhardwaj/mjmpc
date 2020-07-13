@@ -9,7 +9,7 @@ from mjmpc.control.controller import Controller
 from mjmpc.utils.control_utils import cost_to_go, generate_noise, scale_ctrl
 from mjmpc.utils import helpers
 
-class RandomShootingNN(Controller):
+class Reinforce(Controller):
     def __init__(self, 
                  d_state,
                  d_obs,
@@ -18,66 +18,62 @@ class RandomShootingNN(Controller):
                  action_highs,
                  horizon,
                  gamma,
-                 step_size,
-                 filter_coeffs,
                  n_iters,
                  num_particles,
-                 init_cov,
-                 base_action,
+                 lr,
+                 policy,
+                 baseline,
+                 kl_delta=None,
                  set_sim_state_fn=None,
                  get_sim_state_fn=None,
                  get_sim_obs_fn=None,
-                 sim_step_fn=None,
-                 sim_reset_fn=None,
                  rollout_fn=None,
                  sample_mode='mean',
                  batch_size=1,
-                 seed=0):
+                 seed=0,
+                 verbose=False):
         """
         Parameters
         __________
 
         """
-
-        super(RandomShootingNN, self).__init__(d_state,
-                                               d_obs,
-                                               d_action,
-                                               action_lows, 
-                                               action_highs,
-                                               horizon,
-                                               gamma,  
-                                               n_iters,
-                                               set_sim_state_fn,
-                                               rollout_fn,
-                                               sample_mode,
-                                               batch_size,
-                                               seed)
+        super(Reinforce, self).__init__(d_state,
+                                        d_obs,
+                                        d_action,
+                                        action_lows, 
+                                        action_highs,
+                                        horizon,
+                                        gamma,  
+                                        n_iters,
+                                        set_sim_state_fn,
+                                        rollout_fn,
+                                        sample_mode,
+                                        batch_size,
+                                        seed)
         torch.manual_seed(seed)
-        self.init_cov = np.array([init_cov] * self.d_action)
-        self.mean_action = np.zeros(shape=(self.horizon, self.d_action))
-        self.num_particles = num_particles
-        self.base_action = base_action
-        self.cov_action = np.diag(self.init_cov)
-        self.step_size = step_size
-        self.filter_coeffs = filter_coeffs
+        self.lr = lr
+        self.policy = policy
+        self.baseline = baseline
+        self.old_policy = deepcopy(policy)
+        self._get_sim_obs_fn = get_sim_obs_fn
+        self.kl_delta = kl_delta
+        self.verbose = verbose
+
+    @property
+    def get_sim_obs_fn(self):
+        return self._get_sim_obs_fn
     
+    @get_sim_obs_fn.setter
+    def get_sim_obs_fn(self, fn):
+        self._get_sim_obs_fn = fn
+
     def _get_next_action(self, mode='mean'):
-        if mode == 'mean':
-            next_action = self.mean_action[0].copy()
-        elif mode == 'sample':
-            delta = generate_noise(self.cov_action, self.filter_coeffs,
-                                   shape=(1, 1), base_seed=self.seed + self.num_steps)
-            next_action = self.mean_action[0].copy() + delta.reshape(self.d_action).copy()
-        else:
-            raise ValueError('Unidentified sampling mode in get_next_action')
-        return next_action
-    
-    def _sample_noise(self):
-        delta = generate_noise(self.cov_action, self.filter_coeffs,
-                               shape=(self.num_particles, self.horizon), 
-                               base_seed = self.seed_val + self.num_steps)
-        return delta.copy()
-        
+        with torch.no_grad():
+            obs_torch = torch.FloatTensor(self.start_obs)
+            action, _ = self.policy.get_action(obs_torch, mode='mean')
+            action = action.detach().numpy()
+        return action.copy()
+
     def generate_rollouts(self, state):
         """
             Samples a batch of actions, rolls out trajectories for each particle
@@ -90,14 +86,17 @@ class RandomShootingNN(Controller):
                 Initial state to set the simulation env to
          """
         self._set_sim_state_fn(deepcopy(state)) #set state of simulation
-        delta = self._sample_noise() #sample noise sequence
-        obs_seq, act_seq, logprob_seq, cost_seq, done_seq, next_obs_seq, info_seq = self._rollout_fn(mode='mean',
-                                                                                       noise=delta)
+        self.start_obs = deepcopy(self._get_sim_obs_fn()[0,:])
+        delta = None #sample noise sequence
+        obs_seq, act_seq, act_info_seq, cost_seq, done_seq, next_obs_seq, info_seq = self._rollout_fn(mode='sample',
+                                                                                                      noise=delta)
+
         trajectories = dict(
             observations=obs_seq,
             actions=act_seq,
-            log_probs=logprob_seq,
+            act_info_seq=act_info_seq,
             costs=cost_seq,
+            next_obs_seq=next_obs_seq,
             dones=done_seq,
             infos=helpers.stack_tensor_dict_list(info_seq)
         )
@@ -105,51 +104,93 @@ class RandomShootingNN(Controller):
 
     def _update_distribution(self, trajectories):
         """
-        Update current control distribution using 
-        rollout trajectories
-        
+        Update policy from rollout trajectories
+        using vanill policy gradients
         Parameters
         -----------
-        trajectories : dict
-            Rollout trajectories. Contains the following fields
-            observations : np.ndarray ()
-                observations along rollouts
-            actions : np.ndarray 
-                actions sampled from control distribution along rollouts
-            costs : np.ndarray 
-                step costs along rollouts
-            dones : np.ndarray
-                bool signalling end of episode
         """
-        costs = trajectories["costs"].copy()
-        actions = trajectories["actions"].copy()
-        Q = cost_to_go(costs, self.gamma_seq)
-        best_id = np.argmin(Q, axis = 0)[0]
-        self.mean_action = (1.0 - self.step_size) * self.mean_action +\
-                            self.step_size * actions[best_id]
-        
-    def _shift(self):
-        """
-            Predict good parameters for the next time step by
-            shifting the mean forward one step
-        """
-        self.mean_action[:-1] = self.mean_action[1:]
-        if self.base_action == 'random':
-            self.mean_action[-1] = np.random.normal(0, self.init_cov, self.d_action)
-        elif self.base_action == 'null':
-            self.mean_action[-1] = np.zeros((self.d_action, ))
-        elif self.base_action == 'repeat':
-            self.mean_action[-1] = self.mean_action[-2]
+        #compute cost to go and advantages
+        trajectories["returns"] = cost_to_go(trajectories["costs"], self.gamma_seq)
+        self.compute_advantages(trajectories)
+        observations, actions, advantages = self.process_trajs(trajectories)
+
+        #calculate CPI-surrogate loss
+        surr = self.cpi_surrogate(observations, actions, advantages)
+        surr_before = surr.item()
+        if self.kl_delta is not None:
+            raise NotImplementedError("Line search not implemented yet")
         else:
-            raise NotImplementedError("invalid option for base action during shift")
+            #backpropagate loss to calculate gradients and update policy params
+            self.policy.zero_grad()
+            surr.backward()
+            self.update_policy_parameters()
+
+        if self.verbose:
+            print("Gradients")
+            self.policy.print_gradients()
+            print("Updated parameters")
+            self.policy.print_parameters()
+            with torch.no_grad():
+                surr_after = self.cpi_surrogate(observations, actions, advantages).item()
+            surr_improvement = surr_before - surr_after
+            print("Surrogate improvement = {}".format(surr_improvement))
+
+        #update old policy
+        self.old_policy.load_state_dict(self.policy.state_dict())
+
+    def cpi_surrogate(self, observations, actions, advantages):
+        observations = torch.FloatTensor(observations)
+        actions = torch.FloatTensor(actions)
+
+        new_log_prob = self.policy.log_prob(observations, actions)
+        with torch.no_grad():
+            old_log_prob = self.old_policy.log_prob(observations, actions)
+            advantages = torch.FloatTensor(advantages)
+
+        likelihood_ratio = torch.exp(new_log_prob - old_log_prob)
+        surr = torch.mean(likelihood_ratio * advantages.unsqueeze(-1))
+        return surr
+
+    def compute_advantages(self, trajs):
+        trajs["advantages"] = trajs["returns"] - np.average(trajs["returns"], axis=0) #time dependent constant baseline
+    
+    def vpg_grad(self, observations, actions, advantages):
+        surr = self.cpi_surrogate(observations, actions, advantages)
+        grad = torch.autograd.grad(surr, self.policy.parameters())
+        return grad
+    
+    def update_policy_parameters(self):
+        for p in self.policy.parameters():
+            p.data.sub_(p.grad.data * self.lr)
+
+    def process_trajs(self, trajs):
+        """ 
+            Return training data from given
+            trajectories
+
+            :return observations (np.ndarray): 
+            :return actions (np.ndarray):
+            :return rewards (np.ndarray):
+            :return states (dict of np.ndarray): [len(trajs)) * len(trajs[0])]
+            :return next_observations (np.ndarray)
+            :return next_states (list)
+            :return stats
+        """
+        observations = np.concatenate([p for p in trajs["observations"]])
+        actions = np.concatenate([p for p in trajs["actions"]])
+        advantages = np.concatenate([p for p in trajs["advantages"]])
+        # Advantage whitening
+        # advantages = (advantages - np.mean(advantages)) / (np.std(advantages) + 1e-6)
+        return observations, actions, advantages
+         
+    def _shift(self):
+        pass
 
     def reset(self):
         """
         Reset the controller
         """
-        self.num_steps = 0
-        self.mean_action = np.zeros(shape=(self.horizon, self.d_action))
-        self.cov_action = np.diag(self.init_cov)
+        self.policy.reset()
 
     def _calc_val(self, cost_seq, act_seq):
         """

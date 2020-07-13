@@ -1,0 +1,23 @@
+env_name          : 'cartpole-v0'
+n_episodes        : 1
+max_ep_length     : 100
+seed              : 123 #testing: 0, tuning: 123
+render            : True
+job_mode          : 'sweep'
+randomize_dyn     : False
+exp_notes         : 'Swingup of cartpole'
+
+actor_params:
+  actor_type   : 'linear_gaussian'
+  min_log_std  : -5
+  init_log_std : 0.0
+
+reinforce:
+  horizon           : 32
+  gamma             : 0.99
+  n_iters           : 5
+  lr                : 0.01
+  num_cpu           : 10
+  particles_per_cpu : 6
+
+ 

@@ -56,7 +56,9 @@ class SAC(object):
             action, _, _ = self.policy.sample(state)
         else:
             _, _, action = self.policy.sample(state)
-        return action.detach().cpu().numpy()[0]
+        action =  action.detach().cpu().numpy()[0]
+        action = action.copy()
+        return action
 
     def update_parameters(self, memory, batch_size, updates):
         # Sample a batch from memory

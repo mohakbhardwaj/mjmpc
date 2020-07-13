@@ -1,5 +1,5 @@
 env_name          : 'relocate-v0'
-n_episodes        : 5
+n_episodes        : 10
 max_ep_length     : 200
 seed              : 123
 base_action       : 'null'
@@ -16,9 +16,10 @@ random_shooting:
   step_size         : 1.0
   num_cpu           : 10
   particles_per_cpu : 10
+  base_action       : 'null'
 
 mppi:
-  horizon           : 32
+  horizon           : 64
   init_cov          : 0.1
   filter_coeffs     : [0.25, 0.8, 0.0]
   gamma             : 1.0
@@ -27,7 +28,8 @@ mppi:
   lam               : 0.1
   alpha             : 1
   num_cpu           : 10
-  particles_per_cpu : 10
+  particles_per_cpu : 12
+  base_action       : 'null'
 
 cem:
   horizon           : 32
@@ -41,6 +43,7 @@ cem:
   elite_frac        : [0.05, 0.1, 0.15, 0.2, 0.25]
   num_cpu           : 10
   particles_per_cpu : 10
+  base_action       : 'null'
 
 dmd:
   horizon           : 32
@@ -55,6 +58,7 @@ dmd:
   lam               : 0.1
   num_cpu           : 10
   particles_per_cpu : 10
+  base_action       : 'null'
 
 pfmpc:
   horizon           : 32
@@ -66,4 +70,5 @@ pfmpc:
   lam               : 0.2
   num_cpu           : 10
   particles_per_cpu : 10
+  base_action       : 'null'
 

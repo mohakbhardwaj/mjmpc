@@ -6,9 +6,9 @@ Author: Mohak Bhardwaj
 Date: January 9, 2020
 """
 from collections import defaultdict
+from copy import deepcopy
 from gym import spaces
 import numpy as np
-from copy import deepcopy
 import time
 import torch
 
@@ -152,7 +152,8 @@ class GymEnvWrapper():
             obs_vec = np.zeros((batch_size, horizon, self.d_obs))
             next_obs_vec = np.zeros((batch_size, horizon, self.d_obs))
         act_vec = np.zeros((batch_size, horizon, self.d_action))
-        log_prob_vec = np.zeros((batch_size, horizon))
+        # log_prob_vec = np.zeros((batch_size, horizon))
+        act_infos = []
         rew_vec = np.zeros((batch_size, horizon))
         done_vec = np.zeros((batch_size, horizon))
         curr_state = deepcopy(self.get_env_state())
@@ -166,9 +167,9 @@ class GymEnvWrapper():
                     #Get action prediction from model
                     before_inf = time.time()
                     obs_torch = torch.FloatTensor(curr_obs).unsqueeze(0)
-                    u_curr, log_prob = policy.get_action(obs_torch, mode)
+                    u_curr, act_info = policy.get_action(obs_torch, mode)
                     u_curr = u_curr.numpy().copy().reshape(self.d_action,) 
-                    log_prob = log_prob.numpy().item()
+                    # log_prob = log_prob.numpy().item()
                     inf_time = time.time() - before_inf
                     total_inf_time += inf_time
                     #Add noise if provided
@@ -182,12 +183,13 @@ class GymEnvWrapper():
                         obs_vec[b, t, :] = curr_obs.copy().reshape(self.d_obs,)
                         next_obs_vec[b, t, :] = next_obs.copy().reshape(self.d_obs,)
                     act_vec[b, t, :] = u_curr.copy()
-                    log_prob_vec[b, t] = log_prob
+                    # log_prob_vec[b, t] = log_prob
+                    act_infos.append(act_info)
                     rew_vec[b, t] = rew
                     done_vec[b, t] = done
                     curr_obs = next_obs
         info = {'total_time' : time.time() - start_t, 'inference_time': total_inf_time}
-        return obs_vec, act_vec, log_prob_vec, rew_vec, done_vec, next_obs_vec, info
+        return obs_vec, act_vec, act_infos, rew_vec, done_vec, next_obs_vec, info
     
     def seed(self, seed=None):
         return self.env.seed(seed)
@@ -241,21 +243,38 @@ class GymEnvWrapper():
                 #dist_params = [noise_scale, bias_scale] for randomization distribution
                 noise_scale, bias_scale = dist_params
                 if param_id == "body_mass":
-                    idx_to_update = self.env.env.sim.model.body_name2id(name)
-                    field_to_update = self.env.env.sim.model.body_mass
+                    idx = self.env.env.sim.model.body_name2id(name)
+                    field = self.env.env.sim.model.body_mass
+                elif param_id == "body_inertia":
+                    idx = self.env.env.sim.model.body_name2id(name)
+                    field = self.env.env.sim.model.body_inertia
+                elif param_id == "dof_damping":
+                    idx = self.env.env.sim.model.joint_name2id(name)
+                    field = self.env.env.sim.model.dof_damping
+                elif param_id == "dof_frictionloss":
+                    idx = self.env.env.sim.model.joint_name2id(name)
+                    field = self.env.env.sim.model.dof_frictionloss
+                elif param_id == "geom_size":
+                    idx = self.env.env.sim.model.geom_name_2id(name)
+                    field = self.env.env.sim.model.geom_size           
+                elif param_id == "geom_friction":
+                    idx = self.env.env.sim.model.geom_name_2id(name)
+                    field = self.env.env.sim.model.geom_friction
+                else:
+                    raise ValueError("Unknown dynamics field")
                 
                 if name not in self.default_dyn_params[param_id].keys():
-                    curr_val = field_to_update[idx_to_update]
+                    curr_val = deepcopy(field[idx])
                     self.default_dyn_params[param_id][name] = curr_val #update default params only first time
                 else:
-                    curr_val = self.default_dyn_params[param_id][name]
+                    curr_val = deepcopy(self.default_dyn_params[param_id][name])
 
                 biased_mean = (1.0 + bias_scale) * curr_val
                 rand_val = self.env.np_random.uniform(biased_mean - biased_mean * noise_scale, 
                                                       biased_mean + biased_mean * noise_scale)
                 # rand_val = biased_mean + noise_sample
                 #update the relevant field and idx
-                field_to_update[idx_to_update] = rand_val
+                field[idx] = rand_val
                 self.randomized_dyn_params[param_id][name] = rand_val
 
         return self.default_dyn_params, self.randomized_dyn_params

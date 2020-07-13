@@ -52,6 +52,9 @@ def _worker(remote, parent_remote, env_fn_wrapper):
                 remote.send(env.seed(data))
             elif cmd == 'get_seed':
                 remote.send((env.seed))
+            elif cmd == 'randomize_dynamics':
+                default_params, randomized_params = env.randomize_dynamics(data)
+                remote.send((default_params, randomized_params))
             else:
                 raise NotImplementedError
         except EOFError:
@@ -266,3 +269,13 @@ class SubprocVecEnv(VecEnv):
         for i,remote in enumerate(self.remotes):
             remote.send(('seed', seed_list[i]))
         results = [remote.recv() for remote in self.remotes]
+
+    def randomize_dynamics(self, param_dict, base_seed):
+        seed_list = [base_seed + i*12345 for i in range(len(self.remotes))]
+        self.seed(seed_list)
+        for i,remote in enumerate(self.remotes):
+            remote.send(('randomize_dynamics', param_dict))
+        results = [remote.recv() for remote in self.remotes]
+        default_params = [res[0] for res in results]
+        randomized_params = [res[1] for res in results]
+        return default_params, randomized_params

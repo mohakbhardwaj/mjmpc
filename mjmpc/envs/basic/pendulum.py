@@ -20,6 +20,7 @@ class PendulumEnv(gym.Env):
         self.viewer = None
 
         high = np.array([1., 1., self.max_speed])
+        # high = np.array([np.pi])
         self.action_space = spaces.Box(low=-self.max_torque, high=self.max_torque, shape=(1,), dtype=np.float32)
         self.observation_space = spaces.Box(low=-high, high=high, dtype=np.float32)
 
@@ -46,17 +47,18 @@ class PendulumEnv(gym.Env):
         newthdot = np.clip(newthdot, -self.max_speed, self.max_speed) #pylint: disable=E1111
 
         self.state = np.array([newth, newthdot])
-        return self._get_obs(), -costs, False, {}
+        return self.get_obs(), -costs, False, {}
 
     def reset(self):
         high = np.array([np.pi, 1])
         self.state = self.np_random.uniform(low=-high, high=high)
         self.last_u = None
-        return self._get_obs()
+        return self.get_obs()
 
-    def _get_obs(self):
+    def get_obs(self):
         theta, thetadot = self.state
         return np.array([np.cos(theta), np.sin(theta), thetadot])
+        # return self.state.copy()
 
     def render(self, mode='human'):
         if self.viewer is None:
