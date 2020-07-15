@@ -27,25 +27,25 @@ random_shooting:
   base_action       : 'null'
 
 mppi:
-  horizon           : 64
+  horizon           : 32
   init_cov          : 0.45
-  filter_coeffs     : [0.25, 0.8, 0.0]
-  gamma             : 0.9
+  filter_coeffs     : [1.0, 0.0, 0.0]
+  gamma             : 1.0
   n_iters           : 1
   step_size         : 1.0
   lam               : 0.1
   alpha             : 0
   num_cpu           : 10
-  particles_per_cpu : 4
+  particles_per_cpu : 6
   base_action       : 'null'
 
 dmd:
   horizon           : 32
-  init_cov          : 1.0
+  init_cov          : 0.45
   update_cov        : True
   cov_type          : 'full'
-  beta              : 0.0
-  filter_coeffs     : [0.25, 0.8, 0.0]
+  beta              : 0.7
+  filter_coeffs     : [1.0, 0.0, 0.0]
   gamma             : 1.0
   n_iters           : 1
   step_size         : 1.0

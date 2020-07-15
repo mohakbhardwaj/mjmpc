@@ -43,7 +43,6 @@ class GymEnvWrapper():
         self.default_dyn_params = defaultdict(dict)
         self.randomized_dyn_params = defaultdict(dict)
         
-
         self.seed()
         super(GymEnvWrapper, self).__init__()
 
@@ -144,8 +143,8 @@ class GymEnvWrapper():
         """
         start_t = time.time()
         total_inf_time = 0.0
-        if (noise is not None) and mode =='sample':
-            raise ValueError('Added noise must be None when using sample mode from policy')
+        # if (noise is not None) and mode =='sample':
+            # raise ValueError('Added noise must be None when using sample mode from policy')
         if type(self.observation_space) is spaces.Dict:
             obs_vec = []; next_obs_vec = []
         else: 
@@ -167,15 +166,19 @@ class GymEnvWrapper():
                     #Get action prediction from model
                     before_inf = time.time()
                     obs_torch = torch.FloatTensor(curr_obs).unsqueeze(0)
-                    u_curr, act_info = policy.get_action(obs_torch, mode)
+                    noise_sample = noise[b,t] if noise is not None else None
+                    u_curr, act_info = policy.get_action(obs_torch, mode, noise_sample)
                     u_curr = u_curr.numpy().copy().reshape(self.d_action,) 
                     # log_prob = log_prob.numpy().item()
                     inf_time = time.time() - before_inf
                     total_inf_time += inf_time
                     #Add noise if provided
-                    if noise is not None:
-                        u_curr = u_curr + noise[b,t]
+                    # if noise is not None:
+                        # u_curr = u_curr + noise[b,t]
+                    #step environment
                     next_obs, rew, done, _ = self.step(u_curr)
+                    
+                    #collect data
                     if type(self.observation_space) is spaces.Dict:
                         obs_vec.append(curr_obs.copy())
                         next_obs_vec.append(next_obs.copy())
@@ -187,7 +190,8 @@ class GymEnvWrapper():
                     act_infos.append(act_info)
                     rew_vec[b, t] = rew
                     done_vec[b, t] = done
-                    curr_obs = next_obs
+                    curr_obs = next_obs.copy()
+
         info = {'total_time' : time.time() - start_t, 'inference_time': total_inf_time}
         return obs_vec, act_vec, act_infos, rew_vec, done_vec, next_obs_vec, info
     

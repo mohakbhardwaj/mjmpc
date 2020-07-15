@@ -22,6 +22,7 @@ from mjmpc.envs import GymEnvWrapper
 from mjmpc.envs.vec_env import TorchModelVecEnv
 from mjmpc.utils import LoggerClass, timeit, helpers
 from mjmpc.policies import MPCPolicy, LinearGaussianPolicy
+from mjmpc.value_functions import LinearValueFunction
 
 gym.logger.set_level(40)
 parser = argparse.ArgumentParser(description='Run MPC algorithm on given environment')
@@ -75,16 +76,21 @@ n_episodes = exp_params['n_episodes']
 base_seed = exp_params['seed']
 ep_length = exp_params['max_ep_length']
 actor_params = exp_params['actor_params']
+critic_params = exp_params['critic_params']
 
 #Create vectorized environments for MPC simulations
 # if dynamics_rand_params is not None:
     # default_params, randomized_params = sim_env.randomize_dynamics(dynamics_rand_params, base_seed=exp_params['seed'])
 if actor_params['actor_type'] == "linear_gaussian":
     policy = LinearGaussianPolicy(env.d_obs, env.d_action, actor_params['min_log_std'], actor_params['init_log_std'])
+if critic_params['critic_type'] == 'linear':
+    baseline = LinearValueFunction(env.d_obs)
+else: baseline=None
 policy_params['policy'] = policy
-policy_params['baseline'] = None
+policy_params['baseline'] = baseline
 
 sim_env = TorchModelVecEnv([make_env for i in range(num_cpu)], policy)
+
 def rollout_fn(mode='mean', noise=None):
     """
     Given a batch of sequences of actions, rollout 
@@ -107,13 +113,12 @@ ep_rewards = np.array([0.] * n_episodes)
 trajectories = []
 logger.info(exp_params[controller_name])
 
-
 #create MPC policy and set appropriate functions
-policy = MPCPolicy(controller_type=controller_name,
+mpc_policy = MPCPolicy(controller_type=controller_name,
                     param_dict=policy_params, batch_size=1) #Only batch_size=1 is supported for now
-policy.controller.set_sim_state_fn = sim_env.set_env_state
-policy.controller.rollout_fn = rollout_fn
-policy.controller.get_sim_obs_fn = sim_env.get_obs
+mpc_policy.controller.set_sim_state_fn = sim_env.set_env_state
+mpc_policy.controller.rollout_fn = rollout_fn
+mpc_policy.controller.get_sim_obs_fn = sim_env.get_obs
 
 #Main data collection loop
 timeit.start('start_'+controller_name)
@@ -123,21 +128,22 @@ for i in tqdm.tqdm(range(n_episodes)):
     policy_params['seed'] = episode_seed
     env.reset(seed=episode_seed)
     sim_env.reset()
-    policy.controller.reset()
+    mpc_policy.controller.reset(seed=episode_seed)
+
 
     #Collect data from interactions with environment
     observations = []; actions = []; rewards = []; dones  = []
     infos = []; states = []; next_states = []
     for _ in tqdm.tqdm(range(ep_length)):   
         curr_state = deepcopy(env.get_env_state())
-        action, value = policy.get_action(curr_state, calc_val=False)
+        action, value = mpc_policy.get_action(curr_state, calc_val=False)
         obs, reward, done, info = env.step(action)
         observations.append(obs); actions.append(action)
         rewards.append(reward); dones.append(done)
         infos.append(info); states.append(curr_state)
-        print(action, reward)
+        # print(action, reward)
         ep_rewards[i] += reward
-    
+    print('episode reward = {}'.format(ep_rewards[i]))
     traj = dict(
         observations=np.array(observations),
         actions=np.array(actions),

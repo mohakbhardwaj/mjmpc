@@ -1,3 +1,4 @@
+from copy import deepcopy
 import numpy as np
 import torch
 from torch.autograd import Variable
@@ -27,9 +28,9 @@ class LinearGaussianPolicy(nn.Module):
         self.trainable_params = list(self.parameters())
 
         # Initial Parameters
-        self.init_linear_mean_weight = self.linear_mean.weight.data
-        self.init_linear_mean_bias = self.linear_mean.bias.data
-        self.init_log_std = self.log_std.data
+        self.init_linear_mean_weight = deepcopy(self.linear_mean.weight.data)
+        self.init_linear_mean_bias = deepcopy(self.linear_mean.bias.data)
+        self.init_log_std = deepcopy(self.log_std.data)
 
         # # Old Policy Parameters
         # self.old_linear_mean = nn.Linear(self.d_obs, self.d_action)
@@ -50,19 +51,24 @@ class LinearGaussianPolicy(nn.Module):
         # ------------------------
         # self.obs_var = Variable(torch.randn(self.d_obs), requires_grad=False)
     
-    def forward(self, obs):
+    def forward(self, observation):
         pass
     
-    def get_action(self, observation, mode='sample'):
+    def get_action(self, observation, mode='sample', white_noise=None):
         mean = self.linear_mean(observation)
         std = self.log_std.exp()
         normal = Normal(mean, std)
+        
         if mode == 'mean':
-            action = mean
+            action = deepcopy(mean)
+            # print(std)
         elif mode == 'sample':
             std_np = std.data.detach() 
-            noise = std_np * self.np_random.randn(self.d_action)
-            action = mean + torch.from_numpy(np.float32(noise))
+            if white_noise is None:
+                white_noise = self.np_random.randn(self.d_action) 
+            noise_sample = std_np * white_noise
+            action = mean + torch.from_numpy(np.float32(noise_sample))
+        
         log_prob = normal.log_prob(action).detach().numpy()
         mean_np = mean.data.detach().numpy().ravel()
         log_std_np = self.log_std.data.detach().numpy().ravel() 
@@ -85,23 +91,25 @@ class LinearGaussianPolicy(nn.Module):
         std_new = self.log_std.exp()
         prob_new = Normal(means_new, std_new)
         return prob_new.log_prob(actions)
-        # means_old = self.old_linear_mean(observations)
-        # std_old = self.old_log_std.exp()
-        # prob_old = Normal(means_old, std_old)
 
-        # LL = prob_new.log_prob(actions) / prob_old.log_prob(actions)
-        # return LL
-
-    def distribution(self, observations):
+    def action_distribution(self, observations):
         means_new = self.linear_mean(observations)
         std_new = self.log_std.exp()
         prob_new = Normal(means_new, std_new)
         return prob_new
 
     def reset(self):
-        self.log_std.data = self.init_log_std
-        self.linear_mean.weight.data = self.init_linear_mean_weight
-        self.linear_mean.bias.data = self.init_linear_mean_bias
+        self.log_std.data.copy_(self.init_log_std)
+        self.linear_mean.weight.data.copy_(self.init_linear_mean_weight)
+        self.linear_mean.bias.data.copy_(self.init_linear_mean_bias)
+        # print(self.log_std.data, self.init_log_std)
+        # print(self.linear_mean.weight.data, self.init_linear_mean_weight)
+        # print(self.linear_mean.bias.data, self.init_linear_mean_bias)
+        # input('...')
+    
+    def grow_cov(self):
+        self.log_std.data.copy_(torch.clamp(self.log_std.data, self.min_log_std))
+        
 
     #################
     ### Utilities ###
@@ -111,18 +119,18 @@ class LinearGaussianPolicy(nn.Module):
                                  for p in self.parameters()])
         return params.copy()
     
-    def set_param_values(self, new_params, set_new=True, set_old=False):
-        if set_new:
-            current_idx = 0
-            for idx, param in enumerate(self.trainable_params):
-                vals = new_params[current_idx:current_idx + self.param_sizes[idx]]
-                vals = vals.reshape(self.param_shapes[idx])
-                param.data = torch.from_numpy(vals).float()
-                current_idx += self.param_sizes[idx]
+    # def set_param_values(self, new_params, set_new=True, set_old=False):
+    #     if set_new:
+    #         current_idx = 0
+    #         for idx, param in enumerate(self.trainable_params):
+    #             vals = new_params[current_idx:current_idx + self.param_sizes[idx]]
+    #             vals = vals.reshape(self.param_shapes[idx])
+    #             param.data = torch.from_numpy(vals).float()
+    #             current_idx += self.param_sizes[idx]
             
-            # clip std at minimum value
-            self.trainable_params[0].data = \
-                torch.clamp(self.trainable_params[0], self.min_log_std).data
+    #         # clip std at minimum value
+    #         self.trainable_params[0].data = \
+    #             torch.clamp(self.trainable_params[0], self.min_log_std).data
             # update log_std_val for sampling
             # self.log_std_val = np.float64(self.log_std.data.numpy().ravel())
         # if set_old:
