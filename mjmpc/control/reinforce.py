@@ -292,6 +292,9 @@ class Reinforce(Controller):
         if seed is not None:
             self.seed_val = self.seed(seed)
         self.policy.reset()
+        self.old_policy.load_state_dict(self.policy.state_dict())
+        # self.policy.print_parameters()
+        # self.old_policy.print_parameters()
 
     def _calc_val(self, cost_seq, act_seq):
         """

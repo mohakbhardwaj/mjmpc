@@ -23,7 +23,9 @@ class LinearGaussianPolicy(nn.Module):
         # Policy Parameters
         self.linear_mean = nn.Linear(self.d_obs, self.d_action, bias=True)
         torch.nn.init.zeros_(self.linear_mean.bias)
+        torch.nn.init.xavier_normal_(self.linear_mean.weight)
         self.linear_mean.weight.data *= 1e-2
+        # torch.nn.init.zeros_(self.linear_mean.weight)
         self.log_std = nn.Parameter(torch.ones(self.d_action) * self.init_log_std)
         self.trainable_params = list(self.parameters())
 
