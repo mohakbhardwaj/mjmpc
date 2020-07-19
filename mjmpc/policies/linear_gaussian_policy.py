@@ -8,8 +8,6 @@ from gym.utils import seeding
 
 from mjmpc.utils import EnsembleModel
 
-
-
 class LinearGaussianPolicy(nn.Module):
     def __init__(self, d_obs, d_action, min_log_std=-3, init_log_std=0, seed=0, device=torch.device('cpu')):
         super().__init__()
@@ -23,9 +21,9 @@ class LinearGaussianPolicy(nn.Module):
         # Policy Parameters
         self.linear_mean = nn.Linear(self.d_obs, self.d_action, bias=True)
         torch.nn.init.zeros_(self.linear_mean.bias)
-        torch.nn.init.xavier_normal_(self.linear_mean.weight)
-        self.linear_mean.weight.data *= 1e-2
-        # torch.nn.init.zeros_(self.linear_mean.weight)
+        torch.nn.init.zeros_(self.linear_mean.weight)
+        # torch.nn.init.xavier_normal_(self.linear_mean.weight)
+        # self.linear_mean.weight.data *= 1e-2
         self.log_std = nn.Parameter(torch.ones(self.d_action) * self.init_log_std)
         self.trainable_params = list(self.parameters())
 
@@ -63,7 +61,7 @@ class LinearGaussianPolicy(nn.Module):
         
         if mode == 'mean':
             action = deepcopy(mean)
-            # print(std)
+            print(std, np.exp(self.min_log_std))
         elif mode == 'sample':
             std_np = std.data.detach() 
             if white_noise is None:
@@ -76,18 +74,6 @@ class LinearGaussianPolicy(nn.Module):
         log_std_np = self.log_std.data.detach().numpy().ravel() 
         return action, {'mean': mean_np, 'log_std': log_std_np, 'evaluation': mean_np, 'log_prob': log_prob}
     
-    # def mean_LL(self, observations, actions, model=None, log_std=None):
-    #     model = self.model if model is None else model
-    #     log_std = self.log_std if log_std is None else log_std
-    #     obs_var = Variable(torch.from_numpy(observations).float(), requires_grad=False)
-    #     act_var = Variable(torch.from_numpy(actions).float(), requires_grad=False)
-    #     mean = model(obs_var)
-    #     zs = (act_var - mean) / torch.exp(log_std)
-    #     LL = - 0.5 * torch.sum(zs ** 2, dim=1) + \
-    #          - torch.sum(log_std) + \
-    #          - 0.5 * self.m * np.log(2 * np.pi)
-    #     return mean, LL
-
     def log_prob(self, observations, actions):
         means_new = self.linear_mean(observations)
         std_new = self.log_std.exp()
@@ -104,14 +90,12 @@ class LinearGaussianPolicy(nn.Module):
         self.log_std.data.copy_(self.init_log_std)
         self.linear_mean.weight.data.copy_(self.init_linear_mean_weight)
         self.linear_mean.bias.data.copy_(self.init_linear_mean_bias)
-        # print(self.log_std.data, self.init_log_std)
-        # print(self.linear_mean.weight.data, self.init_linear_mean_weight)
-        # print(self.linear_mean.bias.data, self.init_linear_mean_bias)
-        # input('...')
-    
-    def grow_cov(self):
-        self.log_std.data.copy_(torch.clamp(self.log_std.data, self.min_log_std))
-        
+
+    def clamp_cov(self):
+        self.log_std.data.copy_(torch.clamp(self.log_std.data, min=self.min_log_std))
+
+    def grow_cov(self, beta):
+        self.log_std.data.add_(beta)        
 
     #################
     ### Utilities ###

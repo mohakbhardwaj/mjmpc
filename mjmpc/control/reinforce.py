@@ -1,5 +1,5 @@
 """
-Random shooting algorithm that utilizes learned NN sampling policy
+Reinforce policy gradient based controller
 """
 from copy import deepcopy
 import numpy as np
@@ -22,6 +22,7 @@ class Reinforce(Controller):
                  n_iters,
                  num_particles,
                  lr,
+                 beta,
                  policy,
                  baseline,
                  delta_kl=None,
@@ -57,6 +58,7 @@ class Reinforce(Controller):
         # torch.manual_seed(seed)
         self.num_particles = num_particles
         self.lr = lr
+        self.beta = beta
         self.policy = policy
         self.baseline = baseline
         self.old_policy = deepcopy(policy)
@@ -66,6 +68,7 @@ class Reinforce(Controller):
         self.max_linesearch_iters = max_linesearch_iters
         self.filter_coeffs = filter_coeffs
         self.verbose = verbose
+        self.errs = []
 
     @property
     def get_sim_obs_fn(self):
@@ -81,19 +84,6 @@ class Reinforce(Controller):
             action, _ = self.policy.get_action(obs_torch, mode='mean')
             action = action.detach().numpy()
         return action.copy()
-
-    def sample_noise(self):
-        """
-            Generate correlated noisy samples using autoregressive process
-        """
-        beta_0, beta_1, beta_2 = self.filter_coeffs
-        N = self.d_action
-        eps = self.np_random.multivariate_normal(mean=np.zeros((N,)), 
-                                                 cov = np.eye(self.d_action), 
-                                                 size=(self.num_particles, self.horizon))
-        for i in range(2, eps.shape[1]):
-            eps[:,i,:] = beta_0*eps[:,i,:] + beta_1*eps[:,i-1,:] + beta_2*eps[:,i-2,:]
-        return eps 
 
     def generate_rollouts(self, state):
         """
@@ -134,8 +124,14 @@ class Reinforce(Controller):
         Parameters
         -----------
         """
-        #compute cost to go and advantages
+        #compute cost to go 
         self.compute_returns(trajectories)
+
+        #update baseline using regression
+        if self.baseline is not None:
+            self.fit_baseline(trajectories, self.delta_reg)
+
+        #compute advantages
         self.compute_advantages(trajectories)
         observations, actions, returns, advantages = self.process_trajs(trajectories)
 
@@ -166,9 +162,9 @@ class Reinforce(Controller):
                     break
                 else:
                     #reset policy parameters and decrease learning rate
-                    # print('backtracking') 
+                    print('backtracking', ctr, mean_kl_div, curr_lr) 
                     self.policy.load_state_dict(curr_param_dict)
-                    curr_lr *= 0.9
+                    curr_lr *= 0.5
         else:
             #backpropagate loss and update policy params
             surr = self.cpi_surrogate(observations, actions, advantages)
@@ -186,12 +182,15 @@ class Reinforce(Controller):
             surr_improvement = surr_before - surr_after
             print("Surrogate improvement = {}".format(surr_improvement))
 
+        #clamp covariance
+        self.policy.clamp_cov() #clamps log_std to min_log_std
+
         #update old policy
         self.old_policy.load_state_dict(self.policy.state_dict())
 
-        #update baseline using regression
-        if self.baseline is not None:
-            self.fit_baseline(observations, returns, self.delta_reg)
+        # #update baseline using regression
+        # if self.baseline is not None:
+        #     self.fit_baseline(trajectories, self.delta_reg)
 
     def cpi_surrogate(self, observations, actions, advantages):
         observations = torch.FloatTensor(observations)
@@ -207,18 +206,18 @@ class Reinforce(Controller):
         return surr
 
     def compute_returns(self, trajs):
-        if self.baseline is None:
-            trajs["returns"] = cost_to_go(trajs["costs"], self.gamma_seq)
-        else:
-            with torch.no_grad():
-                N, H = trajs["costs"].shape
-                gamma_seq_a = np.pad(self.gamma_seq, ((0,0),(0,1)), constant_values=self.gamma ** H)  
-                next_obs_last = torch.FloatTensor(trajs["next_observations"][:,0])
-                obs_last = torch.FloatTensor(trajs["observations"][:,0])
-                term_cost = self.baseline(next_obs_last).detach().numpy()#.view(N,1)
-                costs_new = np.concatenate((trajs["costs"], term_cost), axis=-1)
-                returns = cost_to_go(costs_new, gamma_seq_a)
-                trajs["returns"] = returns[:,:-1]                
+        # if self.baseline is None:
+        trajs["returns"] = cost_to_go(trajs["costs"], self.gamma_seq)
+        # else:
+        #     with torch.no_grad():
+        #         N, H = trajs["costs"].shape
+        #         gamma_seq_a = np.pad(self.gamma_seq, ((0,0),(0,1)), constant_values=self.gamma ** H)  
+        #         next_obs_last = torch.FloatTensor(trajs["next_observations"][:,0])
+        #         obs_last = torch.FloatTensor(trajs["observations"][:,0])
+        #         term_cost = self.baseline(next_obs_last).detach().numpy()#.view(N,1)
+        #         costs_new = np.concatenate((trajs["costs"], term_cost), axis=-1)
+        #         returns = cost_to_go(costs_new, gamma_seq_a)
+        #         trajs["returns"] = returns[:,:-1]                
 
 
     def compute_advantages(self, trajs):
@@ -227,24 +226,21 @@ class Reinforce(Controller):
         else:
             with torch.no_grad():
                 obs = torch.FloatTensor(np.concatenate([p for p in trajs["observations"]]))
-                baseline_vals = self.baseline(obs)
+                baseline_vals = self.baseline(obs, self.horizon).flatten()
                 baseline_vals = baseline_vals.view(*torch.Size(trajs["returns"].shape))
                 baseline_vals = baseline_vals.detach().numpy()
         
-                #compare
+                # #compare
                 # bval_list = np.zeros(trajs["returns"].shape)
                 # for i, p in enumerate(trajs["observations"]):
                 #     curr_bval = self.baseline(torch.FloatTensor(p))
-                #     bval_list[i] = curr_bval.detach().numpy()[:,0]
+                #     bval_list[i] = curr_bval.detach().numpy().flat
                 # print(np.max(baseline_vals - bval_list))
-                # # print(bval_list[0])
-                # print(trajs['returns'][0])
+                # print(bval_list[2])
+                # print(baseline_vals[2])
                 # input('....')
         trajs["advantages"] = trajs["returns"] - baseline_vals 
-
-        # print('naive baseline', np.average(trajs["returns"], axis=0)) #time dependent constant baseline
-        # print(baseline_vals)
-        # input('...')
+        # naive_baseline = np.average(trajs["returns"], axis=0)
     
     def vpg_grad(self, observations, actions, advantages):
         surr = self.cpi_surrogate(observations, actions, advantages)
@@ -255,11 +251,28 @@ class Reinforce(Controller):
         for p in self.policy.parameters():
             p.data.sub_(p.grad.data * learning_rate)
 
-    def fit_baseline(self, observations, returns, delta_reg):
+    def fit_baseline(self, trajs, delta_reg):
+        observations = np.concatenate([p for p in trajs["observations"]])
+        returns = np.concatenate([p for p in trajs["returns"]])
         observations = torch.FloatTensor(observations)
         returns = torch.FloatTensor(returns)
-        errs = self.baseline.fit(observations, returns, delta_reg, True)
-        print(errs)
+        errs = self.baseline.fit(observations, returns, self.horizon, delta_reg, True)
+        self.errs.append(errs[1].item())
+        # print(errs)
+
+    def sample_noise(self):
+        """
+            Generate correlated noisy samples using autoregressive process
+        """
+        beta_0, beta_1, beta_2 = self.filter_coeffs
+        N = self.d_action
+        eps = self.np_random.multivariate_normal(mean=np.zeros((N,)), 
+                                                 cov = np.eye(self.d_action), 
+                                                 size=(self.num_particles, self.horizon))
+        for i in range(2, eps.shape[1]):
+            eps[:,i,:] = beta_0*eps[:,i,:] + beta_1*eps[:,i-1,:] + beta_2*eps[:,i-2,:]
+        return eps 
+
 
     def process_trajs(self, trajs):
         """ 
@@ -279,11 +292,11 @@ class Reinforce(Controller):
         returns = np.concatenate([p for p in trajs["returns"]])
         advantages = np.concatenate([p for p in trajs["advantages"]])
         # Advantage whitening
-        # advantages = (advantages - np.mean(advantages)) / (np.std(advantages) + 1e-6)
+        advantages = (advantages - np.mean(advantages)) / (np.std(advantages) + 1e-6)
         return observations, actions, returns, advantages
          
     def _shift(self):
-        self.policy.grow_cov()
+        self.policy.grow_cov(self.beta)
 
     def reset(self, seed=None):
         """
@@ -291,16 +304,15 @@ class Reinforce(Controller):
         """
         if seed is not None:
             self.seed_val = self.seed(seed)
+        self.num_steps = 0.0
         self.policy.reset()
         self.old_policy.load_state_dict(self.policy.state_dict())
-        # self.policy.print_parameters()
-        # self.old_policy.print_parameters()
+        self.errs = []
 
     def _calc_val(self, cost_seq, act_seq):
         """
         Calculate value of state given 
         rollouts from a policy
-
         """
         pass
 

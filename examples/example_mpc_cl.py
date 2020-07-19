@@ -22,7 +22,7 @@ from mjmpc.envs import GymEnvWrapper
 from mjmpc.envs.vec_env import TorchModelVecEnv
 from mjmpc.utils import LoggerClass, timeit, helpers
 from mjmpc.policies import MPCPolicy, LinearGaussianPolicy
-from mjmpc.value_functions import LinearValueFunction
+from mjmpc.value_functions import LinearValueFunction, QuadraticValueFunction
 
 gym.logger.set_level(40)
 parser = argparse.ArgumentParser(description='Run MPC algorithm on given environment')
@@ -85,6 +85,8 @@ if actor_params['actor_type'] == "linear_gaussian":
     policy = LinearGaussianPolicy(env.d_obs, env.d_action, actor_params['min_log_std'], actor_params['init_log_std'])
 if critic_params['critic_type'] == 'linear':
     baseline = LinearValueFunction(env.d_obs)
+elif critic_params['critic_type'] == 'quadratic':
+    baseline = QuadraticValueFunction(env.d_obs)
 else: baseline=None
 policy_params['policy'] = policy
 policy_params['baseline'] = baseline
@@ -144,6 +146,8 @@ for i in tqdm.tqdm(range(n_episodes)):
         # print(action, reward)
         ep_rewards[i] += reward
     print('episode reward = {}'.format(ep_rewards[i]))
+    print('episode avg. baseline error = {}'.format(np.average(mpc_policy.controller.errs)))
+    # input('...')
     traj = dict(
         observations=np.array(observations),
         actions=np.array(actions),

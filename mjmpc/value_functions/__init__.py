@@ -1,1 +1,2 @@
 from .linear_value_function import LinearValueFunction
+from .quadratic_value_function import QuadraticValueFunction
