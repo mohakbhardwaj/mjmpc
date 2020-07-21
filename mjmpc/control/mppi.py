@@ -29,6 +29,7 @@ class MPPI(OLGaussianMPC):
                  n_iters,
                  action_lows,
                  action_highs,
+                 time_based_weights=False,
                  set_sim_state_fn=None,
                  get_sim_state_fn=None,
                  sim_step_fn=None,
@@ -61,6 +62,7 @@ class MPPI(OLGaussianMPC):
                                    seed)
         self.lam = lam
         self.alpha = alpha  # 0 means control cost is on, 1 means off
+        self.time_based_weights = time_based_weights
 
     def _update_distribution(self, trajectories):
         """
@@ -72,7 +74,7 @@ class MPPI(OLGaussianMPC):
         delta = actions - self.mean_action[None, :, :]
         w = self._exp_util(costs, delta)
 
-        weighted_seq = w * actions.T
+        weighted_seq = w.T * actions.T
         # self.mean_action = np.sum(weighted_seq.T, axis=0)
         self.mean_action = (1.0 - self.step_size) * self.mean_action +\
                             self.step_size * np.sum(weighted_seq.T, axis=0) 
@@ -81,23 +83,31 @@ class MPPI(OLGaussianMPC):
         """
             Calculate weights using exponential utility
         """
-        traj_costs = cost_to_go(costs, self.gamma_seq)[:,0]
+
+        traj_costs = cost_to_go(costs, self.gamma_seq)
+        if not self.time_based_weights: traj_costs = traj_costs[:,0]
         control_costs = self._control_costs(delta)
         total_costs = traj_costs + self.lam * control_costs
         # #calculate soft-max
         # w1 = np.exp(-(1.0/self.lam) * (total_costs - np.min(total_costs)))
         # w1 /= np.sum(w1) + 1e-6  # normalize the weights
-        w = scipy.special.softmax((-1.0/self.lam) * total_costs)
+        # print(total_costs[:,-1])
+        w = scipy.special.softmax((-1.0/self.lam) * total_costs, axis=0)
+        # print(w[:,-1])
         return w
 
     def _control_costs(self, delta):
         if self.alpha == 1:
-            return np.zeros(delta.shape[0])
+            if not self.time_based_weights:
+                return np.zeros(delta.shape[0])
+            else: 
+                return np.zeros((delta.shape[0], delta.shape[1]))
         else:
             u_normalized = self.mean_action.dot(np.linalg.inv(self.cov_action))[np.newaxis,:,:]
             control_costs = 0.5 * u_normalized * (self.mean_action[np.newaxis,:,:] + 2.0 * delta)
             control_costs = np.sum(control_costs, axis=-1)
-            control_costs = cost_to_go(control_costs, self.gamma_seq)[:,0]
+            control_costs = cost_to_go(control_costs, self.gamma_seq)
+            if not self.time_based_weights: control_costs = control_costs[:,0]
         return control_costs
     
     def _calc_val(self, trajectories):

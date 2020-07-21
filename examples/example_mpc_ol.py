@@ -155,6 +155,8 @@ reward_std = np.std(ep_rewards)
 logger.info('Avg. reward = {0}, Std. Reward = {1}, Success Metric = {2}'.format(average_reward, reward_std, success_metric))
 
 #Can also dump data to csv once done
+# for i in range(n_episodes):
+logger.record_tabular("EpisodeReward", ep_rewards)
 logger.record_tabular("Horizon", policy_params['horizon'])
 logger.record_tabular("AverageReward", average_reward)
 logger.record_tabular("StdReward", reward_std)

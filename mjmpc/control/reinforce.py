@@ -25,6 +25,7 @@ class Reinforce(Controller):
                  beta,
                  policy,
                  baseline,
+                 loss_thresh,
                  delta_kl=None,
                  max_linesearch_iters=100,
                  delta_reg = 0.0,
@@ -69,6 +70,7 @@ class Reinforce(Controller):
         self.filter_coeffs = filter_coeffs
         self.verbose = verbose
         self.errs = []
+        self.converged = False
 
     @property
     def get_sim_obs_fn(self):
@@ -111,10 +113,6 @@ class Reinforce(Controller):
             dones=done_seq,
             infos=helpers.stack_tensor_dict_list(info_seq)
         )
-        # print(trajectories["observations"][:,-1])
-        # print(trajectories["actions"][:,-1])
-        # input('....')
-
         return trajectories
 
     def _update_distribution(self, trajectories):
@@ -130,15 +128,17 @@ class Reinforce(Controller):
         #update baseline using regression
         if self.baseline is not None:
             self.fit_baseline(trajectories, self.delta_reg)
+        
+        #compute baselines
+        self.compute_baselines(trajectories)
 
         #compute advantages
         self.compute_advantages(trajectories)
         observations, actions, returns, advantages = self.process_trajs(trajectories)
 
         #calculate CPI-surrogate loss
-        if self.verbose:
-            with torch.no_grad():
-                surr_before = self.cpi_surrogate(observations, actions, advantages).item()
+        with torch.no_grad():
+            surr_before = self.cpi_surrogate(observations, actions, advantages).item()
         
         #Backtracking line search
         if self.delta_kl is not None:
@@ -162,7 +162,7 @@ class Reinforce(Controller):
                     break
                 else:
                     #reset policy parameters and decrease learning rate
-                    print('backtracking', ctr, mean_kl_div, curr_lr) 
+                    # print('backtracking', ctr, mean_kl_div, curr_lr) 
                     self.policy.load_state_dict(curr_param_dict)
                     curr_lr *= 0.5
         else:
@@ -172,21 +172,27 @@ class Reinforce(Controller):
             surr.backward()
             self.update_policy_parameters(self.lr)
 
+        with torch.no_grad():
+            surr_after = self.cpi_surrogate(observations, actions, advantages).item()
+            surr_improvement = surr_before - surr_after
+
         if self.verbose:
             print("Gradients")
             self.policy.print_gradients()
             print("Updated parameters")
             self.policy.print_parameters()
-            with torch.no_grad():
-                surr_after = self.cpi_surrogate(observations, actions, advantages).item()
-            surr_improvement = surr_before - surr_after
-            print("Surrogate improvement = {}".format(surr_improvement))
+        # print("Surrogate improvement = {}".format(surr_improvement))
 
         #clamp covariance
         self.policy.clamp_cov() #clamps log_std to min_log_std
 
         #update old policy
         self.old_policy.load_state_dict(self.policy.state_dict())
+
+        # #check convergence
+        # if surr_improvement <= 0.001:
+        #     print('Converged!')
+        #     self.converged = True
 
         # #update baseline using regression
         # if self.baseline is not None:
@@ -207,7 +213,9 @@ class Reinforce(Controller):
 
     def compute_returns(self, trajs):
         # if self.baseline is None:
-        trajs["returns"] = cost_to_go(trajs["costs"], self.gamma_seq)
+        trajs["returns"] = cost_to_go(trajs["costs"], self.gamma_seq).copy()
+        # print(trajs["returns"].flags['C_CONTIGUOUS'], trajs["returns"].flags['F_CONTIGUOUS'])
+        # input('.....')
         # else:
         #     with torch.no_grad():
         #         N, H = trajs["costs"].shape
@@ -219,27 +227,29 @@ class Reinforce(Controller):
         #         returns = cost_to_go(costs_new, gamma_seq_a)
         #         trajs["returns"] = returns[:,:-1]                
 
-
-    def compute_advantages(self, trajs):
+    def compute_baselines(self, trajs):
         if self.baseline is None:
             baseline_vals = np.average(trajs["returns"], axis=0) #time dependent constant baseline
         else:
             with torch.no_grad():
-                obs = torch.FloatTensor(np.concatenate([p for p in trajs["observations"]]))
-                baseline_vals = self.baseline(obs, self.horizon).flatten()
-                baseline_vals = baseline_vals.view(*torch.Size(trajs["returns"].shape))
+                # obs = torch.FloatTensor(np.concatenate([p for p in trajs["observations"]]))
+                obs = torch.FloatTensor(trajs["observations"])
+                baseline_vals = self.baseline(obs)
+                # baseline_vals = baseline_vals.view(*torch.Size(trajs["returns"].shape))
                 baseline_vals = baseline_vals.detach().numpy()
-        
-                # #compare
-                # bval_list = np.zeros(trajs["returns"].shape)
-                # for i, p in enumerate(trajs["observations"]):
-                #     curr_bval = self.baseline(torch.FloatTensor(p))
-                #     bval_list[i] = curr_bval.detach().numpy().flat
-                # print(np.max(baseline_vals - bval_list))
-                # print(bval_list[2])
-                # print(baseline_vals[2])
-                # input('....')
-        trajs["advantages"] = trajs["returns"] - baseline_vals 
+        trajs["baselines"] = baseline_vals
+        # #compare
+        # bval_list = np.zeros(trajs["returns"].shape)
+        # for i, p in enumerate(trajs["observations"]):
+        #     curr_bval = self.baseline(torch.FloatTensor(p))
+        #     bval_list[i] = curr_bval.detach().numpy().flat
+        # print(np.max(baseline_vals - bval_list))
+        # print(bval_list[2])
+        # print(baseline_vals[2])
+        # input('....')
+
+    def compute_advantages(self, trajs, gae_lambda=1.0):
+        trajs["advantages"] = trajs["returns"] - trajs["baselines"] 
         # naive_baseline = np.average(trajs["returns"], axis=0)
     
     def vpg_grad(self, observations, actions, advantages):
@@ -252,11 +262,11 @@ class Reinforce(Controller):
             p.data.sub_(p.grad.data * learning_rate)
 
     def fit_baseline(self, trajs, delta_reg):
-        observations = np.concatenate([p for p in trajs["observations"]])
-        returns = np.concatenate([p for p in trajs["returns"]])
-        observations = torch.FloatTensor(observations)
-        returns = torch.FloatTensor(returns)
-        errs = self.baseline.fit(observations, returns, self.horizon, delta_reg, True)
+        # observations = np.concatenate([p for p in trajs["observations"]])
+        # returns = np.concatenate([p for p in trajs["returns"]])
+        observations = torch.FloatTensor(trajs["observations"])
+        returns = torch.FloatTensor(trajs["returns"])
+        errs = self.baseline.fit(observations, returns, delta_reg, True)
         self.errs.append(errs[1].item())
         # print(errs)
 
@@ -294,7 +304,16 @@ class Reinforce(Controller):
         # Advantage whitening
         advantages = (advantages - np.mean(advantages)) / (np.std(advantages) + 1e-6)
         return observations, actions, returns, advantages
-         
+
+    def check_convergence(self):
+        """
+        Checks if controller has converged
+        Returns False by default
+        """
+        converged = self.converged
+        self.converged = False
+        return converged
+
     def _shift(self):
         self.policy.grow_cov(self.beta)
 
@@ -308,6 +327,7 @@ class Reinforce(Controller):
         self.policy.reset()
         self.old_policy.load_state_dict(self.policy.state_dict())
         self.errs = []
+        self.converged = False
 
     def _calc_val(self, cost_seq, act_seq):
         """
@@ -315,14 +335,6 @@ class Reinforce(Controller):
         rollouts from a policy
         """
         pass
-
-    def check_convergence(self):
-        """
-        Checks if controller has converged
-        Returns False by default
-        """
-        return False
-
 
 
 

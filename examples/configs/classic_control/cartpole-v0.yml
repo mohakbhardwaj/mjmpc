@@ -38,6 +38,7 @@ mppi:
   num_cpu           : 10
   particles_per_cpu : 6
   base_action       : 'null'
+  time_based_weights: False
 
 dmd:
   horizon           : 32

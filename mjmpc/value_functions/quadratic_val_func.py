@@ -2,19 +2,22 @@ import torch
 import torch.nn as nn
 
 
-class QuadraticValueFunction(nn.Module):
+class QuadraticVF(nn.Module):
     def __init__(self, d_obs):
-        super(QuadraticValueFunction, self).__init__()
+        super(QuadraticVF, self).__init__()
         self.d_obs = d_obs
         self.d_input = int(d_obs + (d_obs * (d_obs+1))/2 + 1) #linear + quadratic + time
         self.linear = nn.Linear(self.d_input, 1)
         torch.nn.init.zeros_(self.linear.weight)
         torch.nn.init.zeros_(self.linear.bias)
     
-    def forward(self, observation, horizon):
+    def forward(self, observation):
+        num_paths = observation.shape[0]
+        horizon = observation.shape[1]
+        observation = torch.cat([p for p in observation])
         feat_mat = self.feature_mat(observation, horizon)
         value = self.linear(feat_mat)
-        return value
+        return value.view(num_paths, horizon)
     
     def feature_mat(self, obs, horizon):
         num_samples = obs.shape[0]
@@ -36,15 +39,18 @@ class QuadraticValueFunction(nn.Module):
         feat_mat[:,-1] = tcol #torch.cat((feat_mat, tcol), dim=-1)
         return feat_mat
 
-    def fit(self, observations, returns, horizon, delta_reg=0., return_errors=False):
-        # observations = torch.clamp(observations, -10.0, 10.0) / 10.0
-        feat_mat = self.feature_mat(observations, horizon)
-        #append 1 to columns for bias
-        new_col = torch.ones(observations.shape[0],1)
-        feat_mat = torch.cat((feat_mat, new_col), axis=-1)
+    def fit(self, observations, returns, delta_reg=0., return_errors=False):
+        horizon = observations.shape[1]
+        obs = torch.cat([p for p in observations])
+        returns = torch.cat([p for p in returns])
 
+        feat_mat = self.feature_mat(obs, horizon)
+        #append 1 to columns for bias
+        new_col = torch.ones(feat_mat.shape[0],1)
+        feat_mat = torch.cat((feat_mat, new_col), axis=-1)
+        
         if return_errors:
-            predictions = self(observations, horizon)
+            predictions = self(observations)
             errors = returns - predictions.flatten()
             error_before = torch.sum(errors**2)/torch.sum(returns**2)
 
@@ -61,7 +67,7 @@ class QuadraticValueFunction(nn.Module):
         self.linear.bias.data.copy_(coeffs[-1]) 
 
         if return_errors:
-            predictions = self(observations, horizon)
+            predictions = self(observations)
             errors = returns - predictions.flatten()
             error_after = torch.sum(errors**2)/torch.sum(returns**2)
             return error_before, error_after

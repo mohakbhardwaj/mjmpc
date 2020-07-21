@@ -18,7 +18,6 @@ random_shooting:
   particles_per_cpu : 4
   base_action       : 'null'
 
-
 mppi:
   horizon           : 16
   init_cov          : 0.25
@@ -31,6 +30,8 @@ mppi:
   num_cpu           : 10
   particles_per_cpu : 4
   base_action       : 'null'
+  time_based_weights: False
+
 
 cem:
   horizon           : 16

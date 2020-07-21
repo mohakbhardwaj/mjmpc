@@ -1,5 +1,5 @@
 env_name          : 'cartpole-v0'
-n_episodes        : 5
+n_episodes        : 50
 max_ep_length     : 100
 seed              : 123 #testing: 0, tuning: 123
 render            : True
@@ -13,7 +13,7 @@ actor_params:
   init_log_std : 0.0
 
 critic_params:
-  critic_type       : 'quadratic'
+  critic_type       : 'linear'
 
 
 # reinforce:
@@ -42,14 +42,15 @@ critic_params:
 reinforce:
   horizon           : 32
   gamma             : 1.0
-  n_iters           : 1
-  lr                : 0.7
+  n_iters           : 5
+  lr                : 1.0
   beta              : 0.0
   filter_coeffs     : [0.25, 0.8, 0.0]
   num_cpu           : 10
   particles_per_cpu : 6
-  delta_kl          : 10.0 #10.0
-  delta_reg         : 0.0
+  loss_thresh       : 0.001
+  delta_kl          : 15.0 #10.0
+  delta_reg         : 0.001
   max_linesearch_iters: 100
 
 

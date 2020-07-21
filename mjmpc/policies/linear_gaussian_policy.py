@@ -61,7 +61,7 @@ class LinearGaussianPolicy(nn.Module):
         
         if mode == 'mean':
             action = deepcopy(mean)
-            print(std, np.exp(self.min_log_std))
+            # print(std, np.exp(self.min_log_std))
         elif mode == 'sample':
             std_np = std.data.detach() 
             if white_noise is None:
