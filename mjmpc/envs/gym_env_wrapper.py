@@ -108,18 +108,22 @@ class GymEnvWrapper():
         for b in range(batch_size):
             #Set the state to the current state
             self.set_env_state(curr_state)
+            curr_obs = deepcopy(self.get_obs())
+
             #Rollout for t steps and store results
             for t in range(horizon):
                 u_curr = u_vec[b, t, :]
-                obs, rew, done, _ = self.step(u_curr)
+                next_obs, rew, done, _ = self.step(u_curr)
                 if type(self.observation_space) is spaces.Dict:
-                    obs_vec.append(obs.copy())
+                    obs_vec.append(curr_obs.copy())
                 else:
-                    obs_vec[b, t, :] = obs.copy().reshape(self.d_obs,)
+                    obs_vec[b, t, :] = curr_obs.copy().reshape(self.d_obs,)
                 # state = self.get_env_state()
                 # state_vec.append(state.copy())
                 rew_vec[b, t] = rew
                 done_vec[b, t] = done
+                curr_obs = next_obs.copy()
+
         info = {'total_time' : time.time() - start_t}
         return obs_vec, rew_vec, done_vec, info
     

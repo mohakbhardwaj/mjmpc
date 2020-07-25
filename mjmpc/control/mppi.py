@@ -76,8 +76,10 @@ class MPPI(OLGaussianMPC):
 
         weighted_seq = w.T * actions.T
         # self.mean_action = np.sum(weighted_seq.T, axis=0)
+        # print(self.mean_action)
         self.mean_action = (1.0 - self.step_size) * self.mean_action +\
-                            self.step_size * np.sum(weighted_seq.T, axis=0) 
+                            self.step_size * np.sum(weighted_seq.T, axis=0)
+        # print(self.mean_action) 
 
     def _exp_util(self, costs, delta):
         """

@@ -69,7 +69,7 @@ class OLGaussianMPC(Controller):
             next_action = self.mean_action[0].copy()
         elif mode == 'sample':
             delta = generate_noise(self.cov_action, self.filter_coeffs,
-                                   shape=(1, 1), base_seed=self.seed + self.num_steps)
+                                   shape=(1, 1), base_seed=self.seed_val + 123*self.num_steps)
             next_action = self.mean_action[0].copy() + delta.reshape(self.d_action).copy()
         else:
             raise ValueError('Unidentified sampling mode in get_next_action')
@@ -102,6 +102,8 @@ class OLGaussianMPC(Controller):
         self.num_steps = 0
         self.mean_action = np.zeros(shape=(self.horizon, self.d_action))
         self.cov_action = np.diag(self.init_cov)
+        self.gamma_seq = np.cumprod([1.0] + [self.gamma] * (self.horizon - 1)).reshape(1, self.horizon)
+
 
     def _calc_val(self, cost_seq, act_seq):
         raise NotImplementedError("_calc_val not implemented")

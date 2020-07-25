@@ -3,7 +3,6 @@ import numpy as np
 import os
 
 from mjmpc.envs import *
-from mjmpc.policies import *
 from .logger import LoggerClass
 
 

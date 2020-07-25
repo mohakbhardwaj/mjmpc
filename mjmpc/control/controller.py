@@ -198,7 +198,7 @@ class Controller(ABC):
         )
         return trajectories
 
-    def optimize(self, state, calc_val=False):
+    def optimize(self, state, calc_val=False, hotstart=True):
         """
         Optimize for best action at current state
 
@@ -244,8 +244,9 @@ class Controller(ABC):
             value = self._calc_val(trajectories)
 
         self.num_steps += 1
-        # shift distribution to hotstart next timestep
-        self._shift()
+        if hotstart:
+            # shift distribution to hotstart next timestep
+            self._shift()
 
         return curr_action, value
 

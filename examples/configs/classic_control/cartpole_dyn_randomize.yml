@@ -1,6 +1,6 @@
 body_mass:
-  cart: [1.0, 1.0]
-  pole: [0.0, 1.0]
+  cart: [0.3, 0.0]
+  pole: [0.3, 0.0]
 body_inertia:
   cart: [0.1, 0.1]
   pole: [0.1, 0.1]
