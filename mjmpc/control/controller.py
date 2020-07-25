@@ -188,14 +188,16 @@ class Controller(ABC):
         
         self._set_sim_state_fn(copy.deepcopy(state)) #set state of simulation
         act_seq = self.sample_actions() #sample actions using current control distribution
-        obs_seq, cost_seq, done_seq, info_seq = self._rollout_fn(act_seq)  # rollout function returns the costs 
-        trajectories = dict(
-            observations=obs_seq,
-            actions=act_seq,
-            costs=cost_seq,
-            dones=done_seq,
-            infos=helpers.stack_tensor_dict_list(info_seq)
-        )
+        # obs_seq, cost_seq, done_seq, info_seq = self._rollout_fn(act_seq)  # rollout function returns the costs 
+        trajectories = self._rollout_fn(act_seq)
+        
+        # trajectories = dict(
+        #     observations=obs_seq,
+        #     actions=act_seq,
+        #     costs=cost_seq,
+        #     dones=done_seq,
+        #     infos=helpers.stack_tensor_dict_list(info_seq)
+        # )
         return trajectories
 
     def optimize(self, state, calc_val=False, hotstart=True):

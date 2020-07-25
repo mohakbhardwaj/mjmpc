@@ -38,6 +38,8 @@ def cost_to_go(cost_seq, gamma_seq):
     """
         Calculate (discounted) cost to go for given cost sequence
     """
+    if np.any(gamma_seq == 0):
+        return cost_seq
     cost_seq = gamma_seq * cost_seq  # discounted reward sequence
     cost_seq = np.cumsum(cost_seq[:, ::-1], axis=-1)[:, ::-1]  # cost to go (but scaled by [1 , gamma, gamma*2 and so on])
     cost_seq /= gamma_seq  # un-scale it to get true discounted cost to go

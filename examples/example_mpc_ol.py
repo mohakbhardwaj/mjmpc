@@ -81,15 +81,23 @@ sim_env = SubprocVecEnv([make_env for i in range(num_cpu)])
 if dynamics_rand_params is not None:
     default_params, randomized_params = sim_env.randomize_dynamics(dynamics_rand_params, base_seed=exp_params['seed'])
 
-def rollout_fn(u_vec: np.ndarray):
+def rollout_fn(act_vec: np.ndarray):
     """
     Given a batch of sequences of actions, rollout 
     in sim envs and return sequence of costs. The controller is 
     agnostic of how the rollouts are generated.
     """
-    obs_vec, rew_vec, done_vec, info_vec = sim_env.rollout(u_vec.copy())
+    obs_vec, rew_vec, done_vec, info_vec = sim_env.rollout(act_vec.copy())
     #we assume environment returns rewards, but controller needs costs
-    return obs_vec, -1.0*rew_vec, done_vec, info_vec
+    sim_trajs = dict(
+        observations=obs_vec.copy(),
+        actions=act_vec.copy(),
+        costs=-1.0*rew_vec.copy(),
+        dones=done_vec.copy(),
+        infos=helpers.stack_tensor_dict_list(info_vec.copy())
+    )
+
+    return sim_trajs #obs_vec, -1.0*rew_vec, done_vec, info_vec
 
 policy_params.pop('particles_per_cpu', None)
 policy_params.pop('num_cpu', None)

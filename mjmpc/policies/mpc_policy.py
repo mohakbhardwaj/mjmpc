@@ -15,6 +15,8 @@ class MPCPolicy(Policy):
             self.controller = control.ILQR(**param_dict)
         elif controller_type == "mppi":
             self.controller = control.MPPI(**param_dict)
+        elif controller_type == "mppiq":
+            self.controller = control.MPPIQ(**param_dict)
         elif controller_type == "pfmpc":
             self.controller = control.PFMPC(**param_dict)
         elif controller_type == "random_shooting":

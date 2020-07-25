@@ -1,8 +1,10 @@
 #!/usr/bin/env python
-"""Model Predictive Path Integral Controller
+"""
+A version of Model Predictive Path Integral Controller
+that uses Q-function estimates
 
 Author - Mohak Bhardwaj
-Date - Dec 20, 2019
+Date - July 24, 2020
 TODO:
  - Make it a work for batch of start states 
 """
@@ -12,8 +14,9 @@ import copy
 import numpy as np
 # import scipy.stats
 import scipy.special
+import time
 
-class MPPI(OLGaussianMPC):
+class MPPIQ(OLGaussianMPC):
     def __init__(self,
                  d_state,
                  d_obs,
@@ -21,15 +24,15 @@ class MPPI(OLGaussianMPC):
                  horizon,
                  init_cov,
                  base_action,
-                 lam,
+                 beta,
                  num_particles,
                  step_size,
                  alpha,
                  gamma,
                  n_iters,
+                 td_lam,
                  action_lows,
                  action_highs,
-                 time_based_weights=False,
                  set_sim_state_fn=None,
                  get_sim_state_fn=None,
                  sim_step_fn=None,
@@ -40,7 +43,7 @@ class MPPI(OLGaussianMPC):
                  filter_coeffs = [1., 0., 0.],
                  seed=0):
 
-        super(MPPI, self).__init__(d_state,
+        super(MPPIQ, self).__init__(d_state,
                                    d_obs,
                                    d_action,
                                    action_lows, 
@@ -60,9 +63,9 @@ class MPPI(OLGaussianMPC):
                                    sample_mode,
                                    batch_size,
                                    seed)
-        self.lam = lam
+        self.beta = beta
+        self.td_lam = td_lam
         self.alpha = alpha  # 0 means control cost is on, 1 means off
-        self.time_based_weights = time_based_weights
 
     def _update_distribution(self, trajectories):
         """
@@ -71,43 +74,55 @@ class MPPI(OLGaussianMPC):
         """
         costs = trajectories["costs"].copy()
         actions = trajectories["actions"].copy()
+        qvals = trajectories["qvals"].copy() if "qvals" in trajectories else np.zeros(costs.shape)
+
         delta = actions - self.mean_action[None, :, :]
-        w = self._exp_util(costs, delta)
+        w = self._exp_util(costs, qvals, delta)
+
         weighted_seq = w.T * actions.T
-        # self.mean_action = np.sum(weighted_seq.T, axis=0)
-        # print(self.mean_action)
+
         self.mean_action = (1.0 - self.step_size) * self.mean_action +\
                             self.step_size * np.sum(weighted_seq.T, axis=0)
 
-    def _exp_util(self, costs, delta):
+    def _exp_util(self, costs, qvals, delta):
         """
             Calculate weights using exponential utility
         """
 
-        traj_costs = cost_to_go(costs, self.gamma_seq)
-        if not self.time_based_weights: traj_costs = traj_costs[:,0]
+        # traj_costs = cost_to_go(costs, self.gamma_seq)
         control_costs = self._control_costs(delta)
-        total_costs = traj_costs + self.lam * control_costs
-        # #calculate soft-max
-        # w1 = np.exp(-(1.0/self.lam) * (total_costs - np.min(total_costs)))
-        # w1 /= np.sum(w1) + 1e-6  # normalize the weights
-        # print(total_costs[:,-1])
-        w = scipy.special.softmax((-1.0/self.lam) * total_costs, axis=0)
-        # print(w[:,-1])
+        total_costs = costs + self.beta * control_costs
+        q_hat = self.calculate_returns(total_costs, qvals, self.gamma, self.td_lam)#cost_to_go(total_costs, self.gamma_seq)
+        
+        w = scipy.special.softmax((-1.0/self.beta) * q_hat, axis=0)
         return w
+
+    def calculate_returns(self, costs, qvals, gamma, td_lam=1.0):
+        gamma_seq = np.cumprod([1.0] + [gamma] * (self.horizon - 2)).reshape(1, self.horizon-1)
+        q_mc = cost_to_go(costs[:,0:-1], gamma_seq)
+
+        td_errors = costs + gamma * np.hstack([qvals, qvals[:,[-1]]])[:, 1:] - qvals
+        weight_seq = np.cumprod([1.0] + [gamma*td_lam] * (self.horizon - 1)).reshape(1, self.horizon)
+        q_lam_minus_q = cost_to_go(td_errors, weight_seq)
+        q_lam = q_lam_minus_q + qvals
+        #incorporate 0-step estimate too
+        q_lam = (1.0 - td_lam) * qvals + td_lam * q_lam
+
+        print(qvals)
+        print(q_lam)
+        print(q_mc)
+        input('.......')
+        return q_lam
+
 
     def _control_costs(self, delta):
         if self.alpha == 1:
-            if not self.time_based_weights:
-                return np.zeros(delta.shape[0])
-            else: 
-                return np.zeros((delta.shape[0], delta.shape[1]))
+            return np.zeros((delta.shape[0], delta.shape[1]))
         else:
             u_normalized = self.mean_action.dot(np.linalg.inv(self.cov_action))[np.newaxis,:,:]
             control_costs = 0.5 * u_normalized * (self.mean_action[np.newaxis,:,:] + 2.0 * delta)
             control_costs = np.sum(control_costs, axis=-1)
-            control_costs = cost_to_go(control_costs, self.gamma_seq)
-            if not self.time_based_weights: control_costs = control_costs[:,0]
+            # control_costs = cost_to_go(control_costs, self.gamma_seq)
         return control_costs
     
     def _calc_val(self, trajectories):
@@ -117,17 +132,17 @@ class MPPI(OLGaussianMPC):
         
         traj_costs = cost_to_go(costs, self.gamma_seq)[:,0]
         control_costs = self._control_costs(delta)
-        total_costs = traj_costs.copy() + self.lam * control_costs.copy()
+        total_costs = traj_costs.copy() + self.beta * control_costs.copy()
         
 		# calculate log-sum-exp
-        # c = (-1.0/self.lam) * total_costs.copy()
+        # c = (-1.0/self.beta) * total_costs.copy()
         # cmax = np.max(c)
         # c -= cmax
         # c = np.exp(c)
         # val1 = cmax + np.log(np.sum(c)) - np.log(c.shape[0])
-        # val1 = -self.lam * val1
+        # val1 = -self.beta * val1
 
-        val = -self.lam * scipy.special.logsumexp((-1.0/self.lam) * total_costs, b=(1.0/total_costs.shape[0]))
+        val = -self.beta * scipy.special.logsumexp((-1.0/self.beta) * total_costs, b=(1.0/total_costs.shape[0]))
         return val
         
 

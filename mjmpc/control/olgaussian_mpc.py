@@ -104,7 +104,6 @@ class OLGaussianMPC(Controller):
         self.cov_action = np.diag(self.init_cov)
         self.gamma_seq = np.cumprod([1.0] + [self.gamma] * (self.horizon - 1)).reshape(1, self.horizon)
 
-
     def _calc_val(self, cost_seq, act_seq):
         raise NotImplementedError("_calc_val not implemented")
 
