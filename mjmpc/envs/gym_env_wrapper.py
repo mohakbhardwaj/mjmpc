@@ -98,8 +98,10 @@ class GymEnvWrapper():
         start_t = time.time()
         batch_size, horizon, d_action = u_vec.shape
         if type(self.observation_space) is spaces.Dict:
-            obs_vec = []
-        else: obs_vec = np.zeros((batch_size, horizon, self.d_obs))
+            obs_vec = []; next_obs_vec = []
+        else: 
+            obs_vec = np.zeros((batch_size, horizon, self.d_obs))
+            next_obs_vec = np.zeros((batch_size, horizon, self.d_obs))
         state_vec = [] #np.zeros((self.batch_size, horizon, self.d_state))
         rew_vec = np.zeros((batch_size, horizon))
         done_vec = np.zeros((batch_size, horizon))
@@ -116,8 +118,10 @@ class GymEnvWrapper():
                 next_obs, rew, done, _ = self.step(u_curr)
                 if type(self.observation_space) is spaces.Dict:
                     obs_vec.append(curr_obs.copy())
+                    next_obs_vec.append(next_obs.copy())
                 else:
                     obs_vec[b, t, :] = curr_obs.copy().reshape(self.d_obs,)
+                    next_obs_vec[b, t, :] = next_obs.copy().reshape(self.d_obs,)
                 # state = self.get_env_state()
                 # state_vec.append(state.copy())
                 rew_vec[b, t] = rew
@@ -125,7 +129,7 @@ class GymEnvWrapper():
                 curr_obs = next_obs.copy()
 
         info = {'total_time' : time.time() - start_t}
-        return obs_vec, rew_vec, done_vec, info
+        return obs_vec, rew_vec, done_vec, info, next_obs_vec
     
     def rollout_cl(self, policy, batch_size, horizon, mode='mean', noise=None):
         """

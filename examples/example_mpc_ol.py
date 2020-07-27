@@ -87,13 +87,14 @@ def rollout_fn(act_vec: np.ndarray):
     in sim envs and return sequence of costs. The controller is 
     agnostic of how the rollouts are generated.
     """
-    obs_vec, rew_vec, done_vec, info_vec = sim_env.rollout(act_vec.copy())
+    obs_vec, rew_vec, done_vec, info_vec, next_obs_vec = sim_env.rollout(act_vec.copy())
     #we assume environment returns rewards, but controller needs costs
     sim_trajs = dict(
         observations=obs_vec.copy(),
         actions=act_vec.copy(),
         costs=-1.0*rew_vec.copy(),
         dones=done_vec.copy(),
+        next_observations=next_obs_vec.copy(),
         infos=helpers.stack_tensor_dict_list(info_vec.copy())
     )
 

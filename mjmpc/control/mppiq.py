@@ -33,6 +33,7 @@ class MPPIQ(OLGaussianMPC):
                  td_lam,
                  action_lows,
                  action_highs,
+                 time_based_weights=True,
                  set_sim_state_fn=None,
                  get_sim_state_fn=None,
                  sim_step_fn=None,
@@ -66,6 +67,8 @@ class MPPIQ(OLGaussianMPC):
         self.beta = beta
         self.td_lam = td_lam
         self.alpha = alpha  # 0 means control cost is on, 1 means off
+        self.time_based_weights = time_based_weights
+
 
     def _update_distribution(self, trajectories):
         """
@@ -74,13 +77,11 @@ class MPPIQ(OLGaussianMPC):
         """
         costs = trajectories["costs"].copy()
         actions = trajectories["actions"].copy()
-        qvals = trajectories["qvals"].copy() if "qvals" in trajectories else np.zeros(costs.shape)
+        qvals = trajectories["qvals"].copy() if "qvals" in trajectories else None
 
         delta = actions - self.mean_action[None, :, :]
         w = self._exp_util(costs, qvals, delta)
-
         weighted_seq = w.T * actions.T
-
         self.mean_action = (1.0 - self.step_size) * self.mean_action +\
                             self.step_size * np.sum(weighted_seq.T, axis=0)
 
@@ -88,32 +89,45 @@ class MPPIQ(OLGaussianMPC):
         """
             Calculate weights using exponential utility
         """
-
         # traj_costs = cost_to_go(costs, self.gamma_seq)
         control_costs = self._control_costs(delta)
         total_costs = costs + self.beta * control_costs
-        q_hat = self.calculate_returns(total_costs, qvals, self.gamma, self.td_lam)#cost_to_go(total_costs, self.gamma_seq)
-        
+        q_hat = self.calculate_returns(total_costs, qvals, self.gamma, self.td_lam)
+        if not self.time_based_weights:
+            q_hat = q_hat[:,0]
         w = scipy.special.softmax((-1.0/self.beta) * q_hat, axis=0)
         return w
 
     def calculate_returns(self, costs, qvals, gamma, td_lam=1.0):
-        gamma_seq = np.cumprod([1.0] + [gamma] * (self.horizon - 2)).reshape(1, self.horizon-1)
-        q_mc = cost_to_go(costs[:,0:-1], gamma_seq)
+        
+        # cost_new = costs.copy()
+        # cost_new[:,-1] = qvals[:,-1]
+        # q_mc = cost_to_go(cost_new, self.gamma_seq)
+        # td_errors = costs + gamma * np.hstack([qvals, qvals[:,[-1]]])[:, 1:] - qvals
+        if qvals is None:
+            qvals = np.zeros(costs.shape)
+            qvals[:,-1] = costs[:,-1]
+            # weight_seq = np.cumprod([1.0] + [gamma] * (self.horizon - 1)).reshape(1, self.horizon)
+            # return cost_to_go(costs, weight_seq)
 
-        td_errors = costs + gamma * np.hstack([qvals, qvals[:,[-1]]])[:, 1:] - qvals
-        weight_seq = np.cumprod([1.0] + [gamma*td_lam] * (self.horizon - 1)).reshape(1, self.horizon)
+        td_errors = costs[:, 0:-1] + gamma * qvals[:, 1:] - qvals[:, 0:-1]
+        weight_seq = np.cumprod([1.0] + [gamma*td_lam] * (self.horizon - 2)).reshape(1, self.horizon-1)
         q_lam_minus_q = cost_to_go(td_errors, weight_seq)
-        q_lam = q_lam_minus_q + qvals
+        # q_lam = q_lam_minus_q  #+ qvals[:, 0:-1]
         #incorporate 0-step estimate too
-        q_lam = (1.0 - td_lam) * qvals + td_lam * q_lam
+        q_lam = qvals[:, 0:-1] + td_lam * q_lam_minus_q
+        q_lam = np.hstack([q_lam, qvals[:, [-1]]])
 
-        print(qvals)
-        print(q_lam)
-        print(q_mc)
-        input('.......')
+        
+        # print(qvals)
+        # input('....')
+        # print(q_lam)
+        # input('....')
+        # print(q_mc)
+        # print(np.allclose(q_mc, q_lam))
+        # print(np.allclose(qvals, q_lam))
+        # input('....')
         return q_lam
-
 
     def _control_costs(self, delta):
         if self.alpha == 1:
@@ -128,11 +142,15 @@ class MPPIQ(OLGaussianMPC):
     def _calc_val(self, trajectories):
         costs = trajectories["costs"].copy()
         actions = trajectories["actions"].copy()
+        qvals = trajectories["qvals"].copy() if "qvals" in trajectories else None
+
         delta = actions - self.mean_action[None, :, :]
-        
-        traj_costs = cost_to_go(costs, self.gamma_seq)[:,0]
         control_costs = self._control_costs(delta)
-        total_costs = traj_costs.copy() + self.beta * control_costs.copy()
+        total_costs = costs + self.beta * control_costs        
+        q_hat = self.calculate_returns(total_costs, qvals, self.gamma, self.td_lam)
+        # traj_costs = cost_to_go(costs, self.gamma_seq)[:,0]
+        # control_costs = self._control_costs(delta)
+        # total_costs = traj_costs.copy() + self.beta * control_costs.copy()
         
 		# calculate log-sum-exp
         # c = (-1.0/self.beta) * total_costs.copy()
@@ -141,8 +159,8 @@ class MPPIQ(OLGaussianMPC):
         # c = np.exp(c)
         # val1 = cmax + np.log(np.sum(c)) - np.log(c.shape[0])
         # val1 = -self.beta * val1
-
-        val = -self.beta * scipy.special.logsumexp((-1.0/self.beta) * total_costs, b=(1.0/total_costs.shape[0]))
+        q_hat = q_hat[:,0]
+        val = -self.beta * scipy.special.logsumexp((-1.0/self.beta) * q_hat, b=(1.0/q_hat.shape[0]))
         return val
         
 

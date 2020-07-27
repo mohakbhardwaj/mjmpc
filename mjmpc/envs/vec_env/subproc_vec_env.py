@@ -46,8 +46,8 @@ def _worker(remote, parent_remote, env_fn_wrapper):
                 state = env.get_env_state()
                 remote.send(state)
             elif cmd == 'rollout':
-                obs_vec, rew_vec, done_vec, info = env.rollout(data) #state_vec
-                remote.send((obs_vec, rew_vec, done_vec, info)) #state_vec
+                obs_vec, rew_vec, done_vec, info, next_obs_vec = env.rollout(data) #state_vec
+                remote.send((obs_vec, rew_vec, done_vec, info, next_obs_vec)) #state_vec
             elif cmd == 'seed':
                 remote.send(env.seed(data))
             elif cmd == 'get_seed':
@@ -148,11 +148,13 @@ class SubprocVecEnv(VecEnv):
         rew_vec = [res[1] for res in results]
         done_vec = [res[2] for res in results]
         info = [res[3] for res in results]
+        next_obs_vec = [res[4] for res in results]
         stacked_obs  = np.concatenate(obs_vec, axis=0)
         # stacked_state = np.concatenate(state_vec, axis=0)
         stacked_rews = np.concatenate(rew_vec, axis=0)
         stacked_done = np.concatenate(done_vec, axis=0)
-        return stacked_obs, stacked_rews, stacked_done, info # stacked_state
+        stacked_next_obs = np.concatenate(next_obs_vec, axis=0)
+        return stacked_obs, stacked_rews, stacked_done, info, stacked_next_obs # stacked_state
 
     def reset(self):
         for remote in self.remotes:

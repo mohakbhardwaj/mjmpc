@@ -51,6 +51,7 @@ mppi:
   base_action       : 'null'
   time_based_weights: False
 
+
 # mppi:
 #   horizon           : 48
 #   init_cov          : 0.45
@@ -74,10 +75,11 @@ mppiq:
   step_size         : 1.0
   beta              : 0.1
   alpha             : 0
-  td_lam            : 0.0
+  td_lam            : 1.0
   num_cpu           : 10
   particles_per_cpu : 6
   base_action       : 'null'
+  time_based_weights: False
 
 # mppiq:
 #   horizon           : 48
@@ -88,10 +90,11 @@ mppiq:
 #   step_size         : 1.0
 #   beta              : 0.1
 #   alpha             : 0
-#   td_lam            : 1.0
+#   td_lam            : 0.9
 #   num_cpu           : 10
 #   particles_per_cpu : 10
 #   base_action       : 'null'
+#   time_based_weights: False
 
 dmd:
   horizon           : 32

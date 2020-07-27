@@ -1,5 +1,5 @@
 env_name          : 'sawyer_peg_insertion-v0'
-n_episodes        : 20
+n_episodes        : 10
 max_ep_length     : 75
 seed              : 123 #testing: 0, tuning: 123
 base_action       : 'null'
@@ -31,6 +31,21 @@ mppi:
   particles_per_cpu : 4
   base_action       : 'null'
   time_based_weights: False
+
+
+mppiq:
+  horizon           : 16
+  init_cov          : 0.25
+  filter_coeffs     : [0.25, 0.8, 0.0]
+  gamma             : 1.0
+  n_iters           : 1
+  step_size         : 1.0
+  beta              : 0.1
+  td_lam            : 1.0
+  alpha             : 1
+  num_cpu           : 10
+  particles_per_cpu : 4
+  base_action       : 'null'
 
 
 cem:
