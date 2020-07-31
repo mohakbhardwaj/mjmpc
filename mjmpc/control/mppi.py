@@ -91,9 +91,7 @@ class MPPI(OLGaussianMPC):
         # #calculate soft-max
         # w1 = np.exp(-(1.0/self.lam) * (total_costs - np.min(total_costs)))
         # w1 /= np.sum(w1) + 1e-6  # normalize the weights
-        # print(total_costs[:,-1])
         w = scipy.special.softmax((-1.0/self.lam) * total_costs, axis=0)
-        # print(w[:,-1])
         return w
 
     def _control_costs(self, delta):
