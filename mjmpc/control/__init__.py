@@ -1,4 +1,5 @@
 from .controller import  Controller
+from .clgaussian_mpc import CLGaussianMPC
 from .olgaussian_mpc import OLGaussianMPC
 from .cem import CEM
 from .gaussian_dmd import DMDMPC

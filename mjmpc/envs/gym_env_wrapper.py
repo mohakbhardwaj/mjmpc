@@ -82,21 +82,32 @@ class GymEnvWrapper():
         Return the reward function for the transition
         '''
         pass
-    
-    def rollout(self, u_vec: np.ndarray):
+
+    def rollout(self, batch_size: int, horizon: int, mean: np.ndarray, noise: np.ndarray = None, mode="open_loop"):
         """
         Given batch of action sequences, we perform rollouts 
         and return resulting observations, rewards etc.
-        :param u_vec: np.ndarray of shape [batch_size, horizon, d_action]
+
+        Parameters
+        ----------
+        mean: if mode == "open_loop"
+                np.ndarray of shape [horizon, d_act] if open_loop
+              elif mode == "closed_loop" 
+                np.ndarray of shape [horizon, d_obs, d_act]
         :return:
             obs_vec: np.ndarray [batch_size, horizon, d_obs]
             state_vec: np.ndarray [batch_size, horizon, d_state]
             rew_vec: np.ndarray [batch_size, horizon, 1]
             done_vec: np.ndarray [batch_size, horizon, 1]
             info: dict
+
+        TODO: Add conditions: 
+                if noise is None to run only mean
+                if noise is weight_matrix, we sample using re-param trick 
         """
         start_t = time.time()
-        batch_size, horizon, d_action = u_vec.shape
+        # if mode == "open_loop":
+            # batch_size, horizon, d_action = noise.shape
         if type(self.observation_space) is spaces.Dict:
             obs_vec = []; next_obs_vec = []
         else: 
@@ -104,6 +115,7 @@ class GymEnvWrapper():
             next_obs_vec = np.zeros((batch_size, horizon, self.d_obs))
         state_vec = [] #np.zeros((self.batch_size, horizon, self.d_state))
         rew_vec = np.zeros((batch_size, horizon))
+        act_vec = np.zeros((batch_size, horizon, self.d_action))
         done_vec = np.zeros((batch_size, horizon))
         curr_state = deepcopy(self.get_env_state())
 
@@ -114,7 +126,12 @@ class GymEnvWrapper():
 
             #Rollout for t steps and store results
             for t in range(horizon):
-                u_curr = u_vec[b, t, :]
+                # u_curr = mean[b, t, :]
+                if mode == "open_loop":
+                    mean_act = mean[t, :]
+                elif mode == "closed_loop_linear":
+                    mean_act = mean.dot(np.append(curr_obs,1.0))
+                u_curr = mean_act + noise[b, t, :]
                 next_obs, rew, done, _ = self.step(u_curr)
                 if type(self.observation_space) is spaces.Dict:
                     obs_vec.append(curr_obs.copy())
@@ -125,11 +142,109 @@ class GymEnvWrapper():
                 # state = self.get_env_state()
                 # state_vec.append(state.copy())
                 rew_vec[b, t] = rew
+                act_vec[b,t, :] = u_curr.copy().reshape(self.d_action,) 
                 done_vec[b, t] = done
                 curr_obs = next_obs.copy()
 
         info = {'total_time' : time.time() - start_t}
-        return obs_vec, rew_vec, done_vec, info, next_obs_vec
+        return obs_vec, rew_vec, act_vec, done_vec, info, next_obs_vec
+
+    # def rollout(self, mean: np.ndarray):
+    #     """
+    #     Given batch of action sequences, we perform rollouts 
+    #     and return resulting observations, rewards etc.
+    #     :param u_vec: np.ndarray of shape [batch_size, horizon, d_action]
+    #     :return:
+    #         obs_vec: np.ndarray [batch_size, horizon, d_obs]
+    #         state_vec: np.ndarray [batch_size, horizon, d_state]
+    #         rew_vec: np.ndarray [batch_size, horizon, 1]
+    #         done_vec: np.ndarray [batch_size, horizon, 1]
+    #         info: dict
+    #     """
+    #     start_t = time.time()
+    #     batch_size, horizon, d_action = u_vec.shape
+    #     if type(self.observation_space) is spaces.Dict:
+    #         obs_vec = []; next_obs_vec = []
+    #     else: 
+    #         obs_vec = np.zeros((batch_size, horizon, self.d_obs))
+    #         next_obs_vec = np.zeros((batch_size, horizon, self.d_obs))
+    #     state_vec = [] #np.zeros((self.batch_size, horizon, self.d_state))
+    #     rew_vec = np.zeros((batch_size, horizon))
+    #     done_vec = np.zeros((batch_size, horizon))
+    #     curr_state = deepcopy(self.get_env_state())
+
+    #     for b in range(batch_size):
+    #         #Set the state to the current state
+    #         self.set_env_state(curr_state)
+    #         curr_obs = deepcopy(self.get_obs())
+
+    #         #Rollout for t steps and store results
+    #         for t in range(horizon):
+    #             u_curr = u_vec[b, t, :]
+    #             next_obs, rew, done, _ = self.step(u_curr)
+    #             if type(self.observation_space) is spaces.Dict:
+    #                 obs_vec.append(curr_obs.copy())
+    #                 next_obs_vec.append(next_obs.copy())
+    #             else:
+    #                 obs_vec[b, t, :] = curr_obs.copy().reshape(self.d_obs,)
+    #                 next_obs_vec[b, t, :] = next_obs.copy().reshape(self.d_obs,)
+    #             # state = self.get_env_state()
+    #             # state_vec.append(state.copy())
+    #             rew_vec[b, t] = rew
+    #             done_vec[b, t] = done
+    #             curr_obs = next_obs.copy()
+
+    #     info = {'total_time' : time.time() - start_t}
+    #     return obs_vec, rew_vec, done_vec, info, next_obs_vec
+
+    
+    # def rollout(self, u_vec: np.ndarray):
+    #     """
+    #     Given batch of action sequences, we perform rollouts 
+    #     and return resulting observations, rewards etc.
+    #     :param u_vec: np.ndarray of shape [batch_size, horizon, d_action]
+    #     :return:
+    #         obs_vec: np.ndarray [batch_size, horizon, d_obs]
+    #         state_vec: np.ndarray [batch_size, horizon, d_state]
+    #         rew_vec: np.ndarray [batch_size, horizon, 1]
+    #         done_vec: np.ndarray [batch_size, horizon, 1]
+    #         info: dict
+    #     """
+    #     start_t = time.time()
+    #     batch_size, horizon, d_action = u_vec.shape
+    #     if type(self.observation_space) is spaces.Dict:
+    #         obs_vec = []; next_obs_vec = []
+    #     else: 
+    #         obs_vec = np.zeros((batch_size, horizon, self.d_obs))
+    #         next_obs_vec = np.zeros((batch_size, horizon, self.d_obs))
+    #     state_vec = [] #np.zeros((self.batch_size, horizon, self.d_state))
+    #     rew_vec = np.zeros((batch_size, horizon))
+    #     done_vec = np.zeros((batch_size, horizon))
+    #     curr_state = deepcopy(self.get_env_state())
+
+    #     for b in range(batch_size):
+    #         #Set the state to the current state
+    #         self.set_env_state(curr_state)
+    #         curr_obs = deepcopy(self.get_obs())
+
+    #         #Rollout for t steps and store results
+    #         for t in range(horizon):
+    #             u_curr = u_vec[b, t, :]
+    #             next_obs, rew, done, _ = self.step(u_curr)
+    #             if type(self.observation_space) is spaces.Dict:
+    #                 obs_vec.append(curr_obs.copy())
+    #                 next_obs_vec.append(next_obs.copy())
+    #             else:
+    #                 obs_vec[b, t, :] = curr_obs.copy().reshape(self.d_obs,)
+    #                 next_obs_vec[b, t, :] = next_obs.copy().reshape(self.d_obs,)
+    #             # state = self.get_env_state()
+    #             # state_vec.append(state.copy())
+    #             rew_vec[b, t] = rew
+    #             done_vec[b, t] = done
+    #             curr_obs = next_obs.copy()
+
+    #     info = {'total_time' : time.time() - start_t}
+    #     return obs_vec, rew_vec, done_vec, info, next_obs_vec
     
     def rollout_cl(self, policy, batch_size, horizon, mode='mean', noise=None):
         """

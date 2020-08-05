@@ -46,8 +46,10 @@ def _worker(remote, parent_remote, env_fn_wrapper):
                 state = env.get_env_state()
                 remote.send(state)
             elif cmd == 'rollout':
-                obs_vec, rew_vec, done_vec, info, next_obs_vec = env.rollout(data) #state_vec
-                remote.send((obs_vec, rew_vec, done_vec, info, next_obs_vec)) #state_vec
+                # obs_vec, rew_vec, done_vec, info, next_obs_vec = env.rollout(data) #state_vec
+                # remote.send((obs_vec, rew_vec, done_vec, info, next_obs_vec)) #state_vec
+                obs_vec, rew_vec, act_vec, done_vec, info, next_obs_vec = env.rollout(*data) #state_vec
+                remote.send((obs_vec, rew_vec, act_vec, done_vec, info, next_obs_vec)) #state_vec
             elif cmd == 'seed':
                 remote.send(env.seed(data))
             elif cmd == 'get_seed':
@@ -123,21 +125,47 @@ class SubprocVecEnv(VecEnv):
         obs, rews, dones, infos = zip(*results)
         return flatten_obs(obs, self.observation_space), np.stack(rews), np.stack(dones), infos
 
-    def rollout(self, u_vec): 
+    def rollout(self, num_particles, horizon, mean, noise, mode="open_loop"): 
         """
         Rollout the environments to a horizon given open loop action sequence
 
         :param u_vec 
         """
-        self.rollout_async(u_vec)
+        self.rollout_async(num_particles, horizon, mean, noise, mode="open_loop")
         return self.rollout_wait()
 
-    def rollout_async(self, u_vec):
-        assert u_vec.shape[0] % len(self.remotes) == 0, "Number of particles must be divisible by number of cpus"
-        batch_size = int(u_vec.shape[0]/len(self.remotes))
+    # def rollout_async(self, u_vec):
+    #     assert u_vec.shape[0] % len(self.remotes) == 0, "Number of particles must be divisible by number of cpus"
+    #     batch_size = int(u_vec.shape[0]/len(self.remotes))
+    #     for i,remote in enumerate(self.remotes):
+    #         u_vec_i = u_vec[i*batch_size: (i+1)*batch_size, :, :].copy()
+    #         remote.send(('rollout', u_vec_i))
+    #     self.waiting = True
+
+    # def rollout_wait(self):
+    #     results = [remote.recv() for remote in self.remotes]
+    #     self.waiting=False
+    #     obs_vec = [res[0] for res in results]
+    #     # state_vec = [res[1] for res in results]
+    #     rew_vec = [res[1] for res in results]
+    #     done_vec = [res[2] for res in results]
+    #     info = [res[3] for res in results]
+    #     next_obs_vec = [res[4] for res in results]
+    #     stacked_obs  = np.concatenate(obs_vec, axis=0)
+    #     # stacked_state = np.concatenate(state_vec, axis=0)
+    #     stacked_rews = np.concatenate(rew_vec, axis=0)
+    #     stacked_done = np.concatenate(done_vec, axis=0)
+    #     stacked_next_obs = np.concatenate(next_obs_vec, axis=0)
+    #     return stacked_obs, stacked_rews, stacked_done, info, stacked_next_obs # stacked_state
+
+    def rollout_async(self, num_particles, horizon, mean, noise, mode="open_loop"):
+        assert noise.shape[0] % len(self.remotes) == 0, "Number of particles must be divisible by number of cpus"
+        batch_size = int(num_particles / len(self.remotes)) #int(noise.shape[0]/len(self.remotes))
+        horizon = mean.shape[0]
         for i,remote in enumerate(self.remotes):
-            u_vec_i = u_vec[i*batch_size: (i+1)*batch_size, :, :].copy()
-            remote.send(('rollout', u_vec_i))
+            #Note: this will change if noise is weight matrix  
+            delta_i = noise[i*batch_size: (i+1)*batch_size, :, :].copy()
+            remote.send(('rollout', (batch_size, horizon, mean, delta_i, mode)))
         self.waiting = True
 
     def rollout_wait(self):
@@ -146,15 +174,17 @@ class SubprocVecEnv(VecEnv):
         obs_vec = [res[0] for res in results]
         # state_vec = [res[1] for res in results]
         rew_vec = [res[1] for res in results]
-        done_vec = [res[2] for res in results]
-        info = [res[3] for res in results]
-        next_obs_vec = [res[4] for res in results]
+        act_vec = [res[2] for res in results]
+        done_vec = [res[3] for res in results]
+        info = [res[4] for res in results]
+        next_obs_vec = [res[5] for res in results]
         stacked_obs  = np.concatenate(obs_vec, axis=0)
         # stacked_state = np.concatenate(state_vec, axis=0)
         stacked_rews = np.concatenate(rew_vec, axis=0)
+        stacked_acts = np.concatenate(act_vec, axis=0)
         stacked_done = np.concatenate(done_vec, axis=0)
         stacked_next_obs = np.concatenate(next_obs_vec, axis=0)
-        return stacked_obs, stacked_rews, stacked_done, info, stacked_next_obs # stacked_state
+        return stacked_obs, stacked_rews, stacked_acts, stacked_done, info, stacked_next_obs # stacked_state
 
     def reset(self):
         for remote in self.remotes:

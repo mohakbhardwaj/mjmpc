@@ -77,7 +77,10 @@ class MPPIQ(OLGaussianMPC):
         """
         costs = trajectories["costs"].copy()
         actions = trajectories["actions"].copy()
-        qvals = trajectories["qvals"].copy() if "qvals" in trajectories else None
+        qvals = None
+        if "qvals" in trajectories:
+            if trajectories["qvals"] is not None:
+                qvals = trajectories["qvals"].copy()
 
         delta = actions - self.mean_action[None, :, :]
         w = self._exp_util(costs, qvals, delta)

@@ -169,36 +169,40 @@ class Controller(ABC):
     @rollout_fn.setter
     def rollout_fn(self, fn):
         """
-        Set the rollout function used to 
-        given function pointer
+        Set the rollout function from 
+        input function pointer
         """
         self._rollout_fn = fn
 
-    def generate_rollouts(self, state):
-        """
-            Samples a batch of actions, rolls out trajectories for each particle
-            and returns the resulting observations, costs,  
-            actions
+    # def generate_rollouts(self, state):
+    #     """
+    #         Samples a batch of actions, rolls out trajectories for each particle
+    #         and returns the resulting observations, costs,  
+    #         actions
 
-            Parameters
-            ----------
-            state : dict or np.ndarray
-                Initial state to set the simulation env to
-         """
+    #         Parameters
+    #         ----------
+    #         state : dict or np.ndarray
+    #             Initial state to set the simulation env to
+    #      """
         
-        self._set_sim_state_fn(copy.deepcopy(state)) #set state of simulation
-        act_seq = self.sample_actions() #sample actions using current control distribution
-        # obs_seq, cost_seq, done_seq, info_seq = self._rollout_fn(act_seq)  # rollout function returns the costs 
-        trajectories = self._rollout_fn(act_seq)
+    #     self._set_sim_state_fn(copy.deepcopy(state)) #set state of simulation
+    #     act_seq = self.sample_actions() #sample actions using current control distribution
+    #     # obs_seq, cost_seq, done_seq, info_seq = self._rollout_fn(act_seq)  # rollout function returns the costs 
+    #     trajectories = self._rollout_fn(act_seq)
         
-        # trajectories = dict(
-        #     observations=obs_seq,
-        #     actions=act_seq,
-        #     costs=cost_seq,
-        #     dones=done_seq,
-        #     infos=helpers.stack_tensor_dict_list(info_seq)
-        # )
-        return trajectories
+    #     # trajectories = dict(
+    #     #     observations=obs_seq,
+    #     #     actions=act_seq,
+    #     #     costs=cost_seq,
+    #     #     dones=done_seq,
+    #     #     infos=helpers.stack_tensor_dict_list(info_seq)
+    #     # )
+    #     return trajectories
+    
+    @abstractmethod
+    def generate_rollouts(self, state):
+        pass
 
     def optimize(self, state, calc_val=False, hotstart=True):
         """
@@ -236,9 +240,9 @@ class Controller(ABC):
             # check if converged
             if self.check_convergence():
                 break
-        
+
         #calculate best action
-        curr_action = self._get_next_action(mode=self.sample_mode)
+        curr_action = self._get_next_action(state, mode=self.sample_mode)
         #calculate optimal value estimate if required
         value = 0.0
         if calc_val:
@@ -267,7 +271,7 @@ class Controller(ABC):
             optimal value estimate of the state
         """
         self.reset() #reset the control distribution
-        _, value = self.optimize(state, calc_val=True)
+        _, value = self.optimize(state, calc_val=True, hotstart=False)
         return value
     
     def seed(self, seed=None):

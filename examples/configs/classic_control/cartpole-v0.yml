@@ -45,7 +45,7 @@ mppi:
   n_iters           : 1
   step_size         : 1.0
   lam               : 0.1
-  alpha             : 0
+  alpha             : 1
   num_cpu           : 10
   particles_per_cpu : 6
   base_action       : 'null'
@@ -96,20 +96,52 @@ mppiq:
 #   base_action       : 'null'
 #   time_based_weights: False
 
+# dmd:
+#   horizon           : 32
+#   init_cov          : 0.45
+#   update_cov        : True
+#   cov_type          : 'full'
+#   beta              : 0.7
+#   filter_coeffs     : [1.0, 0.0, 0.0]
+#   gamma             : 1.0
+#   n_iters           : 1
+#   step_size         : 1.0
+#   lam               : 0.1
+#   num_cpu           : 10
+#   particles_per_cpu : 6
+#   base_action       : 'null'
+
 dmd:
-  horizon           : 32
+  horizon           : 64
   init_cov          : 0.45
   update_cov        : True
   cov_type          : 'full'
-  beta              : 0.7
+  beta              : 0.1
   filter_coeffs     : [1.0, 0.0, 0.0]
   gamma             : 1.0
   n_iters           : 1
-  step_size         : 1.0
+  step_size         : 0.6
   lam               : 0.1
   num_cpu           : 10
-  particles_per_cpu : 6
+  particles_per_cpu : 10
   base_action       : 'null'
+
+reinforce:
+  horizon           : 32
+  init_cov          : 1.0
+  gamma             : 1.0
+  n_iters           : 5
+  lr                : 1.0
+  beta              : 0.0
+  filter_coeffs     : [0.25, 0.8, 0.0]
+  num_cpu           : 10
+  particles_per_cpu : 6
+  loss_thresh       : 0.001
+  # delta_kl          : None #15.0 #10.0
+  delta_reg         : 0.001
+  max_linesearch_iters: 100
+
+
 
 # softq:
 #   horizon           : 32

@@ -32,8 +32,8 @@ class MPCPolicy(Policy):
         else:
             raise NotImplementedError("Controller type does not exist")
 
-    def get_action(self, state, calc_val=False):
-        action, value = self.controller.optimize(state, calc_val)
+    def get_action(self, state, calc_val=False, hotstart=True):
+        action, value = self.controller.optimize(state, calc_val, hotstart)
         return action, value
 
     def reset(self):

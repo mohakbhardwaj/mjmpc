@@ -110,8 +110,12 @@ class DMDMPC(OLGaussianMPC):
         """
         super()._shift()
         if self.update_cov:
-            # self.cov_action += self.beta * np.eye(self.d_action)
-            self.cov_action += self.beta * np.diag(self.init_cov)
+            self.cov_action += self.beta * np.eye(self.d_action)
+            # update = self.cov_action < self.init_cov
+            # cov_shifted = (1.0 - self.beta) * self.cov_action + self.beta * self.init_cov
+            # self.cov_action = update * cov_shifted + (1.0 - update) * self.cov_action
+
+            # self.cov_action = (1.0 - self.beta)*self.cov_action + self.beta * np.diag(self.init_cov)
         # if self.update_cov:
         #     self.cov_action = np.clip(self.cov_action, self.min_cov, None)
         #     if self.beta > 0.0:
