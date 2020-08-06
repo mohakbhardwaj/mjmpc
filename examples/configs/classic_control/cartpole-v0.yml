@@ -129,6 +129,7 @@ dmd:
 reinforce:
   horizon           : 32
   init_cov          : 1.0
+  update_cov        : False
   gamma             : 1.0
   n_iters           : 5
   lr                : 1.0

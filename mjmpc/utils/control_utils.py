@@ -78,6 +78,14 @@ def gaussian_logprob(mean, cov, x, cov_type="full"):
     log_prob = mahalanobis_dist + const1 + const2
     return log_prob
 
+def gaussian_logprobgrad(mean, cov, x, cov_type="full"):
+    if cov_type == "diagonal":
+        cov_inv = np.diag(1.0/cov.diagonal())
+    else:
+        cov_inv = np.linalg.inv(cov)
+    diff = (x - mean).T
+    grad = diff @ cov_inv
+    return grad
 
 def gaussian_entropy(cov, cov_type="full"):
     """

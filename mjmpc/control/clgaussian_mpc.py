@@ -17,7 +17,6 @@ class CLGaussianMPC(Controller):
                  horizon,
                  init_cov,
                  init_mean,
-                 base_action,
                  num_particles,
                  gamma,
                  n_iters,
@@ -55,15 +54,14 @@ class CLGaussianMPC(Controller):
                                             seed)
         self.init_cov = np.array([init_cov] * self.d_action)
         self.init_mean = init_mean.copy()
-        self.linear_mean = init_mean
-        self.base_action = base_action
+        self.mean_weights = init_mean
         self.num_particles = num_particles
         self.cov_type = cov_type
         self.cov_action = np.diag(self.init_cov)
         self.filter_coeffs = filter_coeffs
 
     def _get_next_action(self, state, mode='mean'):
-        mean_action = self.linear_mean.dot(np.append(self.curr_obs,1.0))
+        mean_action = self.mean_weights.dot(np.append(self.curr_obs,1.0))
         if mode == 'mean':
             next_action = mean_action.copy()
         elif mode == 'sample':
@@ -104,7 +102,7 @@ class CLGaussianMPC(Controller):
         self._set_sim_state_fn(copy.deepcopy(state)) #set state of simulation
         delta = self.sample_noise() #sample noise from covariance of current control distribution
         trajectories = self._rollout_fn(self.num_particles, self.horizon, 
-                                        self.mean_action, delta, mode="closed_loop_linear")
+                                        self.mean_weights, delta, mode="closed_loop_linear")
         self.curr_obs = trajectories["observations"][0,0]
         return trajectories
     

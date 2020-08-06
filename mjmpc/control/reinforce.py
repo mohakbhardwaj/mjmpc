@@ -7,7 +7,7 @@ import torch
 from torch.distributions.kl import kl_divergence
 
 from mjmpc.control.clgaussian_mpc import CLGaussianMPC
-from mjmpc.utils.control_utils import cost_to_go, generate_noise, scale_ctrl
+from mjmpc.utils.control_utils import cost_to_go, generate_noise, scale_ctrl, gaussian_logprob, gaussian_entropy, gaussian_kl
 from mjmpc.utils import helpers
 
 class Reinforce(CLGaussianMPC):
@@ -32,12 +32,14 @@ class Reinforce(CLGaussianMPC):
                  set_sim_state_fn=None,
                  get_sim_obs_fn=None,
                  rollout_fn=None,
-                 base_action='null',
+                 update_cov=False,
                  sample_mode='mean',
                  batch_size=1,
                  filter_coeffs = [1., 0., 0.],
                  seed=0,
                  verbose=False):
+                #  base_action='null',
+
         """
         Parameters
         __________
@@ -51,7 +53,6 @@ class Reinforce(CLGaussianMPC):
                                         horizon,
                                         init_cov,
                                         np.zeros((d_obs+1, d_action)),
-                                        base_action,
                                         num_particles,
                                         gamma,
                                         n_iters,
@@ -79,49 +80,6 @@ class Reinforce(CLGaussianMPC):
         self.errs = []
         self.converged = False
 
-    # @property
-    # def get_sim_obs_fn(self):
-    #     return self._get_sim_obs_fn
-    
-    # @get_sim_obs_fn.setter
-    # def get_sim_obs_fn(self, fn):
-    #     self._get_sim_obs_fn = fn
-
-    # def _get_next_action(self, mode='mean'):
-    #     with torch.no_grad():
-    #         obs_torch = torch.FloatTensor(self.start_obs)
-    #         action, _ = self.policy.get_action(obs_torch, mode='mean')
-    #         action = action.detach().numpy()
-    #     return action.copy()
-
-    # def generate_rollouts(self, state):
-    #     """
-    #         Samples a batch of actions, rolls out trajectories for each particle
-    #         and returns the resulting observations, costs,  
-    #         actions
-
-    #         Parameters
-    #         ----------
-    #         state : dict or np.ndarray
-    #             Initial state to set the simulation env to
-    #      """
-    #     self._set_sim_state_fn(deepcopy(state)) #set state of simulation
-    #     self.start_obs = deepcopy(self._get_sim_obs_fn()[0,:])
-    #     noise = self.sample_noise() #sample noise sequence from N(0,1)
-    #     obs_seq, act_seq, act_info_seq, cost_seq, done_seq, next_obs_seq, info_seq = self._rollout_fn(mode='sample',
-    #                                                                                                   noise=noise)
-
-    #     trajectories = dict(
-    #         observations=obs_seq,
-    #         actions=act_seq,
-    #         act_info_seq=act_info_seq,
-    #         costs=cost_seq,
-    #         next_observations=next_obs_seq,
-    #         dones=done_seq,
-    #         infos=helpers.stack_tensor_dict_list(info_seq)
-    #     )
-    #     return trajectories
-
     def _update_distribution(self, trajectories):
         """
         Update policy from rollout trajectories
@@ -130,7 +88,7 @@ class Reinforce(CLGaussianMPC):
         -----------
         """
         #save current policy
-        self.old_linear_mean = self.linear_mean.copy()
+        self.old_mean_weights = self.mean_weights.copy()
         self.old_cov_action = self.cov_action.copy()
 
         #compute cost to go 
@@ -209,21 +167,35 @@ class Reinforce(CLGaussianMPC):
         # if self.baseline is not None:
         #     self.fit_baseline(trajectories, self.delta_reg)
 
+    def compute_loss(self, observations, actions, advantages):
+        mean_action = self.mean_weights @ observations
+        logprob_action = gaussian_logprob(mean_action, self.cov_action, actions)
+        loss = logprob_action * advantages
+        return loss
+
     def vpg_grad(self, observations, actions, advantages):
-        return np.zeros(self.linear_mean.shape)
+        return np.zeros(self.mean_weights.shape)
 
 
     def cpi_surrogate(self, observations, actions, advantages):
-        observations = torch.FloatTensor(observations)
-        actions = torch.FloatTensor(actions)
+        # observations = torch.FloatTensor(observations)
+        # actions = torch.FloatTensor(actions)
 
-        new_log_prob = self.policy.log_prob(observations, actions)
-        with torch.no_grad():
-            old_log_prob = self.old_policy.log_prob(observations, actions)
-            advantages = torch.FloatTensor(advantages)
+        new_mean_action = self.mean_weights @ observations
+        new_logprob = gaussian_logprob(new_mean_action, self.cov_action, actions)
+        old_mean_action = self.old_mean_weights @ observations
+        old_logprob = gaussian_logprob(old_mean_action, self.old_cov_action, actions)
 
-        likelihood_ratio = torch.exp(new_log_prob - old_log_prob)
-        surr = torch.mean(likelihood_ratio * advantages.unsqueeze(-1))
+        likelihood_ratio = np.exp(new_logprob - old_logprob)
+        surr = torch.mean(likelihood_ratio * advantages)
+        # new_log_prob = self.policy.log_prob(observations, actions)
+        # with torch.no_grad():
+        #     old_log_prob = self.old_policy.log_prob(observations, actions)
+        #     advantages = torch.FloatTensor(advantages)
+
+        # likelihood_ratio = torch.exp(new_log_prob - old_log_prob)
+
+        # surr = torch.mean(likelihood_ratio * advantages.unsqueeze(-1))
         return surr
 
     def compute_returns(self, trajs):
