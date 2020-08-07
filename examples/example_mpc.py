@@ -100,7 +100,7 @@ if dynamics_rand_params is not None:
 
 #     return sim_trajs #obs_vec, -1.0*rew_vec, done_vec, info_vec
 
-def rollout_fn(num_particles, horizon, mean, noise, mode="open_loop"):
+def rollout_fn(num_particles, horizon, mean, noise, mode):
     """
     Given a batch of sequences of actions, rollout 
     in sim envs and return sequence of costs. The controller is 
@@ -109,7 +109,7 @@ def rollout_fn(num_particles, horizon, mean, noise, mode="open_loop"):
     obs_vec, rew_vec, act_vec, done_vec, info_vec, next_obs_vec = sim_env.rollout(num_particles,
                                                                                   horizon, 
                                                                                   mean.copy(), 
-                                                                                  noise.copy(), 
+                                                                                  noise, 
                                                                                   mode)
     #we assume environment returns rewards, but controller needs costs
     sim_trajs = dict(
@@ -122,7 +122,6 @@ def rollout_fn(num_particles, horizon, mean, noise, mode="open_loop"):
     )
 
     return sim_trajs
-print(rollout_fn)
 
 policy_params.pop('particles_per_cpu', None)
 policy_params.pop('num_cpu', None)

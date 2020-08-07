@@ -61,7 +61,7 @@ class CLGaussianMPC(Controller):
         self.filter_coeffs = filter_coeffs
 
     def _get_next_action(self, state, mode='mean'):
-        mean_action = self.mean_weights.dot(np.append(self.curr_obs,1.0))
+        mean_action = self.mean_weights.T @ np.append(self.curr_obs,1.0)
         if mode == 'mean':
             next_action = mean_action.copy()
         elif mode == 'sample':
@@ -104,6 +104,14 @@ class CLGaussianMPC(Controller):
         trajectories = self._rollout_fn(self.num_particles, self.horizon, 
                                         self.mean_weights, delta, mode="closed_loop_linear")
         self.curr_obs = trajectories["observations"][0,0]
+        # print(trajectories["observations"])
+        # input('....')
+        # print(trajectories["actions"])
+        # input('....')
+        # print(self.curr_obs)
+        # input('....')
+
+
         return trajectories
     
     def _shift(self):
@@ -122,11 +130,15 @@ class CLGaussianMPC(Controller):
         #     raise NotImplementedError("invalid option for base action during shift")
         pass
 
-    def reset(self):
+    def reset(self, seed=None):
+        if seed is not None:
+            self.seed_val = self.seed(seed)
         self.num_steps = 0
-        self.mean_action = np.zeros(shape=(self.horizon, self.d_action))
+        self.mean_weights = self.init_mean.copy()
         self.cov_action = np.diag(self.init_cov)
         self.gamma_seq = np.cumprod([1.0] + [self.gamma] * (self.horizon - 1)).reshape(1, self.horizon)
+        self.converged = False
+
 
     def _calc_val(self, cost_seq, act_seq):
         raise NotImplementedError("_calc_val not implemented")

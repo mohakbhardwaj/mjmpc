@@ -131,7 +131,7 @@ class SubprocVecEnv(VecEnv):
 
         :param u_vec 
         """
-        self.rollout_async(num_particles, horizon, mean, noise, mode="open_loop")
+        self.rollout_async(num_particles, horizon, mean, noise, mode)
         return self.rollout_wait()
 
     # def rollout_async(self, u_vec):
@@ -159,12 +159,11 @@ class SubprocVecEnv(VecEnv):
     #     return stacked_obs, stacked_rews, stacked_done, info, stacked_next_obs # stacked_state
 
     def rollout_async(self, num_particles, horizon, mean, noise, mode="open_loop"):
-        assert noise.shape[0] % len(self.remotes) == 0, "Number of particles must be divisible by number of cpus"
+        assert num_particles % len(self.remotes) == 0, "Number of particles must be divisible by number of cpus"
         batch_size = int(num_particles / len(self.remotes)) #int(noise.shape[0]/len(self.remotes))
-        horizon = mean.shape[0]
         for i,remote in enumerate(self.remotes):
             #Note: this will change if noise is weight matrix  
-            delta_i = noise[i*batch_size: (i+1)*batch_size, :, :].copy()
+            delta_i = noise[i*batch_size: (i+1)*batch_size, :, :].copy() if noise is not None else None
             remote.send(('rollout', (batch_size, horizon, mean, delta_i, mode)))
         self.waiting = True
 

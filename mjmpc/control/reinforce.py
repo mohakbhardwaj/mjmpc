@@ -7,7 +7,7 @@ import torch
 from torch.distributions.kl import kl_divergence
 
 from mjmpc.control.clgaussian_mpc import CLGaussianMPC
-from mjmpc.utils.control_utils import cost_to_go, generate_noise, scale_ctrl, gaussian_logprob, gaussian_entropy, gaussian_kl
+from mjmpc.utils.control_utils import cost_to_go, generate_noise, scale_ctrl, gaussian_logprob, gaussian_entropy, gaussian_kl, gaussian_logprobgrad
 from mjmpc.utils import helpers
 
 class Reinforce(CLGaussianMPC):
@@ -106,44 +106,45 @@ class Reinforce(CLGaussianMPC):
         observations, actions, returns, advantages = self.process_trajs(trajectories)
 
         #calculate CPI-surrogate loss
-        with torch.no_grad():
-            surr_before = self.cpi_surrogate(observations, actions, advantages).item()
+        surr_before = self.cpi_surrogate(observations, actions, advantages)
+        loss_before = self.compute_loss(observations, actions, advantages)
         
         #Backtracking line search
         if self.delta_kl is not None:
-            curr_param_dict = deepcopy(self.policy.state_dict())
+            # curr_param_dict = deepcopy(self.policy.state_dict())
+            curr_params = self.mean_weights.copy()
             curr_lr = self.lr
             #calculate loss and backpropagate gradients
-            surr = self.cpi_surrogate(observations, actions, advantages)
-            self.policy.zero_grad()
-            surr.backward()
+            grad = self.compute_policy_grad(observations, actions, advantages)
+            # self.mean_weights += self.lr * grad
+
             #linesearch on gradient direction for max_linesearch_iters
             for ctr in range(self.max_linesearch_iters):
-                self.update_policy_parameters(curr_lr)
-                with torch.no_grad():
-                    obs_input = torch.FloatTensor(observations)
-                    new_distrib = self.policy.action_distribution(obs_input)
-                    old_distrib = self.old_policy.action_distribution(obs_input)
+                self.mean_weights += curr_lr * grad
+                obs_cat = np.concatenate([observations, np.ones((observations.shape[0],1))], axis=-1)
+                new_mean_action = obs_cat @ self.mean_weights
+                old_mean_action = obs_cat @ self.old_mean_weights
+                
                 # avg KL(\pi_new || \pi_old)
-                mean_kl_div = torch.mean(kl_divergence(new_distrib, old_distrib))
-                # print(mean_kl_div)
+                kl_div = gaussian_kl(new_mean_action.T, self.cov_action, old_mean_action.T, self.old_cov_action)
+                mean_kl_div = np.average(kl_div)
                 if mean_kl_div <= self.delta_kl:
                     break
                 else:
                     #reset policy parameters and decrease learning rate
-                    # print('backtracking', ctr, mean_kl_div, curr_lr) 
-                    self.policy.load_state_dict(curr_param_dict)
+                    print('backtracking', ctr, mean_kl_div, curr_lr)
+                    self.mean_weights = curr_params.copy() 
                     curr_lr *= 0.5
         else:
             #backpropagate loss and update policy params
-            surr = self.cpi_surrogate(observations, actions, advantages)
-            self.policy.zero_grad()
-            surr.backward()
-            self.update_policy_parameters(self.lr)
+            # surr = self.cpi_surrogate(observations, actions, advantages)
+            grad = self.compute_policy_grad(observations, actions, advantages)
+            self.mean_weights += self.lr * grad
+        
+        print(self.mean_weights)
 
-        with torch.no_grad():
-            surr_after = self.cpi_surrogate(observations, actions, advantages).item()
-            surr_improvement = surr_before - surr_after
+        surr_after = self.cpi_surrogate(observations, actions, advantages)
+        surr_improvement = surr_before - surr_after
 
         # if self.verbose:
         #     print("Gradients")
@@ -163,31 +164,31 @@ class Reinforce(CLGaussianMPC):
         #     print('Converged!')
         #     self.converged = True
 
-        # #update baseline using regression
-        # if self.baseline is not None:
-        #     self.fit_baseline(trajectories, self.delta_reg)
-
     def compute_loss(self, observations, actions, advantages):
-        mean_action = self.mean_weights @ observations
-        logprob_action = gaussian_logprob(mean_action, self.cov_action, actions)
-        loss = logprob_action * advantages
-        return loss
+        obs_cat = np.concatenate([observations, np.ones((observations.shape[0],1))], axis=-1)
+        mean_action = obs_cat @ self.mean_weights
+        logprob_action = gaussian_logprob(mean_action.T, self.cov_action, actions.T)
+        loss = -logprob_action * advantages
+        return np.average(loss)
 
-    def vpg_grad(self, observations, actions, advantages):
-        return np.zeros(self.mean_weights.shape)
+    def compute_policy_grad(self, observations, actions, advantages):
+        obs_cat = np.concatenate([observations, np.ones((observations.shape[0],1))], axis=-1)
+        mean_action = obs_cat @ self.mean_weights
+        grad_action = gaussian_logprobgrad(mean_action.T, self.cov_action, actions.T)
+        grad_mean = obs_cat.T @ grad_action
+        print(grad_mean)
+        return grad_mean
 
 
     def cpi_surrogate(self, observations, actions, advantages):
-        # observations = torch.FloatTensor(observations)
-        # actions = torch.FloatTensor(actions)
-
-        new_mean_action = self.mean_weights @ observations
-        new_logprob = gaussian_logprob(new_mean_action, self.cov_action, actions)
-        old_mean_action = self.old_mean_weights @ observations
-        old_logprob = gaussian_logprob(old_mean_action, self.old_cov_action, actions)
+        obs_cat = np.concatenate([observations, np.ones((observations.shape[0],1))], axis=-1)
+        new_mean_action = obs_cat @ self.mean_weights
+        new_logprob = gaussian_logprob(new_mean_action.T, self.cov_action, actions.T)
+        old_mean_action = obs_cat @ self.old_mean_weights
+        old_logprob = gaussian_logprob(old_mean_action.T, self.old_cov_action, actions.T)
 
         likelihood_ratio = np.exp(new_logprob - old_logprob)
-        surr = torch.mean(likelihood_ratio * advantages)
+        surr = np.average(likelihood_ratio * advantages)
         # new_log_prob = self.policy.log_prob(observations, actions)
         # with torch.no_grad():
         #     old_log_prob = self.old_policy.log_prob(observations, actions)
@@ -200,26 +201,14 @@ class Reinforce(CLGaussianMPC):
 
     def compute_returns(self, trajs):
         trajs["returns"] = cost_to_go(trajs["costs"], self.gamma_seq).copy()
-        # else:
-        #     with torch.no_grad():
-        #         N, H = trajs["costs"].shape
-        #         gamma_seq_a = np.pad(self.gamma_seq, ((0,0),(0,1)), constant_values=self.gamma ** H)  
-        #         next_obs_last = torch.FloatTensor(trajs["next_observations"][:,0])
-        #         obs_last = torch.FloatTensor(trajs["observations"][:,0])
-        #         term_cost = self.baseline(next_obs_last).detach().numpy()#.view(N,1)
-        #         costs_new = np.concatenate((trajs["costs"], term_cost), axis=-1)
-        #         returns = cost_to_go(costs_new, gamma_seq_a)
-        #         trajs["returns"] = returns[:,:-1]                
-
+              
     def compute_baselines(self, trajs):
         if self.baseline is None:
             baseline_vals = np.average(trajs["returns"], axis=0) #time dependent constant baseline
         else:
             with torch.no_grad():
-                # obs = torch.FloatTensor(np.concatenate([p for p in trajs["observations"]]))
                 obs = torch.FloatTensor(trajs["observations"])
                 baseline_vals = self.baseline(obs)
-                # baseline_vals = baseline_vals.view(*torch.Size(trajs["returns"].shape))
                 baseline_vals = baseline_vals.detach().numpy()
         trajs["baselines"] = baseline_vals
         # #compare
@@ -234,7 +223,6 @@ class Reinforce(CLGaussianMPC):
 
     def compute_advantages(self, trajs, gae_lambda=1.0):
         trajs["advantages"] = trajs["returns"] - trajs["baselines"] 
-        # naive_baseline = np.average(trajs["returns"], axis=0)
     
     def vpg_grad(self, observations, actions, advantages):
         surr = self.cpi_surrogate(observations, actions, advantages)
@@ -252,7 +240,6 @@ class Reinforce(CLGaussianMPC):
         returns = torch.FloatTensor(trajs["returns"])
         errs = self.baseline.fit(observations, returns, delta_reg, True)
         self.errs.append(errs[1].item())
-        # print(errs)
 
     def sample_noise(self):
         """
@@ -299,19 +286,14 @@ class Reinforce(CLGaussianMPC):
         return converged
 
     def _shift(self):
-        self.policy.grow_cov(self.beta)
+        pass
 
     def reset(self, seed=None):
         """
         Reset the controller
         """
-        if seed is not None:
-            self.seed_val = self.seed(seed)
-        self.num_steps = 0.0
-        self.policy.reset()
-        self.old_policy.load_state_dict(self.policy.state_dict())
+        super().reset(seed)
         self.errs = []
-        self.converged = False
 
     def _calc_val(self, cost_seq, act_seq):
         """

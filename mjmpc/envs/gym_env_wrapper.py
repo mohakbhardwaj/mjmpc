@@ -130,8 +130,11 @@ class GymEnvWrapper():
                 if mode == "open_loop":
                     mean_act = mean[t, :]
                 elif mode == "closed_loop_linear":
-                    mean_act = mean.dot(np.append(curr_obs,1.0))
-                u_curr = mean_act + noise[b, t, :]
+                    mean_act = mean.T @ np.append(curr_obs,1.0)
+                if noise is not None:
+                    u_curr = mean_act + noise[b, t, :]
+                else: 
+                    u_curr = mean_act
                 next_obs, rew, done, _ = self.step(u_curr)
                 if type(self.observation_space) is spaces.Dict:
                     obs_vec.append(curr_obs.copy())

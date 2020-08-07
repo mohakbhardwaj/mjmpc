@@ -1,5 +1,5 @@
 env_name          : 'cartpole-v0'
-n_episodes        : 10
+n_episodes        : 1
 max_ep_length     : 100
 seed              : 123 #testing: 0, tuning: 123
 render            : True
@@ -138,7 +138,7 @@ reinforce:
   num_cpu           : 10
   particles_per_cpu : 6
   loss_thresh       : 0.001
-  # delta_kl          : None #15.0 #10.0
+  delta_kl          : 15.0 #10.0
   delta_reg         : 0.001
   max_linesearch_iters: 100
 
