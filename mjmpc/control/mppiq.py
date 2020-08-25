@@ -121,15 +121,6 @@ class MPPIQ(OLGaussianMPC):
         q_lam = qvals[:, 0:-1] + td_lam * q_lam_minus_q
         q_lam = np.hstack([q_lam, qvals[:, [-1]]])
 
-        
-        # print(qvals)
-        # input('....')
-        # print(q_lam)
-        # input('....')
-        # print(q_mc)
-        # print(np.allclose(q_mc, q_lam))
-        # print(np.allclose(qvals, q_lam))
-        # input('....')
         return q_lam
 
     def _control_costs(self, delta):

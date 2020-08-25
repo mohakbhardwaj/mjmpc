@@ -106,7 +106,6 @@ class OLGaussianMPC(Controller):
         delta = self.sample_noise() #sample noise from covariance of current control distribution
         # obs_seq, cost_seq, done_seq, info_seq = self._rollout_fn(act_seq)  # rollout function returns the costs 
         # print(self._rollout_fn)
-        # print(delta, self.mean_action)
         trajectories = self._rollout_fn(self.num_particles, self.horizon, 
                                         self.mean_action, delta, mode="open_loop")        
         # trajectories = dict(

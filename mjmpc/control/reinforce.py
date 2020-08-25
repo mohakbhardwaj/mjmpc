@@ -141,7 +141,7 @@ class Reinforce(CLGaussianMPC):
             grad = self.compute_policy_grad(observations, actions, advantages)
             self.mean_weights += self.lr * grad
         
-        print(self.mean_weights)
+        # print(self.mean_weights)
 
         surr_after = self.cpi_surrogate(observations, actions, advantages)
         surr_improvement = surr_before - surr_after
@@ -175,10 +175,26 @@ class Reinforce(CLGaussianMPC):
         obs_cat = np.concatenate([observations, np.ones((observations.shape[0],1))], axis=-1)
         mean_action = obs_cat @ self.mean_weights
         grad_action = gaussian_logprobgrad(mean_action.T, self.cov_action, actions.T)
-        grad_mean = obs_cat.T @ grad_action
-        print(grad_mean)
-        return grad_mean
+        # print(obs_cat.shape, grad_action.shape, advantages.shape)
+        # input('....')
+        grad_mean = obs_cat.T * (grad_action * advantages[:,None]).T
+        # grad_mean /= (self.num_particles*self.horizon)
+        return np.average(grad_mean)
 
+    # def compute_policy_grad(self, trajectories):
+    #     traj_means = []
+    #     for i in range(trajectories["observations"][0]):
+
+    #         observations = trajectories["observations"][i]
+    #         actions = trajectories["actions"][i]
+    #         obs_cat = np.concatenate([observations, np.ones((observations.shape[0],1))], axis=-1)
+    #         mean_action = obs_cat @ self.mean_weights
+    #         grad_action = gaussian_logprobgrad(mean_action.T, self.cov_action, actions.T)
+    #         grad_mean = obs_cat.T @ grad_action
+    #         traj_means.append()
+    #         print(grad_mean)
+        
+    #     return grad_mean
 
     def cpi_surrogate(self, observations, actions, advantages):
         obs_cat = np.concatenate([observations, np.ones((observations.shape[0],1))], axis=-1)

@@ -29,6 +29,7 @@ class PFMPC(Controller):
                  action_highs,
                  set_sim_state_fn=None,
                  rollout_fn=None,
+                 sample_mode="mean",
                  batch_size=1,
                  filter_coeffs=[1., 0., 0.],
                  seed=0):
@@ -54,6 +55,7 @@ class PFMPC(Controller):
                                     n_iters,
                                     set_sim_state_fn,
                                     rollout_fn,
+                                    sample_mode,
                                     batch_size,
                                     seed)
         self.lam = lam
@@ -63,10 +65,29 @@ class PFMPC(Controller):
         self.base_action = base_action
         self.filter_coeffs = filter_coeffs
         random.seed(self.seed_val)
+        self.mean_action = np.zeros(shape=(horizon, d_action))
         self.action_samples = generate_noise(self.cov_resample, self.filter_coeffs,
                                              shape=(self.num_particles, self.horizon),
                                              base_seed=self.seed_val)
 
+
+    def generate_rollouts(self, state):
+        """
+            Samples a batch of actions, rolls out trajectories for each particle
+            and returns the resulting observations, costs,  
+            actions
+
+            Parameters
+            ----------
+            state : dict or np.ndarray
+                Initial state to set the simulation env to
+         """
+        
+        self._set_sim_state_fn(copy.deepcopy(state)) #set state of simulation
+        delta = self.action_samples - self.mean_action #deviation from mean(only needed as input to rollout_fn)
+        trajectories = self._rollout_fn(self.num_particles, self.horizon, 
+                                        self.mean_action, delta, mode="open_loop")        
+        return trajectories
 
     def _update_distribution(self, trajectories):
         """
@@ -78,8 +99,8 @@ class PFMPC(Controller):
         random.seed(self.seed_val + self.num_steps)
         np.random.seed(self.seed_val + self.num_steps)
         self.action_samples = self._resampling(self.action_samples, w, low_variance=True)
+        self.mean_action = np.mean(self.action_samples, axis=0)
 
-        
     def _exp_util(self, costs):
         """
             Calculate weights using exponential utility
@@ -94,7 +115,7 @@ class PFMPC(Controller):
     def sample_actions(self):
         return self.action_samples
 
-    def _get_next_action(self, mode='mean'):
+    def _get_next_action(self, state, mode='mean'):
         """
             Return the average of current action samples
             TODO: Add other modes like
@@ -130,6 +151,7 @@ class PFMPC(Controller):
 
     def reset(self):
         self.num_steps = 0
+        self.mean_action = np.zeros(shape=(self.horizon, self.d_action))
         self.action_samples = generate_noise(self.cov_resample, self.filter_coeffs,
                                              shape=(self.num_particles, self.horizon),
                                              base_seed=self.seed_val)

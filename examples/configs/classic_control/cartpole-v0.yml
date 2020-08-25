@@ -81,6 +81,8 @@ mppiq:
   base_action       : 'null'
   time_based_weights: False
 
+
+  
 # mppiq:
 #   horizon           : 48
 #   init_cov          : 0.45
@@ -131,14 +133,14 @@ reinforce:
   init_cov          : 1.0
   update_cov        : False
   gamma             : 1.0
-  n_iters           : 5
+  n_iters           : 1
   lr                : 1.0
   beta              : 0.0
-  filter_coeffs     : [0.25, 0.8, 0.0]
+  filter_coeffs     : [1.0, 0.0, 0.0] #[0.25, 0.8, 0.0]
   num_cpu           : 10
-  particles_per_cpu : 6
+  particles_per_cpu : 10
   loss_thresh       : 0.001
-  delta_kl          : 15.0 #10.0
+  delta_kl          : 15.0
   delta_reg         : 0.001
   max_linesearch_iters: 100
 

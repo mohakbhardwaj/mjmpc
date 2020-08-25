@@ -2,7 +2,7 @@ env_name          : 'SimplePendulum-v0'
 n_episodes        : 10
 max_ep_length     : 200
 seed              : 0
-render            : False
+render            : True
 exp_notes         : 'Swingup of a simple pendulum'
 
 random_shooting:
@@ -14,6 +14,8 @@ random_shooting:
   step_size         : 1.0
   num_cpu           : 12
   particles_per_cpu : 3
+  sample_mode       : 'mean'
+  base_action       : 'null'
 
 mppi:
   horizon           : 32
@@ -26,6 +28,8 @@ mppi:
   alpha             : 0
   num_cpu           : 12
   particles_per_cpu : 3
+  sample_mode       : 'mean'
+  base_action       : 'null'
 
 cem:
   horizon           : 32
@@ -37,4 +41,22 @@ cem:
   elite_frac        : 0.2
   num_cpu           : 12
   particles_per_cpu : 3
+  sample_mode       : 'mean'
+  base_action       : 'null'
+
+pfmpc:
+  horizon           : 32
+  cov_shift         : 0.55
+  cov_resample      : 3.0
+  filter_coeffs     : [0.25, 0.8, 0.0]
+  gamma             : 1.0
+  n_iters           : 1
+  lam               : 0.2
+  num_cpu           : 12
+  particles_per_cpu : 3
+  sample_mode       : 'mean'
+  base_action       : 'null'
+
+
+
 
