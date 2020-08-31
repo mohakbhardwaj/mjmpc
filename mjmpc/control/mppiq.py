@@ -114,22 +114,15 @@ class MPPIQ(OLGaussianMPC):
             # return cost_to_go(costs, weight_seq)
 
         td_errors = costs[:, 0:-1] + gamma * qvals[:, 1:] - qvals[:, 0:-1]
-        weight_seq = np.cumprod([1.0] + [gamma*td_lam] * (self.horizon - 2)).reshape(1, self.horizon-1)
+        if self.horizon == 1:
+            weight_seq = np.array([1.0])
+        else:
+            weight_seq = np.cumprod([1.0] + [gamma*td_lam] * (self.horizon - 2)).reshape(1, self.horizon-1)
         q_lam_minus_q = cost_to_go(td_errors, weight_seq)
         # q_lam = q_lam_minus_q  #+ qvals[:, 0:-1]
         #incorporate 0-step estimate too
         q_lam = qvals[:, 0:-1] + td_lam * q_lam_minus_q
         q_lam = np.hstack([q_lam, qvals[:, [-1]]])
-
-        
-        # print(qvals)
-        # input('....')
-        # print(q_lam)
-        # input('....')
-        # print(q_mc)
-        # print(np.allclose(q_mc, q_lam))
-        # print(np.allclose(qvals, q_lam))
-        # input('....')
         return q_lam
 
     def _control_costs(self, delta):
