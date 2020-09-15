@@ -2,7 +2,6 @@ env_name          : 'sawyer_reacher-v0'
 n_episodes        : 1
 max_ep_length     : 75
 seed              : 123
-base_action       : 'null'
 render            : True
 job_mode          : 'sweep'
 exp_notes         : '7-DOF Sawyer arm reaching various spatial goals for the end effector'
@@ -16,6 +15,8 @@ random_shooting:
   step_size         : 1.0
   num_cpu           : 8
   particles_per_cpu : 4
+  sample_mode       : 'mean'
+  base_action       : 'null'
 
 mppi:
   horizon           : 16
@@ -28,6 +29,8 @@ mppi:
   alpha             : 1
   num_cpu           : 8
   particles_per_cpu : 4
+  sample_mode       : 'mean'
+  base_action       : 'null'
 
 cem:
   horizon           : 16
@@ -41,6 +44,8 @@ cem:
   elite_frac        : 0.2
   num_cpu           : 8
   particles_per_cpu : 4
+  sample_mode       : 'mean'
+  base_action       : 'null'
 
 dmd:
   horizon           : 16
@@ -55,6 +60,8 @@ dmd:
   lam               : 0.2
   num_cpu           : 8
   particles_per_cpu : 4
+  sample_mode       : 'mean'
+  base_action       : 'null'
 
 pfmpc:
   horizon           : 16
@@ -66,6 +73,8 @@ pfmpc:
   lam               : 0.6
   num_cpu           : 8
   particles_per_cpu : 4
+  sample_mode       : 'mean'
+  base_action       : 'null'
 
 
 softq:

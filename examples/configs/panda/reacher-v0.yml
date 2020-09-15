@@ -1,10 +1,10 @@
-env_name          : 'sawyer_peg_insertion-v0'
+env_name          : 'panda_reacher-v0'
 n_episodes        : 10
-max_ep_length     : 75
-seed              : 123 #testing: 0, tuning: 123
+max_ep_length     : 150
+seed              : 123
 render            : True
 job_mode          : 'sweep'
-exp_notes         : '7-DOF Sawyer arm inserting peg in a hole at different locations'
+exp_notes         : '7-DOF Franka Panda arm reaching various spatial goals for the end effector'
 
 random_shooting:
   horizon           : 16

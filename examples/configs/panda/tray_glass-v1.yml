@@ -1,10 +1,10 @@
-env_name          : 'sawyer_peg_insertion-v0'
-n_episodes        : 10
-max_ep_length     : 75
-seed              : 123 #testing: 0, tuning: 123
+env_name          : 'panda_tray_glass-v1'
+n_episodes        : 2
+max_ep_length     : 200
+seed              : 123
 render            : True
 job_mode          : 'sweep'
-exp_notes         : '7-DOF Sawyer arm inserting peg in a hole at different locations'
+exp_notes         : 'Balancing a glass on a tray'
 
 random_shooting:
   horizon           : 16
@@ -18,10 +18,9 @@ random_shooting:
   sample_mode       : 'mean'
   base_action       : 'null'
 
-
 mppi:
   horizon           : 16
-  init_cov          : 0.25
+  init_cov          : 0.1
   filter_coeffs     : [0.25, 0.8, 0.0]
   gamma             : 1.0
   n_iters           : 1
@@ -29,7 +28,7 @@ mppi:
   lam               : 0.1
   alpha             : 1
   num_cpu           : 10
-  particles_per_cpu : 4
+  particles_per_cpu : 5
   sample_mode       : 'mean'
   base_action       : 'null'
   time_based_weights: False

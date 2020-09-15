@@ -1,4 +1,5 @@
 import os
+import sys
 from collections import defaultdict
 import logging
 from colorlog import ColoredFormatter
@@ -86,7 +87,7 @@ class LoggerClass(object):
         file_handler = logging.FileHandler(log_path)
         file_handler.setLevel(logging.DEBUG)
         file_handler.setFormatter(LoggerClass._normal_formatter)
-        console_handler = logging.StreamHandler()
+        console_handler = logging.StreamHandler(sys.stdout)
         console_handler.setLevel(lvl)
         console_handler.setFormatter(LoggerClass._color_formatter)
         if display_name is None:

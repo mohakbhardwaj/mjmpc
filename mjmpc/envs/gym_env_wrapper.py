@@ -32,7 +32,10 @@ class GymEnvWrapper():
         elif type(state) is dict:
             self.d_state = 0
             for k in state.keys():
-                self.d_state += state[k].size
+                if type(state[k]) in [int, float]:
+                    self.d_state += 1
+                else:
+                    self.d_state += state[k].size
         else: self.d_state = state.size
         self.d_action = self.env.action_space.low.shape[0]
 

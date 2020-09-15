@@ -17,14 +17,20 @@ def set_qpos_qvel(sim, qpos, qvel, nq, nv):
 
 def render_trajs(env, trajectories, n_times=1):
     try:
+        # for _ in range(n_times):
+        #     for traj in trajectories:
+        #         env.reset()
+        #         state = traj['states'][0]
+        #         env.set_env_state(state)
+        #         for action in traj['actions']:
+        #             env.render()
+        #             obs, rew, done, info = env.step(action)
         for _ in range(n_times):
             for traj in trajectories:
                 env.reset()
-                state = traj['states'][0]
-                env.set_env_state(state)
-                for action in traj['actions']:
+                for state in traj['states']:
+                    env.set_env_state(state)
                     env.render()
-                    env.step(action)
     except KeyboardInterrupt:
         print('Exiting ...')
         
