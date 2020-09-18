@@ -1,5 +1,5 @@
 env_name          : 'panda_tray_glass-v0'
-n_episodes        : 3
+n_episodes        : 6
 max_ep_length     : 200
 seed              : 123
 render            : True
@@ -22,7 +22,7 @@ mppi:
   horizon           : 16
   init_cov          : 0.1
   filter_coeffs     : [0.25, 0.8, 0.0]
-  gamma             : 1.0
+  gamma             : 0.99
   n_iters           : 1
   step_size         : 1.0
   lam               : 0.1

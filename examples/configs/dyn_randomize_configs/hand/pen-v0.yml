@@ -1,0 +1,6 @@
+body_mass:
+  Object: [0.0, 1.0]
+body_inertia:
+  Object: [0.0, 1.0]
+geom_friction:
+  pen: [0.0, 1.0]

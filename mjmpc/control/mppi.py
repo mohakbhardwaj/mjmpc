@@ -38,7 +38,8 @@ class MPPI(OLGaussianMPC):
                  sample_mode='mean',
                  batch_size=1,
                  filter_coeffs = [1., 0., 0.],
-                 seed=0):
+                 seed=0,
+                 use_zero_control_seq=False):
 
         super(MPPI, self).__init__(d_state,
                                    d_obs,
@@ -53,13 +54,14 @@ class MPPI(OLGaussianMPC):
                                    gamma,
                                    n_iters,
                                    step_size, 
-                                   filter_coeffs, 
+                                   filter_coeffs,
                                    set_sim_state_fn,
                                    rollout_fn,
                                    'diagonal',
                                    sample_mode,
                                    batch_size,
-                                   seed)
+                                   seed,
+                                   use_zero_control_seq)
         self.lam = lam
         self.alpha = alpha  # 0 means control cost is on, 1 means off
         self.time_based_weights = time_based_weights

@@ -40,15 +40,23 @@ if args.dyn_randomize_config is not None:
 else:
     dynamics_rand_params=None
 
+controller_name = args.controller
 #Create the main environment
 env_name  = exp_params['env_name']
+sim_env_name = exp_params['sim_env_name'] if 'sim_env_name' in exp_params else env_name
 env = gym.make(env_name)
 env = GymEnvWrapper(env)
 env.real_env_step(True)
 
+#Create logger
+date_time = datetime.now().strftime("%m_%d_%Y_%H_%M_%S")
+log_dir = args.save_dir + "/" + exp_params['env_name'] + "/" + date_time + "/" + controller_name
+if not os.path.exists(log_dir): os.makedirs(log_dir)
+logger = helpers.get_logger(controller_name + "_" + exp_params['env_name'], log_dir, 'debug')
+
 # Function to create vectorized environments for controller simulations
 def make_env():
-    gym_env = gym.make(env_name)
+    gym_env = gym.make(sim_env_name)
     rollout_env = GymEnvWrapper(gym_env)
     rollout_env.real_env_step(False)
     # if dynamics_rand_params is not None:
@@ -60,7 +68,6 @@ def make_env():
 
 
 #unpack params and create policy params
-controller_name = args.controller
 policy_params = exp_params[controller_name]
 policy_params['d_obs'] = env.d_obs
 policy_params['d_state'] = env.d_state
@@ -80,6 +87,8 @@ ep_length = exp_params['max_ep_length']
 sim_env = SubprocVecEnv([make_env for i in range(num_cpu)])  
 if dynamics_rand_params is not None:
     default_params, randomized_params = sim_env.randomize_dynamics(dynamics_rand_params, base_seed=exp_params['seed'])
+    logger.info('Default params = {}'.format(default_params))
+    logger.info('Randomized params = {}'.format(randomized_params))
 
 # def rollout_fn(act_vec: np.ndarray):
 #     """
@@ -126,11 +135,6 @@ def rollout_fn(num_particles, horizon, mean, noise, mode):
 policy_params.pop('particles_per_cpu', None)
 policy_params.pop('num_cpu', None)
 
-#Create logger
-date_time = datetime.now().strftime("%m_%d_%Y_%H_%M_%S")
-log_dir = args.save_dir + "/" + exp_params['env_name'] + "/" + date_time + "/" + controller_name
-if not os.path.exists(log_dir): os.makedirs(log_dir)
-logger = helpers.get_logger(controller_name + "_" + exp_params['env_name'], log_dir, 'debug')
 ep_rewards = np.array([0.] * n_episodes)
 trajectories = []
 logger.info(exp_params[controller_name])
@@ -141,7 +145,7 @@ for i in tqdm.tqdm(range(n_episodes)):
     #seeding to enforce consistent episodes
     episode_seed = base_seed + i*12345
     policy_params['seed'] = episode_seed
-    env.reset(seed=episode_seed)
+    obs = env.reset(seed=episode_seed)
     sim_env.reset()
 
     #create MPC policy and set appropriate functions

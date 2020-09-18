@@ -388,10 +388,10 @@ class GymEnvWrapper():
                     idx = self.env.env.sim.model.joint_name2id(name)
                     field = self.env.env.sim.model.dof_frictionloss
                 elif param_id == "geom_size":
-                    idx = self.env.env.sim.model.geom_name_2id(name)
+                    idx = self.env.env.sim.model.geom_name2id(name)
                     field = self.env.env.sim.model.geom_size           
                 elif param_id == "geom_friction":
-                    idx = self.env.env.sim.model.geom_name_2id(name)
+                    idx = self.env.env.sim.model.geom_name2id(name)
                     field = self.env.env.sim.model.geom_friction
                 else:
                     raise ValueError("Unknown dynamics field")

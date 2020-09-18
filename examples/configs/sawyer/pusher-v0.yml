@@ -3,7 +3,7 @@ n_episodes        : 10
 max_ep_length     : 100
 seed              : 123
 base_action       : 'null'
-render            : False
+render            : True
 exp_notes         : '7-DOF Sawyer arm pushing a puck to target locations'
 
 random_shooting:
@@ -17,7 +17,7 @@ random_shooting:
   particles_per_cpu : 4
 
 mppi:
-  horizon           : 16
+  horizon           : 32
   init_cov          : 0.1
   filter_coeffs     : [0.25, 0.8, 0.0]
   gamma             : 1.0
@@ -26,7 +26,10 @@ mppi:
   lam               : 0.1
   alpha             : 1
   num_cpu           : 8
-  particles_per_cpu : 4
+  particles_per_cpu : 5
+  base_action       : 'null'
+  sample_mode       : 'mean'
+  time_based_weights: False
 
 cem:
   horizon           : 16

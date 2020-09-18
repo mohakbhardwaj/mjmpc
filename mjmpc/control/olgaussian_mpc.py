@@ -28,7 +28,8 @@ class OLGaussianMPC(Controller):
                  cov_type='diagonal',
                  sample_mode='mean',
                  batch_size=1,
-                 seed=0):
+                 seed=0,
+                 use_zero_control_seq=False):
         """
         Parameters
         __________
@@ -63,6 +64,7 @@ class OLGaussianMPC(Controller):
         self.cov_action = np.diag(self.init_cov)
         self.step_size = step_size
         self.filter_coeffs = filter_coeffs
+        self.use_zero_control_seq = use_zero_control_seq
 
     def _get_next_action(self, state, mode='mean'):
         if mode == 'mean':
@@ -104,17 +106,10 @@ class OLGaussianMPC(Controller):
         
         self._set_sim_state_fn(copy.deepcopy(state)) #set state of simulation
         delta = self.sample_noise() #sample noise from covariance of current control distribution
-        # obs_seq, cost_seq, done_seq, info_seq = self._rollout_fn(act_seq)  # rollout function returns the costs 
-        # print(self._rollout_fn)
+        if self.use_zero_control_seq:
+            delta[-1,:] = -1.0 * self.mean_action.copy()
         trajectories = self._rollout_fn(self.num_particles, self.horizon, 
-                                        self.mean_action, delta, mode="open_loop")        
-        # trajectories = dict(
-        #     observations=obs_seq,
-        #     actions=act_seq,
-        #     costs=cost_seq,
-        #     dones=done_seq,
-        #     infos=helpers.stack_tensor_dict_list(info_seq)
-        # )
+                                        self.mean_action, delta, mode="open_loop")  
         return trajectories
     
     def _shift(self):
