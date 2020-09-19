@@ -27,7 +27,10 @@ mppi:
   lam               : 0.1
   alpha             : 1
   num_cpu           : 10
-  particles_per_cpu : 10
+  particles_per_cpu : 6
+  base_action       : 'null'
+  sample_mode       : 'mean'
+  time_based_weights: False
 
 cem:
   horizon           : 32
