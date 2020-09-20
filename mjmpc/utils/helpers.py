@@ -49,10 +49,17 @@ def dump_videos(env,
         env.reset()
         state = traj['states'][0]
         env.set_env_state(state)
-        for action in traj['actions']:
-            env.step(action)
+        # for action in traj['actions']:
+        #     env.step(action)
+        #     curr_frame = env.get_curr_frame(frame_size=frame_size, camera_name=camera_name, device_id=device_id)
+        #     arrs.append(curr_frame)
+        for state in traj['states']:
+            # env.step(action)
+            env.set_env_state(state)
             curr_frame = env.get_curr_frame(frame_size=frame_size, camera_name=camera_name, device_id=device_id)
             arrs.append(curr_frame)
+
+
 
     # for ep in range(num_episodes):
     #     print("Episode %d: rendering offline " % ep, end='', flush=True)

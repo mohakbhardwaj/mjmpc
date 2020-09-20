@@ -1,0 +1,98 @@
+env_name          : 'panda_tray_glass-v1'
+sim_env_name      : 'panda_tray_glass_fixed-v1'
+n_episodes        : 10
+max_ep_length     : 200
+seed              : 123
+render            : True
+job_mode          : 'sweep'
+exp_notes         : 'Balancing a glass on a tray'
+
+random_shooting:
+  horizon           : 16
+  init_cov          : 0.15
+  filter_coeffs     : [0.25, 0.8, 0.0]
+  gamma             : 0.99
+  n_iters           : 1
+  step_size         : 1.0
+  num_cpu           : 10
+  particles_per_cpu : 4
+  sample_mode       : 'mean'
+  base_action       : 'null'
+
+mppi:
+  horizon           : 32
+  init_cov          : 1.0
+  filter_coeffs     : [0.25, 0.8, 0.0]
+  gamma             : 0.99
+  n_iters           : 1
+  step_size         : 1.0
+  lam               : 0.1
+  alpha             : 1
+  num_cpu           : 10
+  particles_per_cpu : 10
+  sample_mode       : 'mean'
+  base_action       : 'null'
+  time_based_weights: False
+  use_zero_control_seq: True
+
+mppiq:
+  horizon           : 16
+  init_cov          : 0.25
+  filter_coeffs     : [0.25, 0.8, 0.0]
+  gamma             : 1.0
+  n_iters           : 1
+  step_size         : 1.0
+  beta              : 0.1
+  td_lam            : 1.0
+  alpha             : 1
+  num_cpu           : 10
+  particles_per_cpu : 4
+  sample_mode       : 'mean'
+  base_action       : 'null'
+
+
+cem:
+  horizon           : 16
+  init_cov          : 0.15
+  cov_type          : 'full'
+  beta              : 0.45
+  filter_coeffs     : [0.25, 0.8, 0.0]
+  gamma             : 1.0
+  n_iters           : 1
+  step_size         : 1.0
+  elite_frac        : 0.1
+  num_cpu           : 10
+  particles_per_cpu : 4
+  sample_mode       : 'mean'
+  base_action       : 'null'
+
+
+dmd:
+  horizon           : 16
+  init_cov          : 0.45
+  update_cov        : True
+  cov_type          : 'full'
+  beta              : 0.85
+  filter_coeffs     : [0.25, 0.8, 0.0]
+  gamma             : 1.0
+  n_iters           : 1
+  step_size         : 0.7
+  lam               : 0.1
+  num_cpu           : 10
+  particles_per_cpu : 4
+  sample_mode       : 'mean'
+  base_action       : 'null'
+
+
+pfmpc:
+  horizon           : 16
+  cov_shift         : 0.55
+  cov_resample      : 1.0
+  filter_coeffs     : [0.25, 0.8, 0.0]
+  gamma             : 1.0
+  n_iters           : 1
+  lam               : 0.2
+  num_cpu           : 10
+  particles_per_cpu : 4
+  sample_mode       : 'mean'
+  base_action       : 'null'

@@ -1,4 +1,4 @@
 body_mass:
-  Object: [0.0, -0.5]
+  Object: [0.0, -0.9]
 body_inertia:
   Object: [0.0, 0.0]
