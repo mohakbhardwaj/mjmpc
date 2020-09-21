@@ -209,12 +209,13 @@ if args.dump_vids:
                         folder=log_dir, filename='vid_traj_', camera_name=None,
                         device_id=1)
     
-    # #create a sim_env and dump video too
-    sim_env = gym.make(sim_env_name)
-    sim_env = GymEnvWrapper(sim_env)
-    helpers.dump_videos(env=sim_env, trajectories=trajectories, frame_size=(1280, 720), 
-                        folder=log_dir, filename='vid_sim_traj_', camera_name=None,
-                        device_id=1)
+    # # #create a sim_env and dump video too
+    if 'sim_env_name' in exp_params:
+        sim_env = gym.make(sim_env_name)
+        sim_env = GymEnvWrapper(sim_env)
+        helpers.dump_videos(env=sim_env, trajectories=trajectories, frame_size=(1280, 720), 
+                            folder=log_dir, filename='vid_sim_traj_', camera_name=None,
+                            device_id=1)
 
 if exp_params['render']:
     _ = input("Press enter to display optimized trajectories (will be played 3 times) : ")
