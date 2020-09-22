@@ -33,7 +33,7 @@ mppi:
   sample_mode       : 'mean'
   base_action       : 'null'
   time_based_weights: False
-  use_zero_control_seq: True
+  use_zero_control_seq: False
 
 mppiq:
   horizon           : 16
