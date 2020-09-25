@@ -1,0 +1,2 @@
+sensor_noise:
+  target_pos: [0.0, -1.0]

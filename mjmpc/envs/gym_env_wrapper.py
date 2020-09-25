@@ -393,6 +393,9 @@ class GymEnvWrapper():
                 elif param_id == "geom_friction":
                     idx = self.env.env.sim.model.geom_name2id(name)
                     field = self.env.env.sim.model.geom_friction
+                elif param_id == "sensor_noise":
+                    idx = self.env.env.sim.model.sensor_name2id(name)
+                    field = self.env.env.sim.model.sensor_noise
                 else:
                     raise ValueError("Unknown dynamics field")
                 

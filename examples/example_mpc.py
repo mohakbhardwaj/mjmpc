@@ -165,9 +165,7 @@ for i in tqdm.tqdm(range(n_episodes)):
     for _ in tqdm.tqdm(range(ep_length)):   
         curr_state = deepcopy(env.get_env_state())
         action, value = policy.get_action(curr_state, calc_val=False)
-        # input('...')
         obs, reward, done, info = env.step(action)
-        # input('...')
         observations.append(obs); actions.append(action)
         rewards.append(reward); dones.append(done)
         infos.append(info); states.append(curr_state)

@@ -1,5 +1,5 @@
 env_name          : 'sawyer_peg_insertion-v1'
-sim_env_name      : 'sawyer_peg_insertion-v0'
+# sim_env_name      : 'sawyer_peg_insertion-v0'
 n_episodes        : 10
 max_ep_length     : 75
 seed              : 123 #testing: 0, tuning: 123

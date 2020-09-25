@@ -1,5 +1,5 @@
 env_name          : 'panda_tray_glass-v1'
-n_episodes        : 3
+n_episodes        : 5
 max_ep_length     : 200
 seed              : 999
 render            : True
