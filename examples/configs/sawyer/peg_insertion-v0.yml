@@ -18,9 +18,8 @@ random_shooting:
   sample_mode       : 'mean'
   base_action       : 'null'
 
-
 mppi:
-  horizon           : 20
+  horizon           : 32
   init_cov          : 0.25
   filter_coeffs     : [0.25, 0.8, 0.0]
   gamma             : 0.99
@@ -28,11 +27,28 @@ mppi:
   step_size         : 1.0
   lam               : 0.15
   alpha             : 1
-  num_cpu           : 10
-  particles_per_cpu : 12 #4 #10 #12 #6
+  num_cpu           : 16
+  particles_per_cpu : 10 #4 #10 #12 #6
   sample_mode       : 'mean'
   base_action       : 'null'
   time_based_weights: False
+
+
+
+# mppi:
+#   horizon           : 20
+#   init_cov          : 0.25
+#   filter_coeffs     : [0.25, 0.8, 0.0]
+#   gamma             : 0.99
+#   n_iters           : 1
+#   step_size         : 1.0
+#   lam               : 0.15
+#   alpha             : 1
+#   num_cpu           : 10
+#   particles_per_cpu : 12 #4 #10 #12 #6
+#   sample_mode       : 'mean'
+#   base_action       : 'null'
+#   time_based_weights: False
 
 # mppi:
 #   horizon           : 16
