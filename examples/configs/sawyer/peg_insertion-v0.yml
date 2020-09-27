@@ -1,7 +1,7 @@
 env_name          : 'sawyer_peg_insertion-v0'
-n_episodes        : 10
+n_episodes        : 30
 max_ep_length     : 75
-seed              : 123 #testing: 0, tuning: 123
+seed              : 999 #testing: 0, tuning: 123
 render            : True
 job_mode          : 'sweep'
 exp_notes         : '7-DOF Sawyer arm inserting peg in a hole at different locations'
