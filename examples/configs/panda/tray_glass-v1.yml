@@ -1,6 +1,6 @@
 env_name          : 'panda_tray_glass-v1'
 n_episodes        : 5
-max_ep_length     : 200
+max_ep_length     : 75 #200
 seed              : 999
 render            : True
 job_mode          : 'sweep'
@@ -20,7 +20,7 @@ random_shooting:
 
 mppi:
   horizon           : 32
-  init_cov          : 1.0
+  init_cov          : 0.3 #0.1 #0.3 #1.0
   filter_coeffs     : [0.25, 0.8, 0.0]
   gamma             : 0.99
   n_iters           : 1
@@ -33,6 +33,22 @@ mppi:
   base_action       : 'null'
   time_based_weights: False
   use_zero_control_seq: False
+
+# mppi:
+#   horizon           : 32
+#   init_cov          : 1.0
+#   filter_coeffs     : [0.25, 0.8, 0.0]
+#   gamma             : 0.99
+#   n_iters           : 1
+#   step_size         : 1.0
+#   lam               : 0.1
+#   alpha             : 1
+#   num_cpu           : 10
+#   particles_per_cpu : 10
+#   sample_mode       : 'mean'
+#   base_action       : 'null'
+#   time_based_weights: False
+#   use_zero_control_seq: False
 
 mppiq:
   horizon           : 32

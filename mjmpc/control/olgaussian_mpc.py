@@ -105,6 +105,7 @@ class OLGaussianMPC(Controller):
          """
         
         self._set_sim_state_fn(copy.deepcopy(state)) #set state of simulation
+        # input('....')
         delta = self.sample_noise() #sample noise from covariance of current control distribution
         if self.use_zero_control_seq:
             delta[-1,:] = -1.0 * self.mean_action.copy()

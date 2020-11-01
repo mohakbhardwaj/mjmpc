@@ -1,7 +1,7 @@
 env_name          : 'panda_tray_glass-v1'
 sim_env_name      : 'panda_tray_glass_fixed-v1'
-n_episodes        : 30
-max_ep_length     : 200
+n_episodes        : 20
+max_ep_length     : 75 #200
 seed              : 999
 render            : True
 job_mode          : 'sweep'
@@ -21,7 +21,7 @@ random_shooting:
 
 mppi:
   horizon           : 32
-  init_cov          : 1.0
+  init_cov          : 0.3 #1.0
   filter_coeffs     : [0.25, 0.8, 0.0]
   gamma             : 0.99
   n_iters           : 1
