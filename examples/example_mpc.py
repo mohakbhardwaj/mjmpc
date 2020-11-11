@@ -170,8 +170,8 @@ for i in tqdm.tqdm(range(n_episodes)):
         rewards.append(reward); dones.append(done)
         infos.append(info); states.append(curr_state)
         ep_rewards[i] += reward
-        if done:
-            break
+        # if done:
+        #     break
     
     traj = dict(
         observations=np.array(observations),

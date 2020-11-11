@@ -1,0 +1,8 @@
+body_mass:
+  object: [0.0, 10.0]
+body_inertia:
+  object: [0.0, 10.0]
+geom_friction:
+  # obj_sphere: [0.0, 10.0]
+  obj_cylinder: [0.0, 10.0]
+  table: [0.0, 10.0]

@@ -1,12 +1,25 @@
+# body_mass:
+#   cart: [0.3, 0.0]
+#   pole: [0.3, 0.0]
+# body_inertia:
+#   cart: [0.1, 0.1]
+#   pole: [0.1, 0.1]
+# dof_damping:
+#   slider: [0.1, 0.1]
+#   hinge: [0.1, 0.1]
+# dof_frictionloss:
+#   slider: [0.01, 0.01]
+#   hinge: [0.01, 0.01]
+
 body_mass:
-  cart: [0.3, 0.0]
-  pole: [0.3, 0.0]
+  cart: [0.0, -0.5]
+  pole: [0.0, -0.5]
 body_inertia:
-  cart: [0.1, 0.1]
-  pole: [0.1, 0.1]
+  cart: [0.0, 0.0]
+  pole: [0.0, 0.0]
 dof_damping:
-  slider: [0.1, 0.1]
-  hinge: [0.1, 0.1]
+  slider: [0.0, 0.0]
+  hinge: [0.0, 0.0]
 dof_frictionloss:
-  slider: [0.01, 0.01]
-  hinge: [0.01, 0.01]
+  slider: [0.0, 0.0]
+  hinge: [0.0, 0.0]
