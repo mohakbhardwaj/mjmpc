@@ -28,6 +28,9 @@ mppi:
   alpha             : 1
   num_cpu           : 8
   particles_per_cpu : 4
+  base_action       : 'null'
+  time_based_weights: False
+  use_zero_control_seq: True
 
 cem:
   horizon           : 16

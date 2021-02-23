@@ -14,8 +14,9 @@ register(
 )
 
 register(
-    id='HalfCheetah-v0',
+    id='half_cheetah-v0',
     entry_point='mjmpc.envs.basic.half_cheetah:HalfCheetahEnv',
+    max_episode_steps=1000
 )
 
 register(
@@ -34,6 +35,18 @@ register(
     id='continual_maze-v0',
     entry_point='mjmpc.envs.basic.maze_env:ContinualParticleMaze',
     max_episode_steps=200,
+)
+
+register(
+    id='humanoid-v0',
+    entry_point='mjmpc.envs.basic.humanoid:HumanoidEnv',
+    max_episode_steps=1000
+)
+
+register(
+    id='point-v0',
+    entry_point='mjmpc.envs.basic.point:PointEnv',
+    max_episode_steps=500
 )
 
 
