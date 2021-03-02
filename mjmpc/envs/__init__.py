@@ -49,6 +49,18 @@ register(
     max_episode_steps=500
 )
 
+register(
+    id='hopper-v0',
+    entry_point='mjmpc.envs.basic.hopper:HopperEnv',
+    max_episode_steps=1000
+)
+
+register(
+    id='walker-v0',
+    entry_point='mjmpc.envs.basic.walker2d:Walker2dEnv',
+    max_episode_steps=1000
+)
+
 
 # from mjrl.envs.mujoco_env import MujocoEnv
 # ^^^^^ so that user gets the correct error
