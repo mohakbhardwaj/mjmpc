@@ -1,0 +1,22 @@
+env_name: 'hopper-v0'
+n_episodes: 3 #10
+max_ep_length: 1000
+seed: 123
+base_action: 'null'
+render: True
+
+mppi:
+  horizon           : 32
+  init_cov          : 2 #1.0
+  filter_coeffs     : [0.25, 0.8, 0.0]
+  gamma             : 1.0
+  n_iters           : 1
+  step_size         : 1.0
+  lam               : 0.2
+  alpha             : 1
+  num_cpu           : 8
+  particles_per_cpu : 8
+  base_action       : 'null'
+  time_based_weights: False
+  use_zero_control_seq: True
+
