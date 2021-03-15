@@ -3,8 +3,8 @@ from gym import utils
 from .mujoco import MujocoEnv
 
 class HopperEnv(MujocoEnv, utils.EzPickle):
-    def __init__(self):
-        MujocoEnv.__init__(self, 'hopper.xml', 4)
+    def __init__(self, asset_path='hopper.xml'):
+        MujocoEnv.__init__(self, asset_path, 4)
         utils.EzPickle.__init__(self)
 
     def step(self, a):
@@ -17,10 +17,10 @@ class HopperEnv(MujocoEnv, utils.EzPickle):
         #reward -= 1e-3 * np.square(a).sum()
         s = self.state_vector()
         done = not (np.isfinite(s).all() and (np.abs(s[2:]) < 100).all() and
-                    (height > .7) and (abs(ang) < .2))
+                    (height > .65) and (abs(ang) < .15))
         reward = -1000. if done else 0.
         ob = self.get_obs()
-        return ob, reward, done, {}
+        return ob, reward, done, dict(cost=float(done))
 
     def get_obs(self):
         return np.concatenate([
