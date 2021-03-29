@@ -4,8 +4,8 @@ from .mujoco import MujocoEnv
 
 class Walker2dEnv(MujocoEnv, utils.EzPickle):
 
-    def __init__(self):
-        MujocoEnv.__init__(self, "walker2d.xml", 4)
+    def __init__(self, asset_path="walker2d.xml"):
+        MujocoEnv.__init__(self, asset_path, 4)
         utils.EzPickle.__init__(self)
 
     def step(self, a):
@@ -20,7 +20,7 @@ class Walker2dEnv(MujocoEnv, utils.EzPickle):
                     ang > -1.0 and ang < 1.0)
         reward = -1000. if done else 0.
         ob = self.get_obs()
-        return ob, reward, done, {}
+        return ob, reward, done, dict(height=height, ang=ang)
 
     def get_obs(self):
         qpos = self.sim.data.qpos
