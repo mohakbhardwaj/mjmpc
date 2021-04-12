@@ -1,5 +1,17 @@
 # mjmpc
-A collection of sampling based Model Predictive Control algorithms
+A collection of sampling based Model Predictive Control algorithms. 
+
+If you use this repository as part of your research please cite the following publication::
+
+@inproceedings{
+bhardwaj2021blending,
+title={Blending {\{}MPC{\}} {\&} Value Function Approximation for Efficient Reinforcement Learning},
+author={Mohak Bhardwaj and Sanjiban Choudhury and Byron Boots},
+booktitle={International Conference on Learning Representations},
+year={2021},
+url={https://openreview.net/forum?id=RqCC_00Bg7V}
+}
+
 
 ## Installation
 You first need to download MuJoCO and obtain a licence key from [here](https://www.roboti.us/index.html)
@@ -156,3 +168,5 @@ These parameters are currently manually tuned.
 2. Environment render function must have functionality to save frames/videos and work for batch size > 1
 3. <span style="color:red">Implement rollout function for mujoco_env in Cython.</span>
 4. ~~<span style="color:red"> Grid search for tuning controller hyperparameters.</span>~~
+
+
