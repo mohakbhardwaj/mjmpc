@@ -2,7 +2,7 @@
 A collection of sampling based Model Predictive Control algorithms. 
 
 If you use this repository as part of your research please cite the following publication::
-
+```
 @inproceedings{
 bhardwaj2021blending,
 title={Blending {\{}MPC{\}} {\&} Value Function Approximation for Efficient Reinforcement Learning},
@@ -11,7 +11,7 @@ booktitle={International Conference on Learning Representations},
 year={2021},
 url={https://openreview.net/forum?id=RqCC_00Bg7V}
 }
-
+```
 
 ## Installation
 You first need to download MuJoCO and obtain a licence key from [here](https://www.roboti.us/index.html)
