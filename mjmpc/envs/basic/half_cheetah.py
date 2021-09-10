@@ -20,25 +20,6 @@ class HalfCheetahEnv(mujoco_env.MujocoEnv, utils.EzPickle):
             reward_fail, done = 0., False
         return ob, reward_fail, done, dict(height=height)
 
-        #reward_ctrl = - 0.3 * np.square(action).sum()
-        #reward_run = (xposafter - xposbefore)/self.dt
-        #if height <= 0.45 or height >= 0.95:
-        #    reward_fail, done = -1000., True
-        #else:
-        #    reward_fail, done = 0., False
-        #reward = reward_ctrl + reward_run + reward_fail
-        #return ob, reward, done, dict(reward_run=reward_run, reward_ctrl=reward_ctrl,
-        #                              reward_fail=reward_fail, height=height)
-
-        #reward_stay = -abs((xposafter-xposbefore)/self.dt)
-        #if height <= 0.45 or height >= 0.95:
-        #    reward_fail, done = -1000., True
-        #else:
-        #    reward_fail, done = 0., False
-        #reward = reward_stay + reward_fail
-        #return ob, reward, done, dict(reward_stay=reward_stay, reward_fail=reward_fail,
-        #                              height=height)
-
     def get_obs(self):
         return np.concatenate([
             self.sim.data.qpos.flat[1:],
