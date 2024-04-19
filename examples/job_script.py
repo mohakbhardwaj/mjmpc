@@ -13,6 +13,7 @@ import tqdm
 import yaml
 
 import mj_envs
+import mjrl.envs
 from mjmpc.envs import GymEnvWrapper
 # from mjmpc.envs.gym_env_wrapper_cy import GymEnvWrapperCy
 # from mjmpc.envs import make_wrapper

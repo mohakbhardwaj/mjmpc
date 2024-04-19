@@ -1,4 +1,4 @@
-env_name          : 'sawyer_pusher-v0'
+env_name          : 'pusher-v0'
 n_episodes        : 10
 max_ep_length     : 100
 seed              : 123
